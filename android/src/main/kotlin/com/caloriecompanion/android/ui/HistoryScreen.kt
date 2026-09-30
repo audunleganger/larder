@@ -18,7 +18,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -58,16 +62,23 @@ private fun Chart(points: List<Point>, showAverage: Boolean, description: String
     val targetColor = MaterialTheme.colorScheme.onSurfaceVariant
     val gridColor = MaterialTheme.colorScheme.outlineVariant
     val top = points.maxOfOrNull { maxOf(it.amount ?: 0.0, it.max ?: 0.0, it.min ?: 0.0) }?.takeIf { it > 0 } ?: 1.0
+    val measurer = rememberTextMeasurer()
+    val labelStyle = TextStyle(color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = MaterialTheme.typography.labelSmall.fontSize)
     Canvas(Modifier.fillMaxWidth().height(220.dp).semantics { contentDescription = description }) {
+        // Left margin for the value labels; the plot area is to the right of it.
+        val pad = 44.dp.toPx()
+        val plotWidth = size.width - pad
         val scaleY = size.height / (top * 1.1).toFloat()
-        val slot = size.width / points.size
+        val slot = plotWidth / points.size
         val barWidth = (slot * 0.7f).coerceAtMost(28.dp.toPx())
-        for (i in 1..3) {
+        for (i in 0..3) {
             val y = size.height - size.height * i / 4
-            drawLine(gridColor, Offset(0f, y), Offset(size.width, y), 1f)
+            drawLine(gridColor, Offset(pad, y), Offset(size.width, y), 1f)
+            val label = measurer.measure(Format.number(top * 1.1 * i / 4, 0), labelStyle)
+            drawText(label, topLeft = Offset(pad - label.size.width - 4.dp.toPx(), (y - label.size.height / 2).coerceIn(0f, size.height - label.size.height)))
         }
         points.forEachIndexed { i, p ->
-            val cx = slot * i + slot / 2
+            val cx = pad + slot * i + slot / 2
             p.amount?.let {
                 val h = (it * scaleY).toFloat()
                 drawRoundRect(barColor, Offset(cx - barWidth / 2, size.height - h), Size(barWidth, h), CornerRadius(4.dp.toPx(), 4.dp.toPx()))
@@ -82,7 +93,7 @@ private fun Chart(points: List<Point>, showAverage: Boolean, description: String
             var started = false
             points.forEachIndexed { i, p ->
                 val avg = p.average ?: return@forEachIndexed
-                val x = slot * i + slot / 2
+                val x = pad + slot * i + slot / 2
                 val y = size.height - (avg * scaleY).toFloat()
                 if (started) path.lineTo(x, y) else path.moveTo(x, y).also { started = true }
             }
@@ -116,13 +127,13 @@ fun HistoryScreen() {
                 Muted(pluralStringResource(R.plurals.history_logged_days, logged, logged, view.days.size))
                 if (selected != null && logged > 0) {
                     SectionCard(selected.name) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                             Text("■ " + stringResource(R.string.history_daily), color = StatusColors.series1Light, style = MaterialTheme.typography.labelMedium)
                             FilterChip(selected = showAverage, onClick = { showAverage = !showAverage }, label = { Text("— " + stringResource(R.string.history_average7)) })
                             Text("– " + stringResource(R.string.history_target), style = MaterialTheme.typography.labelMedium)
                         }
                         Chart(series(view, selected.id), showAverage, stringResource(R.string.history_chart_label, selected.name))
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Row(Modifier.fillMaxWidth().padding(start = 44.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                             Muted(Format.date(view.from))
                             Muted(Format.date(view.to))
                         }
@@ -136,10 +147,8 @@ fun HistoryScreen() {
                                 Text(n.name, fontWeight = FontWeight.SemiBold)
                                 Text(stringResource(R.string.history_avg_per_day, Format.amount(s.average, n)))
                             }
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Muted(stringResource(R.string.history_range, Format.amount(s.min, n), Format.amount(s.max, n)))
-                                if (s.daysWithTarget > 0) Muted(stringResource(R.string.history_within_target, s.daysWithinTarget, s.daysWithTarget))
-                            }
+                            Muted(stringResource(R.string.history_range, Format.amount(s.min, n), Format.amount(s.max, n)))
+                            if (s.daysWithTarget > 0) Muted(stringResource(R.string.history_within_target, s.daysWithinTarget, s.daysWithTarget))
                         }
                     }
                     Muted(stringResource(R.string.history_summary_hint))

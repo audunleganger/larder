@@ -266,7 +266,7 @@ export function FoodDetailPage() {
               subtitle={<Link to="/foods">← {t('foods.title')}</Link>}
             />
             {units.data && nutrients.data && (
-              <FoodEditor key={JSON.stringify(data.food)} detail={data} units={units.data} nutrients={nutrients.data} />
+              <FoodEditor key={data.food.id} detail={data} units={units.data} nutrients={nutrients.data} />
             )}
             <Card title={t('foods.entries')}>
               <EntriesByDate detail={data} />

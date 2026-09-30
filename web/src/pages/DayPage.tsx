@@ -116,7 +116,8 @@ function Totals({ day, nutrients }: { day: DayView; nutrients: Map<number, Nutri
                   </div>
                 </>
               )}
-              {total.missingCount > 0 && day.entries.length > 0 && (
+              {/* Unresolved entries are explained above; only mention other missing values. */}
+              {total.missingCount > unresolved && (
                 <p className="total-missing">{noData ? t('day.noData') : t('day.missingData', { count: total.missingCount })}</p>
               )}
             </li>

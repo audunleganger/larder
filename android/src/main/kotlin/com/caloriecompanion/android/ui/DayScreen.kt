@@ -87,7 +87,7 @@ fun targetText(total: NutrientTotal, nutrient: NutrientDto): String {
 }
 
 @Composable
-private fun TotalRow(total: NutrientTotal, nutrient: NutrientDto, entryCount: Int) {
+private fun TotalRow(total: NutrientTotal, nutrient: NutrientDto, entryCount: Int, unresolvedCount: Int) {
     val noData = entryCount > 0 && total.missingCount == entryCount
     Column(Modifier.fillMaxWidth().padding(start = if (nutrient.parentId != null) 16.dp else 0.dp, top = 4.dp, bottom = 4.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -111,7 +111,8 @@ private fun TotalRow(total: NutrientTotal, nutrient: NutrientDto, entryCount: In
                 Muted(stringResource(R.string.day_target, targetText(total, nutrient)))
             }
         }
-        if (total.missingCount > 0 && entryCount > 0) {
+        // Unresolved entries are already explained above the totals; only mention other missing values.
+        if (total.missingCount > unresolvedCount) {
             Muted(if (noData) stringResource(R.string.day_no_data) else pluralStringResource(R.plurals.day_missing_data, total.missingCount, total.missingCount))
         }
     }
@@ -163,18 +164,6 @@ fun DayScreen(date: LocalDate, nav: Navigator) {
                     if (date != today) TextButton(onClick = { nav.tab(Dest.Day(today)) }) { Text(stringResource(R.string.day_today)) }
                 }
             }
-            item {
-                Loadable(day) { data: DayView ->
-                    SectionCard(stringResource(R.string.day_totals)) {
-                        val unresolved = data.entries.count { it.unresolved }
-                        if (unresolved > 0) {
-                            Text("⚠ " + pluralStringResource(R.plurals.day_unresolved, unresolved, unresolved), color = MaterialTheme.colorScheme.tertiary)
-                        }
-                        data.totals.forEach { total -> byId[total.nutrientId]?.let { TotalRow(total, it, data.entries.size) } }
-                        TextButton(onClick = { nav.tab(Dest.Targets) }) { Text(stringResource(R.string.day_edit_targets)) }
-                    }
-                }
-            }
             val entries = (day.first as? LoadState.Loaded)?.data?.entries
             if (entries != null) {
                 item { Text(stringResource(R.string.day_entries), style = MaterialTheme.typography.titleMedium) }
@@ -184,6 +173,18 @@ fun DayScreen(date: LocalDate, nav: Navigator) {
                 items(entries, key = { it.id }) { entry ->
                     EntryRow(entry, byId) { nav.push(Dest.EntryEdit(date, entry.id)) }
                     HorizontalDivider(color = Color.Transparent)
+                }
+            }
+            item {
+                Loadable(day) { data: DayView ->
+                    SectionCard(stringResource(R.string.day_totals)) {
+                        val unresolved = data.entries.count { it.unresolved }
+                        if (unresolved > 0) {
+                            Text("⚠ " + pluralStringResource(R.plurals.day_unresolved, unresolved, unresolved), color = MaterialTheme.colorScheme.tertiary)
+                        }
+                        data.totals.forEach { total -> byId[total.nutrientId]?.let { TotalRow(total, it, data.entries.size, unresolved) } }
+                        TextButton(onClick = { nav.tab(Dest.Targets) }) { Text(stringResource(R.string.day_edit_targets)) }
+                    }
                 }
             }
         }

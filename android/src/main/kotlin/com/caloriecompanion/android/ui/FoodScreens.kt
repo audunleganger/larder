@@ -249,8 +249,7 @@ fun FoodEditorScreen(id: Long, nav: Navigator) {
                 val u = (units.first as? LoadState.Loaded)?.data
                 val n = (nutrients.first as? LoadState.Loaded)?.data
                 if (u != null && n != null) {
-                    // Re-create the form when the saved food changes, so it shows what was stored.
-                    androidx.compose.runtime.key(data.food) { FoodForm(data, u, n, nav) }
+                    androidx.compose.runtime.key(data.food.id) { FoodForm(data, u, n, nav) }
                 }
             }
         }
