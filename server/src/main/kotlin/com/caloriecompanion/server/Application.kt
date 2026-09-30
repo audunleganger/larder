@@ -36,7 +36,11 @@ fun main() {
     val config = ServerConfig.fromEnv()
     embeddedServer(Netty, host = config.host, port = config.port) {
         module(config)
-    }.start(wait = true)
+    }.start(wait = false)
+    // Keep running until the JVM shuts down (SIGTERM/SIGINT). Ktor's shutdown hook then stops the
+    // server exactly once; with start(wait = true) the main thread stopped it concurrently with the
+    // hook, which could leave the process hanging on shutdown.
+    Thread.currentThread().join()
 }
 
 fun Application.module(config: ServerConfig) {
