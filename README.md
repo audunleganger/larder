@@ -51,6 +51,7 @@ cd web && npm install
 npm run dev                     # web GUI on http://localhost:5173, proxies /api to :8080
 npm test                        # unit tests (vitest)
 npm run lint
+npm run e2e                     # browser walkthrough against a fresh server (needs Chromium; CHROMIUM_PATH to override)
 
 ./gradlew :android:assembleDebug   # android/build/outputs/apk/debug/android-debug.apk
 ```
@@ -111,6 +112,20 @@ Errors are JSON: `{"error": "NAME_TAKEN", "message": "...", "details": {}}`.
 | `GET/POST /api/v1/targets`, `DELETE /targets/{id}` | Versioned daily targets |
 | `GET /api/v1/history?from=&to=` | Per-day totals and summary |
 | `GET /api/v1/export`, `POST /api/v1/import?onConflict=skip\|overwrite` | Portable JSON export/import |
+
+## Android app
+
+On first launch the app asks how to run:
+
+- **Use on this device** — everything is stored in an on-device database (no account). The same
+  calculation code as the server runs on the phone.
+- **Connect to a server** — enter the server address (e.g. `http://192.168.1.10:8080`, or
+  `http://10.0.2.2:8080` from the Android emulator) and your username and password. Server mode is
+  online-only.
+
+**More → Settings** switches mode (data is not moved; use **Export**/**Import** to move it), changes the
+password in server mode, and exports/imports JSON files through the system file picker. The language
+follows the phone; Android 13+ also lets you pick it per app.
 
 ## Android release APK
 
