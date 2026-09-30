@@ -25,12 +25,15 @@ class Auth(private val config: ServerConfig, private val now: () -> Long = Syste
         if (password.length < MIN_PASSWORD_LENGTH) {
             throw AppException(ErrorCodes.WEAK_PASSWORD, "Password must be at least $MIN_PASSWORD_LENGTH characters")
         }
-        if (password.length > 72) throw AppException(ErrorCodes.WEAK_PASSWORD, "Password must be at most 72 characters")
+        // bcrypt only uses the first 72 bytes; longer (e.g. multi-byte) passwords are rejected up front.
+        if (password.toByteArray().size > MAX_PASSWORD_BYTES) {
+            throw AppException(ErrorCodes.WEAK_PASSWORD, "Password is too long (at most $MAX_PASSWORD_BYTES bytes)")
+        }
         return BCrypt.withDefaults().hashToString(config.bcryptCost, password.toCharArray())
     }
 
     fun verifyPassword(password: String, hash: String?): Boolean =
-        hash != null && BCrypt.verifyer().verify(password.toCharArray(), hash).verified
+        hash != null && password.toByteArray().size <= MAX_PASSWORD_BYTES && BCrypt.verifyer().verify(password.toCharArray(), hash).verified
 
     /** Creates a user and seeds their catalog. */
     fun createUser(db: CalorieCompanionDatabase, username: String, password: String, isAdmin: Boolean, locale: String?): App_user =
@@ -88,6 +91,7 @@ class Auth(private val config: ServerConfig, private val now: () -> Long = Syste
 
     companion object {
         const val MIN_PASSWORD_LENGTH = 8
+        const val MAX_PASSWORD_BYTES = 72
 
         fun cleanUsername(username: String): String {
             val name = username.trim()

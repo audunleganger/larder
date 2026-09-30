@@ -82,6 +82,18 @@ class ApiTest {
     }
 
     @Test
+    fun `long multi-byte passwords are rejected cleanly, not with a 500`() = testApplication {
+        val client = jsonClient()
+        val long = "æøå".repeat(20) // 60 characters, 120 bytes
+        val setup = client.post("/api/v1/setup") { json(SetupInput("admin", long)) }
+        assertEquals(HttpStatusCode.BadRequest, setup.status)
+        assertEquals(ErrorCodes.WEAK_PASSWORD, setup.error().error)
+        client.setup()
+        val login = client.post("/api/v1/auth/login") { json(LoginInput("admin", long)) }
+        assertEquals(HttpStatusCode.Unauthorized, login.status)
+    }
+
+    @Test
     fun `endpoints require a session`() = testApplication {
         val client = jsonClient()
         client.setup()
