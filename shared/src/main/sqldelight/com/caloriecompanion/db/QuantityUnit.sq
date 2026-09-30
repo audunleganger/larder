@@ -11,3 +11,32 @@ CREATE TABLE quantity_unit (
     archived INTEGER AS Boolean NOT NULL DEFAULT 0,
     UNIQUE (user_id, name_norm)
 );
+
+selectUnits:
+SELECT * FROM quantity_unit WHERE user_id = ? ORDER BY name_norm;
+
+selectUnitByNorm:
+SELECT * FROM quantity_unit WHERE user_id = ? AND name_norm = ?;
+
+insertUnit:
+INSERT INTO quantity_unit(user_id, name, name_norm, kind, base_factor, archived) VALUES (?, ?, ?, ?, ?, ?);
+
+updateUnit:
+UPDATE quantity_unit SET name = ?, name_norm = ?, kind = ?, base_factor = ? WHERE id = ? AND user_id = ?;
+
+setUnitArchived:
+UPDATE quantity_unit SET archived = ? WHERE id = ? AND user_id = ?;
+
+deleteUnit:
+DELETE FROM quantity_unit WHERE id = ? AND user_id = ?;
+
+countUnitEntryRefs:
+SELECT count(*) FROM entry WHERE unit_id = :unitId;
+
+countUnitFoodRefs:
+SELECT count(DISTINCT f.id) FROM food f
+LEFT JOIN food_unit fu ON fu.food_id = f.id
+WHERE f.ref_unit_id = :unitId OR fu.unit_id = :unitId OR fu.equals_unit_id = :unitId;
+
+selectUnitDates:
+SELECT DISTINCT local_date FROM entry WHERE user_id = ? AND unit_id = ? ORDER BY local_date DESC;

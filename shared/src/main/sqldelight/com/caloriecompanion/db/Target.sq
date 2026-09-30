@@ -8,3 +8,12 @@ CREATE TABLE target (
     effective_from TEXT NOT NULL,
     UNIQUE (user_id, nutrient_id, effective_from)
 );
+
+selectTargets:
+SELECT * FROM target WHERE user_id = ? ORDER BY nutrient_id, effective_from;
+
+upsertTarget:
+INSERT OR REPLACE INTO target(user_id, nutrient_id, min_amount, max_amount, effective_from) VALUES (?, ?, ?, ?, ?);
+
+deleteTarget:
+DELETE FROM target WHERE id = ? AND user_id = ?;

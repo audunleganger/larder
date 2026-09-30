@@ -17,7 +17,7 @@ class HealthTest {
     @Test
     fun `health endpoint reports version`() = testApplication {
         val dataDir = Files.createTempDirectory("cc-test")
-        application { module(ServerConfig(host = "localhost", port = 0, dataDir = dataDir, webDir = null)) }
+        application { module(ServerConfig(dataDir = dataDir, bcryptCost = 4)) }
         val client = createClient { install(ContentNegotiation) { json() } }
 
         val response = client.get("/api/health")
@@ -30,7 +30,7 @@ class HealthTest {
     fun `unknown api paths 404 even when the web GUI is served`() = testApplication {
         val dataDir = Files.createTempDirectory("cc-test")
         val webDir = Files.createTempDirectory("cc-web").also { it.resolve("index.html").writeText("<html></html>") }
-        application { module(ServerConfig(host = "localhost", port = 0, dataDir = dataDir, webDir = webDir)) }
+        application { module(ServerConfig(dataDir = dataDir, webDir = webDir, bcryptCost = 4)) }
 
         assertEquals(HttpStatusCode.NotFound, client.get("/api/nope").status)
         assertEquals(HttpStatusCode.OK, client.get("/some/client/route").status)

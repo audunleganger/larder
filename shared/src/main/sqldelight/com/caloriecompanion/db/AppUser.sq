@@ -13,3 +13,37 @@ CREATE TABLE app_user (
 
 countUsers:
 SELECT count(*) FROM app_user;
+
+countActiveAdmins:
+SELECT count(*) FROM app_user WHERE is_admin = 1 AND is_disabled = 0;
+
+insertUser:
+INSERT INTO app_user(username, password_hash, is_admin, is_disabled, locale, created_at)
+VALUES (?, ?, ?, 0, ?, ?);
+
+lastInsertRowId:
+SELECT last_insert_rowid();
+
+selectById:
+SELECT * FROM app_user WHERE id = ?;
+
+selectByUsername:
+SELECT * FROM app_user WHERE username = ?;
+
+selectAll:
+SELECT * FROM app_user ORDER BY username;
+
+selectFirst:
+SELECT * FROM app_user ORDER BY id LIMIT 1;
+
+updatePassword:
+UPDATE app_user SET password_hash = ? WHERE id = ?;
+
+updateLocale:
+UPDATE app_user SET locale = ? WHERE id = ?;
+
+updateAdmin:
+UPDATE app_user SET is_admin = ? WHERE id = ?;
+
+updateDisabled:
+UPDATE app_user SET is_disabled = ? WHERE id = ?;

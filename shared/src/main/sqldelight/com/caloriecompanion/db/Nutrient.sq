@@ -12,3 +12,35 @@ CREATE TABLE nutrient (
     archived INTEGER AS Boolean NOT NULL DEFAULT 0,
     UNIQUE (user_id, name_norm)
 );
+
+selectNutrients:
+SELECT * FROM nutrient WHERE user_id = ? ORDER BY sort_order, id;
+
+selectNutrientByNorm:
+SELECT * FROM nutrient WHERE user_id = ? AND name_norm = ?;
+
+insertNutrient:
+INSERT INTO nutrient(user_id, name, name_norm, measure_unit, display_precision, sort_order, parent_id, archived)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+updateNutrient:
+UPDATE nutrient SET name = ?, name_norm = ?, measure_unit = ?, display_precision = ?, parent_id = ?
+WHERE id = ? AND user_id = ?;
+
+setNutrientSortOrder:
+UPDATE nutrient SET sort_order = ? WHERE id = ? AND user_id = ?;
+
+maxNutrientSortOrder:
+SELECT max(sort_order) FROM nutrient WHERE user_id = ?;
+
+setNutrientArchived:
+UPDATE nutrient SET archived = ? WHERE id = ? AND user_id = ?;
+
+deleteNutrient:
+DELETE FROM nutrient WHERE id = ? AND user_id = ?;
+
+countNutrientFoodRefs:
+SELECT count(*) FROM food_nutrient WHERE nutrient_id = ?;
+
+countNutrientTargetRefs:
+SELECT count(*) FROM target WHERE nutrient_id = ?;

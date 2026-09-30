@@ -1,4 +1,4 @@
--- Local date/time without timezone (E-6): local_date 'YYYY-MM-DD', local_time 'HH:MM[:SS]'.
+-- Local date/time without timezone (E-6): local_date 'YYYY-MM-DD', local_time 'HH:MM'.
 CREATE TABLE entry (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
@@ -14,3 +14,41 @@ CREATE TABLE entry (
 
 CREATE INDEX entry_user_date ON entry(user_id, local_date);
 CREATE INDEX entry_food ON entry(food_id);
+CREATE INDEX entry_unit ON entry(unit_id);
+
+insertEntry:
+INSERT INTO entry(user_id, food_id, unit_id, quantity, local_date, local_time, note, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateEntry:
+UPDATE entry SET food_id = ?, unit_id = ?, quantity = ?, local_date = ?, local_time = ?, note = ?, updated_at = ?
+WHERE id = ? AND user_id = ?;
+
+deleteEntry:
+DELETE FROM entry WHERE id = ? AND user_id = ?;
+
+selectEntry:
+SELECT * FROM entry WHERE id = ? AND user_id = ?;
+
+selectEntriesInRange:
+SELECT * FROM entry WHERE user_id = ? AND local_date BETWEEN ? AND ? ORDER BY local_date, local_time, id;
+
+selectEntriesForFood:
+SELECT * FROM entry WHERE user_id = ? AND food_id = ? ORDER BY local_date DESC, local_time DESC, id DESC;
+
+selectEntriesForNutrient:
+SELECT e.* FROM entry e JOIN food_nutrient fn ON fn.food_id = e.food_id
+WHERE e.user_id = ? AND fn.nutrient_id = ?
+ORDER BY e.local_date DESC, e.local_time DESC, e.id DESC
+LIMIT ?;
+
+selectAllEntries:
+SELECT * FROM entry WHERE user_id = ? ORDER BY local_date, local_time, id;
+
+countIdenticalEntries:
+SELECT count(*) FROM entry
+WHERE user_id = ? AND food_id = ? AND unit_id = ? AND quantity = ? AND local_date = ? AND local_time = ?
+  AND coalesce(note, '') = coalesce(?, '');
+
+firstEntryDate:
+SELECT min(local_date) FROM entry WHERE user_id = ?;

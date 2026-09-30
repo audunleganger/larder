@@ -1,0 +1,30 @@
+-- Server login sessions. Only a SHA-256 hash of the bearer token is stored.
+CREATE TABLE session (
+    token_hash TEXT PRIMARY KEY NOT NULL,
+    user_id INTEGER NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
+    created_at INTEGER NOT NULL,
+    expires_at INTEGER NOT NULL
+);
+
+CREATE INDEX session_user ON session(user_id);
+
+insertSession:
+INSERT INTO session(token_hash, user_id, created_at, expires_at) VALUES (?, ?, ?, ?);
+
+selectSession:
+SELECT * FROM session WHERE token_hash = ?;
+
+extendSession:
+UPDATE session SET expires_at = ? WHERE token_hash = ?;
+
+deleteSession:
+DELETE FROM session WHERE token_hash = ?;
+
+deleteSessionsForUser:
+DELETE FROM session WHERE user_id = ?;
+
+deleteSessionsForUserExcept:
+DELETE FROM session WHERE user_id = ? AND token_hash != ?;
+
+deleteExpired:
+DELETE FROM session WHERE expires_at < ?;

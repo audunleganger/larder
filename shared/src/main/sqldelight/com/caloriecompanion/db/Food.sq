@@ -28,3 +28,42 @@ CREATE TABLE food_nutrient (
     amount REAL NOT NULL,
     PRIMARY KEY (food_id, nutrient_id)
 );
+
+selectFoods:
+SELECT * FROM food WHERE user_id = ? ORDER BY name_norm;
+
+selectFoodByNorm:
+SELECT * FROM food WHERE user_id = ? AND name_norm = ?;
+
+insertFood:
+INSERT INTO food(user_id, name, name_norm, ref_amount, ref_unit_id, notes, archived) VALUES (?, ?, ?, ?, ?, ?, ?);
+
+updateFood:
+UPDATE food SET name = ?, name_norm = ?, ref_amount = ?, ref_unit_id = ?, notes = ? WHERE id = ? AND user_id = ?;
+
+setFoodArchived:
+UPDATE food SET archived = ? WHERE id = ? AND user_id = ?;
+
+deleteFood:
+DELETE FROM food WHERE id = ? AND user_id = ?;
+
+countFoodEntryRefs:
+SELECT count(*) FROM entry WHERE food_id = ?;
+
+selectFoodUnits:
+SELECT fu.* FROM food_unit fu JOIN food f ON f.id = fu.food_id WHERE f.user_id = ?;
+
+insertFoodUnit:
+INSERT OR REPLACE INTO food_unit(food_id, unit_id, equals_amount, equals_unit_id) VALUES (?, ?, ?, ?);
+
+deleteFoodUnits:
+DELETE FROM food_unit WHERE food_id = ?;
+
+selectFoodNutrients:
+SELECT fn.* FROM food_nutrient fn JOIN food f ON f.id = fn.food_id WHERE f.user_id = ?;
+
+insertFoodNutrient:
+INSERT OR REPLACE INTO food_nutrient(food_id, nutrient_id, amount) VALUES (?, ?, ?);
+
+deleteFoodNutrients:
+DELETE FROM food_nutrient WHERE food_id = ?;

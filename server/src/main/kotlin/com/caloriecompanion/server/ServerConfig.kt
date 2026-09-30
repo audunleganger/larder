@@ -5,11 +5,13 @@ import kotlin.io.path.Path
 
 /** Server configuration, read from environment variables (DEP-2). */
 data class ServerConfig(
-    val host: String,
-    val port: Int,
-    val dataDir: Path,
+    val host: String = "0.0.0.0",
+    val port: Int = 8080,
+    val dataDir: Path = Path("data"),
     /** Directory with the built web GUI; when null the server only serves the API. */
-    val webDir: Path?,
+    val webDir: Path? = null,
+    val tokenLifetimeDays: Long = 30,
+    val bcryptCost: Int = 12,
 ) {
     companion object {
         fun fromEnv(env: Map<String, String> = System.getenv()) = ServerConfig(
@@ -17,6 +19,7 @@ data class ServerConfig(
             port = env["CC_PORT"]?.toInt() ?: 8080,
             dataDir = Path(env["CC_DATA_DIR"] ?: "data"),
             webDir = env["CC_WEB_DIR"]?.let(::Path),
+            tokenLifetimeDays = env["CC_TOKEN_LIFETIME_DAYS"]?.toLong() ?: 30,
         )
     }
 }
