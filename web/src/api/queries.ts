@@ -44,11 +44,15 @@ export const useUsers = () => useQuery({ queryKey: ['users'], queryFn: endpoints
 /**
  * A mutation that refreshes all cached data afterwards. Catalog edits change calculated totals
  * everywhere (E-4), so refreshing everything is the simple, correct choice for a personal app.
+ * The refresh isn't awaited: callers (e.g. a form resetting itself) continue as soon as the
+ * server has confirmed the change.
  */
 export function useApiMutation<TArgs, TResult>(fn: (args: TArgs) => Promise<TResult>) {
   const client = useQueryClient()
   return useMutation({
     mutationFn: fn,
-    onSuccess: () => client.invalidateQueries(),
+    onSuccess: () => {
+      void client.invalidateQueries()
+    },
   })
 }

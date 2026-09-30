@@ -1,6 +1,9 @@
 package com.caloriecompanion.server
 
 import com.caloriecompanion.shared.api.ConflictStrategy
+import com.caloriecompanion.shared.api.ErrorCodes
+import com.caloriecompanion.shared.domain.AppException
+import io.ktor.server.plugins.BadRequestException
 import com.caloriecompanion.shared.api.EntryInput
 import com.caloriecompanion.shared.api.ExportFile
 import com.caloriecompanion.shared.api.PreviewInput
@@ -92,7 +95,11 @@ fun Route.diaryRoutes(database: Database, auth: Auth) {
             "overwrite" -> ConflictStrategy.OVERWRITE
             else -> validation("onConflict must be 'skip' or 'overwrite'")
         }
-        val file = call.receive<ExportFile>()
+        val file = try {
+            call.receive<ExportFile>()
+        } catch (e: BadRequestException) {
+            throw AppException(ErrorCodes.INVALID_IMPORT, "Not a valid Calorie Companion export file", 400)
+        }
         call.respond(call.withUser(database, auth) { db, user -> TransferService(db, user).import(file, strategy) })
     }
 }

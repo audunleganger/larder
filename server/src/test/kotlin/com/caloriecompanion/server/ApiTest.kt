@@ -199,5 +199,8 @@ class ApiTest {
         val result = client.post("/api/v1/import?onConflict=skip") { bearerAuth(token); json(export) }.body<ImportResult>()
         assertEquals(1, result.entries.skipped)
         assertEquals(0, result.entries.created)
+
+        val bad = client.post("/api/v1/import") { bearerAuth(token); contentType(ContentType.Application.Json); setBody("{\"format\": \"nope\"}") }
+        assertEquals(ErrorCodes.INVALID_IMPORT, bad.error().error)
     }
 }

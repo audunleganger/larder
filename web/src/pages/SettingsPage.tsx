@@ -120,6 +120,9 @@ function DataTransfer() {
     try {
       data = JSON.parse(await file.text()) as ExportFile
     } catch {
+      data = {} as ExportFile
+    }
+    if (data?.format !== 'calorie-companion-export') {
       setParseError(t('settings.invalidFile'))
       return
     }

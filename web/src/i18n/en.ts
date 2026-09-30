@@ -274,7 +274,7 @@ const en = {
     onConflict: 'When a name already exists',
     strategies: { skip: 'Keep mine', overwrite: 'Use the imported version' },
     importButton: 'Import',
-    invalidFile: 'That file isn’t valid JSON.',
+    invalidFile: 'That file isn’t a Calorie Companion export.',
     created: 'New',
     updated: 'Updated',
     skipped: 'Skipped',

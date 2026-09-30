@@ -278,7 +278,7 @@ const nb: Translation<typeof en> = {
     onConflict: 'Når navnet allerede finnes',
     strategies: { skip: 'Behold mine', overwrite: 'Bruk den importerte' },
     importButton: 'Importer',
-    invalidFile: 'Filen er ikke gyldig JSON.',
+    invalidFile: 'Filen er ikke en eksport fra Calorie Companion.',
     created: 'Nye',
     updated: 'Oppdatert',
     skipped: 'Hoppet over',
