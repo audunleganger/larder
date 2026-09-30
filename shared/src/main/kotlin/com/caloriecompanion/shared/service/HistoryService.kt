@@ -34,17 +34,21 @@ class HistoryService(private val db: CalorieCompanionDatabase, private val userI
             HistoryDay(key, rows.size, calculator.totals(nutrition, timeline.on(key)))
         }.toList()
 
-        // Days without entries are gaps, not zeros (H-4).
-        val logged = days.filter { it.entryCount > 0 }
+        // Days without entries are gaps, not zeros (H-4). The same goes for logged days where no entry
+        // has a value for the nutrient: counting them as 0 would drag averages down.
         val summary = catalog.displayedNutrients.map { nutrient ->
-            val totals = logged.map { day -> day.totals.first { it.nutrientId == nutrient.id } }
+            val totals = days
+                .filter { it.entryCount > 0 }
+                .map { day -> day to day.totals.first { it.nutrientId == nutrient.id } }
+                .filter { (day, total) -> total.missingCount < day.entryCount }
+                .map { (_, total) -> total }
             val amounts = totals.map { it.amount }
             NutrientSummary(
                 nutrientId = nutrient.id,
                 average = amounts.takeIf { it.isNotEmpty() }?.average(),
                 min = amounts.minOrNull(),
                 max = amounts.maxOrNull(),
-                loggedDays = logged.size,
+                loggedDays = totals.size,
                 daysWithTarget = totals.count { it.status != TargetStatus.NONE },
                 daysWithinTarget = totals.count { it.status == TargetStatus.WITHIN },
             )

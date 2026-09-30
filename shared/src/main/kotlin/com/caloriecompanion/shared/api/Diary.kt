@@ -108,10 +108,11 @@ data class HistoryDay(
 @Serializable
 data class NutrientSummary(
     val nutrientId: Long,
-    /** Average per logged day; null if no days are logged. */
+    /** Average per day with data for this nutrient; null if there are none. */
     val average: Double?,
     val min: Double?,
     val max: Double?,
+    /** Logged days where at least one entry has a value for this nutrient. */
     val loggedDays: Int,
     /** Logged days that have a target for this nutrient. */
     val daysWithTarget: Int,

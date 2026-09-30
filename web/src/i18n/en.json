@@ -1,9 +1,0 @@
-{
-  "appName": "Calorie Companion",
-  "server": {
-    "checking": "Checking server…",
-    "ok": "Connected to server {{version}} (API v{{apiVersion}})",
-    "unreachable": "Server unreachable",
-    "retry": "Retry"
-  }
-}

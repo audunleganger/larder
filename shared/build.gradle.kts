@@ -38,4 +38,9 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+    // TypeScriptTypesTest writes web/src/api/types.gen.ts when -PupdateTsTypes=true.
+    val updateTsTypes = providers.gradleProperty("updateTsTypes").orElse("false")
+    inputs.property("updateTsTypes", updateTsTypes)
+    inputs.files(rootProject.file("web/src/api/types.gen.ts")).withPropertyName("tsTypes")
+    systemProperty("updateTsTypes", updateTsTypes.get())
 }

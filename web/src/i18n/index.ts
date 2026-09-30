@@ -1,23 +1,54 @@
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
-import en from './en.json'
-import nb from './nb.json'
+import en from './en'
+import nb from './nb'
 
-const supported = ['en', 'nb'] as const
+declare module 'i18next' {
+  interface CustomTypeOptions {
+    resources: { translation: typeof en }
+  }
+}
 
-// Norwegian variants (no, nn, nb) fall back to bokmål; everything else to English.
-function detectLanguage(): string {
-  const lang = navigator.language.toLowerCase()
-  if (lang.startsWith('nb') || lang.startsWith('no') || lang.startsWith('nn')) return 'nb'
-  return 'en'
+export type Language = 'en' | 'nb'
+export const LANGUAGES: Language[] = ['en', 'nb']
+const STORAGE_KEY = 'cc.lang'
+
+/** Maps any locale string to a supported language; Norwegian variants use bokmål (L-1). */
+export function toLanguage(locale: string | null | undefined): Language | null {
+  if (!locale) return null
+  const lower = locale.toLowerCase()
+  if (lower.startsWith('nb') || lower.startsWith('no') || lower.startsWith('nn')) return 'nb'
+  if (lower.startsWith('en')) return 'en'
+  return null
+}
+
+function initialLanguage(): Language {
+  try {
+    const stored = toLanguage(localStorage.getItem(STORAGE_KEY))
+    if (stored) return stored
+  } catch {
+    // ignore unavailable storage
+  }
+  return (typeof navigator !== 'undefined' && toLanguage(navigator.language)) || 'en'
+}
+
+export function changeLanguage(language: Language) {
+  try {
+    localStorage.setItem(STORAGE_KEY, language)
+  } catch {
+    // ignore unavailable storage
+  }
+  if (typeof document !== 'undefined') document.documentElement.lang = language
+  void i18n.changeLanguage(language)
 }
 
 void i18n.use(initReactI18next).init({
   resources: { en: { translation: en }, nb: { translation: nb } },
-  lng: detectLanguage(),
+  lng: initialLanguage(),
   fallbackLng: 'en',
-  supportedLngs: supported,
+  supportedLngs: LANGUAGES,
   interpolation: { escapeValue: false },
 })
+if (typeof document !== 'undefined') document.documentElement.lang = i18n.language
 
 export default i18n

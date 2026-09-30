@@ -185,6 +185,10 @@ class ServiceTest {
         val energy = history.summary.first { it.nutrientId == nutrient("Energy") }
         assertEquals(2, energy.loggedDays)
         assertEquals(375.0, energy.average!!, 1e-9)
+        // Bread has no fiber value: no data rather than an average of 0
+        val fiber = history.summary.first { it.nutrientId == nutrient("Fiber") }
+        assertEquals(0, fiber.loggedDays)
+        assertNull(fiber.average)
     }
 
     @Test
