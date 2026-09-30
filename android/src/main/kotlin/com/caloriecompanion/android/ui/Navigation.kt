@@ -5,12 +5,19 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateListOf
@@ -78,7 +85,7 @@ fun MainScreen() {
                         Dest.More -> nav.root in setOf(Dest.More, Dest.Units, Dest.Nutrients, Dest.Targets, Dest.Settings)
                         else -> nav.root == dest
                     }
-                    NavigationBarItem(selected = selected, onClick = { nav.tab(dest) }, icon = { Text(tabIcon(dest)) }, label = { Text(label) })
+                    NavigationBarItem(selected = selected, onClick = { nav.tab(dest) }, icon = { Icon(tabIcon(dest), contentDescription = null) }, label = { Text(label) })
                 }
             }
         },
@@ -102,11 +109,11 @@ fun MainScreen() {
     }
 }
 
-private fun tabIcon(dest: Dest): String = when (dest) {
-    is Dest.Day -> "▦"
-    Dest.Foods -> "◉"
-    Dest.History -> "▮▯"
-    else -> "☰"
+private fun tabIcon(dest: Dest) = when (dest) {
+    is Dest.Day -> Icons.Filled.Home
+    Dest.Foods -> Icons.AutoMirrored.Filled.List
+    Dest.History -> Icons.Filled.DateRange
+    else -> Icons.Filled.Menu
 }
 
 /** Screen chrome: a top bar with optional back button and actions. */
@@ -126,7 +133,9 @@ fun Screen(
                 title = { Text(title) },
                 navigationIcon = {
                     if (nav != null && nav.canGoBack) {
-                        TextButton(onClick = { nav.pop() }) { Text("‹ " + stringResource(R.string.action_back)) }
+                        IconButton(onClick = { nav.pop() }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
+                        }
                     }
                 },
                 actions = actions,

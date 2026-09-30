@@ -27,6 +27,11 @@
     <string name="action_change">Bytt</string>
     <string name="action_retry">Prøv igjen</string>
     <string name="action_continue">Fortsett</string>
+    <string name="action_remove">Fjern</string>
+    <string name="day_previous">Forrige dag</string>
+    <string name="day_next">Neste dag</string>
+    <string name="nutrients_move_up">Flytt %1$s opp</string>
+    <string name="nutrients_move_down">Flytt %1$s ned</string>
     <string name="archived">arkivert</string>
     <string name="show_archived">Arkiverte</string>
     <string name="name">Navn</string>

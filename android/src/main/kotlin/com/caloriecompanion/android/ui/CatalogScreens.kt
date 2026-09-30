@@ -12,7 +12,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
@@ -222,16 +227,16 @@ fun NutrientsScreen(nav: Navigator) {
                             supportingContent = { Text(n.measureUnit) },
                             trailingContent = {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    TextButton(enabled = index > 0, onClick = {
+                                    IconButton(enabled = index > 0, onClick = {
                                         val ids = list.map { it.id }.toMutableList()
                                         ids[index] = ids[index - 1].also { ids[index - 1] = ids[index] }
                                         mutator.run({ reorderNutrients(ids) })
-                                    }) { Text("↑") }
-                                    TextButton(enabled = index < list.lastIndex, onClick = {
+                                    }) { Icon(Icons.Filled.KeyboardArrowUp, contentDescription = stringResource(R.string.nutrients_move_up, n.name)) }
+                                    IconButton(enabled = index < list.lastIndex, onClick = {
                                         val ids = list.map { it.id }.toMutableList()
                                         ids[index] = ids[index + 1].also { ids[index + 1] = ids[index] }
                                         mutator.run({ reorderNutrients(ids) })
-                                    }) { Text("↓") }
+                                    }) { Icon(Icons.Filled.KeyboardArrowDown, contentDescription = stringResource(R.string.nutrients_move_down, n.name)) }
                                 }
                             },
                             modifier = Modifier.clickable { nav.push(Dest.NutrientDetail(n.id)) },

@@ -9,7 +9,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.DatePicker
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -158,9 +163,13 @@ fun DayScreen(date: LocalDate, nav: Navigator) {
         LazyColumn(modifier, contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { nav.tab(Dest.Day(date.minusDays(1))) }) { Text("‹") }
+                    IconButton(onClick = { nav.tab(Dest.Day(date.minusDays(1))) }) {
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = stringResource(R.string.day_previous))
+                    }
                     DatePickerButton(date, onPicked = { nav.tab(Dest.Day(it)) })
-                    OutlinedButton(onClick = { nav.tab(Dest.Day(date.plusDays(1))) }) { Text("›") }
+                    IconButton(onClick = { nav.tab(Dest.Day(date.plusDays(1))) }) {
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = stringResource(R.string.day_next))
+                    }
                     if (date != today) TextButton(onClick = { nav.tab(Dest.Day(today)) }) { Text(stringResource(R.string.day_today)) }
                 }
             }

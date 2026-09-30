@@ -30,6 +30,11 @@
     <string name="action_change">Change</string>
     <string name="action_retry">Try again</string>
     <string name="action_continue">Continue</string>
+    <string name="action_remove">Remove</string>
+    <string name="day_previous">Previous day</string>
+    <string name="day_next">Next day</string>
+    <string name="nutrients_move_up">Move %1$s up</string>
+    <string name="nutrients_move_down">Move %1$s down</string>
     <string name="archived">archived</string>
     <string name="show_archived">Archived</string>
     <string name="name">Name</string>

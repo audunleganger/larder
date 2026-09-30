@@ -12,7 +12,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
@@ -182,7 +186,9 @@ private fun FoodForm(detail: FoodDetail, units: List<UnitDto>, nutrients: List<N
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("1")
                         Dropdown(stringResource(R.string.foods_unit), unitChoices, row.unitId, { row.unitId = it; saved = false }, Modifier.weight(1f))
-                        TextButton(onClick = { links.remove(row); saved = false }) { Text("✕") }
+                        IconButton(onClick = { links.remove(row); saved = false }) {
+                            Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.action_remove))
+                        }
                     }
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("=")
