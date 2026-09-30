@@ -85,7 +85,7 @@ The Norwegian terms are a first guess and may be changed; they live only in the 
 
 - **E-1 (MUST)** Register an entry with:
   - **food stuff** (required, picker with search; archived foods excluded)
-  - **unit** (required; restricted to units usable for that food: explicitly linked + implicit standard units per U-4)
+  - **unit** (required; units usable for that food — explicitly linked + implicit standard units per U-4 — are offered first. Any other unit can also be picked: it is then linked to the food without a size and the entry is flagged incomplete until the size is set, see C-3)
   - **quantity** (required, positive decimal, default 1)
   - **date** (required, default today)
   - **time** (required, default now)
@@ -123,7 +123,7 @@ The Norwegian terms are a first guess and may be changed; they live only in the 
 
 - **X-1 (MUST)** Export the user's complete data (catalog, entries, targets) to a **versioned JSON file**, from every client and mode.
 - **X-2 (MUST)** Import that file into an **empty** catalog (migration: local ↔ server, restore from backup).
-- **X-3 (SHOULD)** Import into a non-empty catalog with a merge strategy by name (skip/overwrite/rename on conflict).
+- **X-3 (SHOULD)** Import into a non-empty catalog with a merge strategy by name (skip/overwrite on conflict; *rename* is FUTURE). Entries identical to an existing entry are skipped, so re-importing a file is harmless.
 - **X-4 (FUTURE)** Barcode scanning and Open Food Facts lookup to prefill food stuffs.
 
 ### 3.9 Localization
@@ -173,8 +173,8 @@ The Norwegian terms are a first guess and may be changed; they live only in the 
 | Android | Kotlin, Jetpack Compose, Material 3. minSdk 26, compile/target SDK 37. |
 | Server | Kotlin + Ktor, REST/JSON under `/api/v1`. |
 | Shared code | A **pure-Kotlin `shared` module** (JVM library, bytecode targeting Java 17 so Android can consume it) containing the domain model, validation, unit resolution, nutrient calculation and the persistence schema. It is used by the server **and** by Android local mode, so the logic is written once. |
-| Persistence | SQLite for both server and Android. Proposed: SQLDelight (one schema, drivers for JDBC and Android). Migrations are versioned. |
-| API contract | An OpenAPI spec generated from or maintained alongside the server. The TypeScript client for the web is **generated** from it. |
+| Persistence | SQLite for both server and Android, via SQLDelight (one schema, drivers for JDBC and Android). Queries stay within SQLite 3.18 (Android 8). Migrations are versioned. |
+| API contract | The Kotlin DTOs in `shared/…/api` are the single source of truth. The web's TypeScript types (`web/src/api/types.gen.ts`) are **generated** from them by `TypeScriptTypesTest`, which fails the build when the file is stale. (An OpenAPI document is FUTURE.) |
 | Android data layer | A `Repository` interface with two implementations: `LocalRepository` (shared module + on-device DB) and `RemoteRepository` (HTTP client). The UI is mode-agnostic. |
 
 ### 5.1 Deployment
