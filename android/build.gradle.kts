@@ -50,11 +50,19 @@ android {
     buildFeatures {
         compose = true
     }
+
+    packaging {
+        resources.excludes += setOf("META-INF/INDEX.LIST", "META-INF/io.netty.versions.properties", "META-INF/DEPENDENCIES")
+    }
 }
 
 dependencies {
     implementation(project(":shared"))
     implementation(libs.sqldelight.android.driver)
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.ktor.client.okhttp)
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.serialization.kotlinx.json)
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
@@ -62,4 +70,8 @@ dependencies {
     implementation(libs.compose.ui.tooling.preview)
     implementation(libs.activity.compose)
     debugImplementation(libs.compose.ui.tooling)
+
+    testImplementation(libs.kotlin.test.junit)
+    testImplementation(project(":server"))
+    testImplementation(libs.ktor.server.test.host)
 }

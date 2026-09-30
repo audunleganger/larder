@@ -1,8 +1,234 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="welcome_title">Velkommen</string>
+
     <string name="mode_local">Bruk på denne enheten</string>
-    <string name="mode_local_description">Dataene lagres bare på denne telefonen.</string>
+    <string name="mode_local_description">Dataene lagres bare på denne telefonen. Ingen konto trengs.</string>
     <string name="mode_server">Koble til en server</string>
     <string name="mode_server_description">Logg inn på en selvhostet Calorie Companion-server.</string>
+    <string name="setup_use_local">Start</string>
+    <string name="setup_server_url">Serveradresse</string>
+    <string name="setup_http_warning">Vanlig HTTP er ikke kryptert. Bruk det bare på ditt eget nettverk eller via VPN.</string>
+    <string name="setup_connect">Koble til</string>
+    <string name="setup_session_expired">Økten har utløpt. Logg inn på nytt.</string>
+    <string name="setup_switch_hint">Du kan bytte modus senere under Innstillinger. Bytte flytter ikke data; bruk eksport og import til det.</string>
+    <string name="login_username">Brukernavn</string>
+    <string name="login_password">Passord</string>
+
+    <string name="action_back">Tilbake</string>
+    <string name="action_cancel">Avbryt</string>
+    <string name="action_ok">OK</string>
+    <string name="action_save">Lagre</string>
+    <string name="action_create">Opprett</string>
+    <string name="action_edit">Rediger</string>
+    <string name="action_delete">Slett</string>
+    <string name="action_archive">Arkiver</string>
+    <string name="action_unarchive">Hent fra arkivet</string>
+    <string name="action_change">Bytt</string>
+    <string name="action_retry">Prøv igjen</string>
+    <string name="action_continue">Fortsett</string>
+    <string name="archived">arkivert</string>
+    <string name="show_archived">Arkiverte</string>
+    <string name="name">Navn</string>
+    <string name="saved">Lagret</string>
+    <string name="manage">Arkiver eller slett</string>
+    <string name="confirm_delete_title">Slette %1$s?</string>
+    <string name="confirm_delete_text">Dette kan ikke angres. Elementer som fortsatt er i bruk kan ikke slettes – arkiver dem i stedet.</string>
+
+    <string name="error_network">Får ikke kontakt med serveren. Sjekk tilkoblingen og prøv igjen.</string>
+    <string name="error_incompatible">Denne appversjonen passer ikke med serverens API-versjon. Oppdater begge til samme versjon.</string>
+    <string name="error_name_taken">Navnet er allerede i bruk.</string>
+    <string name="error_name_required">Navn må fylles ut.</string>
+    <string name="error_not_found">Finnes ikke. Den kan ha blitt slettet.</string>
+    <string name="error_invalid_credentials">Feil brukernavn eller passord.</string>
+    <string name="error_weak_password">Passordet må være 8–72 tegn.</string>
+    <string name="error_unauthorized">Logg inn på nytt.</string>
+    <string name="error_referenced">Kan ikke slettes: brukes fortsatt av %1$s. Arkiver i stedet.</string>
+    <plurals name="ref_entries">
+        <item quantity="one">%d registrering</item>
+        <item quantity="other">%d registreringer</item>
+    </plurals>
+    <plurals name="ref_foods">
+        <item quantity="one">%d matvare</item>
+        <item quantity="other">%d matvarer</item>
+    </plurals>
+    <plurals name="ref_targets">
+        <item quantity="one">%d dagsmål</item>
+        <item quantity="other">%d dagsmål</item>
+    </plurals>
+
+    <string name="nav_day">Dag</string>
+    <string name="nav_foods">Matvarer</string>
+    <string name="nav_history">Historikk</string>
+    <string name="nav_more">Mer</string>
+
+    <string name="day_today">I dag</string>
+    <string name="day_totals">Dagens sum</string>
+    <string name="day_entries">Registreringer</string>
+    <string name="day_no_entries">Ingenting registrert denne dagen ennå.</string>
+    <string name="day_target">Mål: %1$s</string>
+    <string name="day_edit_targets">Endre dagsmål</string>
+    <string name="day_incomplete">Kan ikke beregnes ennå</string>
+    <string name="day_no_data">Ingen data i dagens registreringer</string>
+    <plurals name="day_missing_data">
+        <item quantity="one">%d registrering mangler data for dette</item>
+        <item quantity="other">%d registreringer mangler data for dette</item>
+    </plurals>
+    <plurals name="day_unresolved">
+        <item quantity="one">%d registrering kan ikke beregnes ennå og teller som 0.</item>
+        <item quantity="other">%d registreringer kan ikke beregnes ennå og teller som 0.</item>
+    </plurals>
+    <string name="status_below">Under målet</string>
+    <string name="status_within">Innenfor målet</string>
+    <string name="status_above">Over målet</string>
+
+    <string name="entry_add_title">Registrer mat</string>
+    <string name="entry_edit_title">Endre registrering</string>
+    <string name="entry_food">Matvare</string>
+    <string name="entry_open_food">Åpne</string>
+    <string name="entry_quantity">Mengde</string>
+    <string name="entry_unit">Enhet</string>
+    <string name="entry_units_for_food">Enheter for matvaren</string>
+    <string name="entry_other_units">Andre enheter</string>
+    <string name="entry_time">Klokkeslett</string>
+    <string name="entry_note">Notat</string>
+    <string name="entry_add">Legg til</string>
+    <string name="entry_unresolved">Enheten har ingen størrelse for matvaren ennå, så næringsinnholdet kan ikke beregnes. Du kan likevel registrere den.</string>
+    <string name="entry_error_food">Velg en matvare.</string>
+    <string name="entry_error_unit">Velg en enhet.</string>
+    <string name="entry_error_quantity">Skriv inn en mengde større enn 0.</string>
+    <string name="entry_error_time">Skriv klokkeslettet som TT:MM.</string>
+    <string name="entry_delete_title">Slette registreringen?</string>
+    <string name="entry_delete_text">Registreringen fjernes fra denne dagen.</string>
+
+    <string name="foods_title">Matvarer</string>
+    <string name="foods_new">Ny matvare</string>
+    <string name="foods_new_hint">Bare navnet er påkrevd. Næringsstoffer og enheter kan legges til etterpå.</string>
+    <string name="food_search">Søk etter matvare</string>
+    <string name="food_create_named">Opprett «%1$s»</string>
+    <string name="foods_empty">Ingen matvarer ennå.</string>
+    <string name="foods_per">per %1$s %2$s</string>
+    <string name="foods_no_reference">Ingen referansemengde</string>
+    <string name="foods_details">Detaljer</string>
+    <string name="foods_ref_amount">Referansemengde</string>
+    <string name="foods_ref_unit">Referanseenhet</string>
+    <string name="foods_ref_hint">Næringsverdiene oppgis per denne mengden, f.eks. per 100 g eller per 1 stk.</string>
+    <string name="foods_not_set">Ikke satt</string>
+    <string name="foods_notes">Notater</string>
+    <string name="foods_nutrients">Næringsinnhold</string>
+    <string name="foods_nutrients_per">Næringsinnhold per %1$s %2$s</string>
+    <string name="foods_units">Enheter</string>
+    <string name="foods_units_hint">Angi hvor stor en enhet er for matvaren, f.eks. 1 skive = 35 g. Standardenheter regnes om automatisk.</string>
+    <string name="foods_unit">Enhet</string>
+    <string name="foods_equals_amount">Mengde</string>
+    <string name="foods_equals_unit">I enhet</string>
+    <string name="foods_add_unit">Legg til enhet</string>
+    <string name="foods_usable_units">Enheter du kan registrere matvaren i</string>
+    <string name="foods_no_usable_units">Ingen ennå. Angi en referanseenhet eller legg til en enhet.</string>
+    <string name="foods_no_size">ingen størrelse</string>
+    <string name="foods_automatic">automatisk</string>
+    <string name="foods_entries">Registrert</string>
+    <string name="foods_no_entries">Matvaren er ikke registrert ennå.</string>
+    <string name="foods_archive_hint">Arkiverte matvarer skjules i søk, men blir værende i historikken. Bare matvarer som aldri er registrert kan slettes.</string>
+    <string name="foods_error_ref">Angi både referansemengde (større enn 0) og enhet, eller ingen av dem.</string>
+    <string name="foods_error_number">Verdier må være tall, 0 eller mer.</string>
+
+    <string name="units_title">Enheter</string>
+    <string name="units_new">Ny enhet</string>
+    <string name="units_kind">Type</string>
+    <string name="unit_kind_mass">Vekt</string>
+    <string name="unit_kind_volume">Volum</string>
+    <string name="unit_kind_custom">Egendefinert</string>
+    <string name="units_size">Størrelse i %1$s</string>
+    <string name="units_per_food">størrelse angis per matvare</string>
+    <string name="units_hint_mass">Vektenheter regnes automatisk om seg imellom for alle matvarer.</string>
+    <string name="units_hint_volume">Volumenheter regnes automatisk om seg imellom for alle matvarer.</string>
+    <string name="units_hint_custom">Egendefinerte enheter (skive, glass, porsjon …) får størrelsen sin på hver matvare.</string>
+    <string name="units_error_size">Skriv inn størrelsen i %1$s (et tall større enn 0).</string>
+    <string name="units_foods">Matvarer som bruker enheten</string>
+    <string name="units_no_foods">Ingen matvarer er koblet til enheten.</string>
+    <string name="units_implicit_foods">Kan også brukes automatisk</string>
+    <string name="units_dates">Registrert</string>
+    <string name="units_no_dates">Ingen registreringer bruker enheten.</string>
+    <string name="units_archive_hint">Arkiverte enheter skjules i valglister, men blir værende i historikken. Bare enheter som ikke brukes noe sted kan slettes.</string>
+
+    <string name="nutrients_title">Næringsstoffer</string>
+    <string name="nutrients_new">Nytt næringsstoff</string>
+    <string name="nutrients_measure_unit">Måles i</string>
+    <string name="nutrients_precision">Desimaler</string>
+    <string name="nutrients_parent">Del av</string>
+    <string name="nutrients_order_hint">Bruk pilene for å bestemme rekkefølgen næringsstoffene vises i.</string>
+    <string name="nutrients_foods">Matvarer med verdi</string>
+    <string name="nutrients_no_foods">Ingen matvarer har verdi for dette næringsstoffet.</string>
+    <string name="nutrients_entries">Registreringer</string>
+    <string name="nutrients_no_entries">Ingen registreringer bidrar til dette næringsstoffet.</string>
+    <string name="nutrients_archive_hint">Arkiverte næringsstoffer skjules i dagsoversikten. Bare næringsstoffer uten verdier og dagsmål kan slettes.</string>
+
+    <string name="targets_title">Dagsmål</string>
+    <string name="targets_hint">Valgfritt minimum og/eller maksimum per næringsstoff, likt hver dag. Når du lagrer, lages en ny versjon fra valgt dato; tidligere dager beholder målet som gjaldt da. La begge stå tomme for å fjerne et mål.</string>
+    <string name="targets_min">Min</string>
+    <string name="targets_max">Maks</string>
+    <string name="targets_from">Fra</string>
+    <string name="targets_from_date">fra %1$s</string>
+    <string name="targets_none">Ingen mål</string>
+    <string name="targets_cleared">ingen mål</string>
+    <string name="targets_history">Endringshistorikk</string>
+    <string name="targets_no_history">Ingen mål er satt ennå.</string>
+    <string name="targets_error_number">Mål må være tall, 0 eller mer.</string>
+    <string name="targets_error_order">Min kan ikke være større enn maks.</string>
+
+    <string name="history_title">Historikk</string>
+    <plurals name="history_last_days">
+        <item quantity="one">%d dag</item>
+        <item quantity="other">%d dager</item>
+    </plurals>
+    <plurals name="history_logged_days">
+        <item quantity="one">%1$d av %2$d dager registrert. Dager uten registreringer vises som hull, ikke som null.</item>
+        <item quantity="other">%1$d av %2$d dager registrert. Dager uten registreringer vises som hull, ikke som null.</item>
+    </plurals>
+    <string name="history_nutrient">Næringsstoff</string>
+    <string name="history_daily">Dagssum</string>
+    <string name="history_average7">Snitt 7 dager</string>
+    <string name="history_target">Mål</string>
+    <string name="history_chart_label">%1$s per dag i valgt periode</string>
+    <string name="history_summary">Sammendrag</string>
+    <string name="history_summary_hint">Snitt, laveste og høyeste gjelder bare dager med data.</string>
+    <string name="history_avg_per_day">%1$s / dag</string>
+    <string name="history_range">Lavest %1$s · høyest %2$s</string>
+    <string name="history_within_target">%1$d av %2$d dager innenfor mål</string>
+
+    <string name="settings_title">Innstillinger</string>
+    <string name="settings_mode">Modus</string>
+    <string name="settings_mode_local">Lokal: dataene lagres på denne enheten.</string>
+    <string name="settings_mode_server">Server: %1$s som %2$s</string>
+    <string name="settings_switch_hint">Å bytte modus flytter ikke data. Eksporter først, og importer etter byttet.</string>
+    <string name="settings_switch_mode">Bytt modus</string>
+    <string name="settings_logout">Logg ut</string>
+    <string name="settings_switch_confirm">Du kommer tilbake til startskjermen. Lokale data blir liggende på enheten.</string>
+    <string name="settings_password">Passord</string>
+    <string name="settings_current_password">Nåværende passord</string>
+    <string name="settings_new_password">Nytt passord (minst 8 tegn)</string>
+    <string name="settings_change_password">Bytt passord</string>
+    <string name="settings_password_changed">Passordet er byttet.</string>
+    <string name="settings_language">Språk</string>
+    <string name="settings_language_hint">Appen følger telefonens språk (engelsk eller norsk). Du kan velge språk bare for denne appen i Androids innstillinger.</string>
+    <string name="settings_open_language">Åpne språkinnstillinger</string>
+    <string name="settings_export">Eksport</string>
+    <string name="settings_export_hint">Lagre alle matvarer, enheter, næringsstoffer, registreringer og dagsmål som en JSON-fil – som sikkerhetskopi eller for å flytte data mellom telefonen og en server.</string>
+    <string name="settings_download">Eksporter til fil</string>
+    <string name="settings_exported">Eksporten er lagret.</string>
+    <string name="settings_import">Import</string>
+    <string name="settings_import_hint">Importer en eksportfil fra Calorie Companion. Elementer kobles på navn; registreringer som allerede finnes hoppes over.</string>
+    <string name="settings_on_conflict">Når navnet allerede finnes</string>
+    <string name="settings_strategy_skip">Behold mine</string>
+    <string name="settings_strategy_overwrite">Bruk importerte</string>
+    <string name="settings_import_button">Velg fil og importer</string>
+    <string name="settings_invalid_file">Filen er ikke en gyldig eksport.</string>
+    <string name="settings_import_counts">%1$s: %2$d nye, %3$d oppdatert, %4$d hoppet over</string>
+    <string name="settings_kind_units">Enheter</string>
+    <string name="settings_kind_nutrients">Næringsstoffer</string>
+    <string name="settings_kind_foods">Matvarer</string>
+    <string name="settings_kind_entries">Registreringer</string>
+    <string name="settings_kind_targets">Dagsmål</string>
+    <string name="settings_version">Versjon %1$s</string>
 </resources>

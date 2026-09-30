@@ -1,9 +1,247 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Calorie Companion</string>
+    <string name="app_name" translatable="false">Calorie Companion</string>
     <string name="welcome_title">Welcome</string>
+
+    <!-- Setup / modes (A-6) -->
     <string name="mode_local">Use on this device</string>
-    <string name="mode_local_description">Data is stored only on this phone.</string>
+    <string name="mode_local_description">Data is stored only on this phone. No account needed.</string>
     <string name="mode_server">Connect to a server</string>
     <string name="mode_server_description">Log in to a self-hosted Calorie Companion server.</string>
+    <string name="setup_use_local">Start</string>
+    <string name="setup_server_url">Server address</string>
+    <string name="setup_http_warning">Plain HTTP is not encrypted. Use it only on your own network or through a VPN.</string>
+    <string name="setup_connect">Connect</string>
+    <string name="setup_session_expired">Your session has expired. Log in again.</string>
+    <string name="setup_switch_hint">You can switch mode later under Settings. Switching does not move data; use export and import for that.</string>
+    <string name="login_username">Username</string>
+    <string name="login_password">Password</string>
+
+    <!-- Common -->
+    <string name="action_back">Back</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_ok">OK</string>
+    <string name="action_save">Save</string>
+    <string name="action_create">Create</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_archive">Archive</string>
+    <string name="action_unarchive">Unarchive</string>
+    <string name="action_change">Change</string>
+    <string name="action_retry">Try again</string>
+    <string name="action_continue">Continue</string>
+    <string name="archived">archived</string>
+    <string name="show_archived">Archived</string>
+    <string name="name">Name</string>
+    <string name="saved">Saved</string>
+    <string name="manage">Archive or delete</string>
+    <string name="confirm_delete_title">Delete %1$s?</string>
+    <string name="confirm_delete_text">This can’t be undone. Items that are still in use can’t be deleted – archive them instead.</string>
+
+    <!-- Errors -->
+    <string name="error_network">The server can’t be reached. Check your connection and try again.</string>
+    <string name="error_incompatible">This app version doesn’t match the server’s API version. Update both to the same version.</string>
+    <string name="error_name_taken">That name is already in use.</string>
+    <string name="error_name_required">A name is required.</string>
+    <string name="error_not_found">Not found. It may have been deleted.</string>
+    <string name="error_invalid_credentials">Wrong username or password.</string>
+    <string name="error_weak_password">The password must be 8–72 characters.</string>
+    <string name="error_unauthorized">Please log in again.</string>
+    <string name="error_referenced">Can’t delete: it’s still used by %1$s. Archive it instead.</string>
+    <plurals name="ref_entries">
+        <item quantity="one">%d entry</item>
+        <item quantity="other">%d entries</item>
+    </plurals>
+    <plurals name="ref_foods">
+        <item quantity="one">%d food</item>
+        <item quantity="other">%d foods</item>
+    </plurals>
+    <plurals name="ref_targets">
+        <item quantity="one">%d target</item>
+        <item quantity="other">%d targets</item>
+    </plurals>
+
+    <!-- Navigation -->
+    <string name="nav_day">Day</string>
+    <string name="nav_foods">Foods</string>
+    <string name="nav_history">History</string>
+    <string name="nav_more">More</string>
+
+    <!-- Day -->
+    <string name="day_today">Today</string>
+    <string name="day_totals">Day totals</string>
+    <string name="day_entries">Entries</string>
+    <string name="day_no_entries">Nothing logged this day yet.</string>
+    <string name="day_target">Target: %1$s</string>
+    <string name="day_edit_targets">Edit daily targets</string>
+    <string name="day_incomplete">Can’t be calculated yet</string>
+    <string name="day_no_data">No data in this day’s entries</string>
+    <plurals name="day_missing_data">
+        <item quantity="one">%d entry lacks data for this</item>
+        <item quantity="other">%d entries lack data for this</item>
+    </plurals>
+    <plurals name="day_unresolved">
+        <item quantity="one">%d entry can’t be calculated yet and counts as 0.</item>
+        <item quantity="other">%d entries can’t be calculated yet and count as 0.</item>
+    </plurals>
+    <string name="status_below">Below target</string>
+    <string name="status_within">Within target</string>
+    <string name="status_above">Above target</string>
+
+    <!-- Entry -->
+    <string name="entry_add_title">Log food</string>
+    <string name="entry_edit_title">Edit entry</string>
+    <string name="entry_food">Food</string>
+    <string name="entry_open_food">Open</string>
+    <string name="entry_quantity">Quantity</string>
+    <string name="entry_unit">Unit</string>
+    <string name="entry_units_for_food">Units for this food</string>
+    <string name="entry_other_units">Other units</string>
+    <string name="entry_time">Time</string>
+    <string name="entry_note">Note</string>
+    <string name="entry_add">Add</string>
+    <string name="entry_unresolved">This unit has no size for this food yet, so nutrients can’t be calculated. You can still log it.</string>
+    <string name="entry_error_food">Choose a food.</string>
+    <string name="entry_error_unit">Choose a unit.</string>
+    <string name="entry_error_quantity">Enter a quantity above 0.</string>
+    <string name="entry_error_time">Enter the time as HH:MM.</string>
+    <string name="entry_delete_title">Delete entry?</string>
+    <string name="entry_delete_text">The entry is removed from this day.</string>
+
+    <!-- Foods -->
+    <string name="foods_title">Foods</string>
+    <string name="foods_new">New food</string>
+    <string name="foods_new_hint">Only the name is required. Nutrients and units can be added afterwards.</string>
+    <string name="food_search">Search foods</string>
+    <string name="food_create_named">Create “%1$s”</string>
+    <string name="foods_empty">No foods yet.</string>
+    <string name="foods_per">per %1$s %2$s</string>
+    <string name="foods_no_reference">No reference amount</string>
+    <string name="foods_details">Details</string>
+    <string name="foods_ref_amount">Reference amount</string>
+    <string name="foods_ref_unit">Reference unit</string>
+    <string name="foods_ref_hint">Nutrient values are given per this amount, e.g. per 100 g or per 1 piece.</string>
+    <string name="foods_not_set">Not set</string>
+    <string name="foods_notes">Notes</string>
+    <string name="foods_nutrients">Nutrients</string>
+    <string name="foods_nutrients_per">Nutrients per %1$s %2$s</string>
+    <string name="foods_units">Units</string>
+    <string name="foods_units_hint">Define how big a unit is for this food, e.g. 1 slice = 35 g. Standard units convert automatically.</string>
+    <string name="foods_unit">Unit</string>
+    <string name="foods_equals_amount">Amount</string>
+    <string name="foods_equals_unit">In unit</string>
+    <string name="foods_add_unit">Add unit</string>
+    <string name="foods_usable_units">Units you can log this food in</string>
+    <string name="foods_no_usable_units">None yet. Set a reference unit or add a unit.</string>
+    <string name="foods_no_size">no size</string>
+    <string name="foods_automatic">automatic</string>
+    <string name="foods_entries">Logged on</string>
+    <string name="foods_no_entries">This food hasn’t been logged yet.</string>
+    <string name="foods_archive_hint">Archived foods are hidden from search but stay in your history. Only foods that were never logged can be deleted.</string>
+    <string name="foods_error_ref">Set both reference amount (above 0) and unit, or neither.</string>
+    <string name="foods_error_number">Values must be numbers of 0 or more.</string>
+
+    <!-- Units -->
+    <string name="units_title">Units</string>
+    <string name="units_new">New unit</string>
+    <string name="units_kind">Kind</string>
+    <string name="unit_kind_mass">Weight</string>
+    <string name="unit_kind_volume">Volume</string>
+    <string name="unit_kind_custom">Custom</string>
+    <string name="units_size">Size in %1$s</string>
+    <string name="units_per_food">size set per food</string>
+    <string name="units_hint_mass">Weight units convert automatically between each other for every food.</string>
+    <string name="units_hint_volume">Volume units convert automatically between each other for every food.</string>
+    <string name="units_hint_custom">Custom units (slice, glass, serving …) get their size on each food.</string>
+    <string name="units_error_size">Enter the size in %1$s (a number above 0).</string>
+    <string name="units_foods">Foods using this unit</string>
+    <string name="units_no_foods">No food links this unit.</string>
+    <string name="units_implicit_foods">Also usable automatically</string>
+    <string name="units_dates">Logged on</string>
+    <string name="units_no_dates">No entries use this unit.</string>
+    <string name="units_archive_hint">Archived units are hidden from pickers but stay in your history. Only units nothing refers to can be deleted.</string>
+
+    <!-- Nutrients -->
+    <string name="nutrients_title">Nutrients</string>
+    <string name="nutrients_new">New nutrient</string>
+    <string name="nutrients_measure_unit">Measured in</string>
+    <string name="nutrients_precision">Decimals</string>
+    <string name="nutrients_parent">Part of</string>
+    <string name="nutrients_order_hint">Use the arrows to set the order nutrients are shown in.</string>
+    <string name="nutrients_foods">Foods with a value</string>
+    <string name="nutrients_no_foods">No food has a value for this nutrient.</string>
+    <string name="nutrients_entries">Entries</string>
+    <string name="nutrients_no_entries">No entries contribute to this nutrient.</string>
+    <string name="nutrients_archive_hint">Archived nutrients are hidden from the day view. Only nutrients without food values or targets can be deleted.</string>
+
+    <!-- Targets -->
+    <string name="targets_title">Daily targets</string>
+    <string name="targets_hint">An optional minimum and/or maximum per nutrient, the same every day. Saving creates a new version from the chosen date; past days keep the target that applied then. Leave both empty to remove a target.</string>
+    <string name="targets_min">Min</string>
+    <string name="targets_max">Max</string>
+    <string name="targets_from">From</string>
+    <string name="targets_from_date">from %1$s</string>
+    <string name="targets_none">No target</string>
+    <string name="targets_cleared">no target</string>
+    <string name="targets_history">Target history</string>
+    <string name="targets_no_history">No targets set yet.</string>
+    <string name="targets_error_number">Targets must be numbers of 0 or more.</string>
+    <string name="targets_error_order">Min can’t be larger than max.</string>
+
+    <!-- History -->
+    <string name="history_title">History</string>
+    <plurals name="history_last_days">
+        <item quantity="one">%d day</item>
+        <item quantity="other">%d days</item>
+    </plurals>
+    <plurals name="history_logged_days">
+        <item quantity="one">%1$d of %2$d days logged. Days without entries are gaps, not zeros.</item>
+        <item quantity="other">%1$d of %2$d days logged. Days without entries are gaps, not zeros.</item>
+    </plurals>
+    <string name="history_nutrient">Nutrient</string>
+    <string name="history_daily">Daily total</string>
+    <string name="history_average7">7-day average</string>
+    <string name="history_target">Target</string>
+    <string name="history_chart_label">Daily %1$s over the selected period</string>
+    <string name="history_summary">Summary</string>
+    <string name="history_summary_hint">Averages, lowest and highest are over days with data only.</string>
+    <string name="history_avg_per_day">%1$s / day</string>
+    <string name="history_range">Lowest %1$s · highest %2$s</string>
+    <string name="history_within_target">%1$d of %2$d days within target</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_mode">Mode</string>
+    <string name="settings_mode_local">Local: data is stored on this device.</string>
+    <string name="settings_mode_server">Server: %1$s as %2$s</string>
+    <string name="settings_switch_hint">Switching mode does not move data. Export first, then import after switching.</string>
+    <string name="settings_switch_mode">Switch mode</string>
+    <string name="settings_logout">Log out</string>
+    <string name="settings_switch_confirm">You’ll return to the start screen. Local data stays on this device.</string>
+    <string name="settings_password">Password</string>
+    <string name="settings_current_password">Current password</string>
+    <string name="settings_new_password">New password (at least 8 characters)</string>
+    <string name="settings_change_password">Change password</string>
+    <string name="settings_password_changed">Password changed.</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_language_hint">The app follows your phone’s language (English or Norwegian). You can pick a language for this app only in Android’s settings.</string>
+    <string name="settings_open_language">Open language settings</string>
+    <string name="settings_export">Export</string>
+    <string name="settings_export_hint">Save all foods, units, nutrients, entries and targets as a JSON file – for backup or to move data between this phone and a server.</string>
+    <string name="settings_download">Export to file</string>
+    <string name="settings_exported">Export saved.</string>
+    <string name="settings_import">Import</string>
+    <string name="settings_import_hint">Import a Calorie Companion export file. Items are matched by name; entries that already exist are skipped.</string>
+    <string name="settings_on_conflict">When a name already exists</string>
+    <string name="settings_strategy_skip">Keep mine</string>
+    <string name="settings_strategy_overwrite">Use imported</string>
+    <string name="settings_import_button">Choose file and import</string>
+    <string name="settings_invalid_file">That file isn’t a valid export.</string>
+    <string name="settings_import_counts">%1$s: %2$d new, %3$d updated, %4$d skipped</string>
+    <string name="settings_kind_units">Units</string>
+    <string name="settings_kind_nutrients">Nutrients</string>
+    <string name="settings_kind_foods">Foods</string>
+    <string name="settings_kind_entries">Entries</string>
+    <string name="settings_kind_targets">Targets</string>
+    <string name="settings_version">Version %1$s</string>
 </resources>
