@@ -1,0 +1,30 @@
+import kotlin.Boolean;
+
+-- Nutrient values are per ref_amount of ref_unit (F-3). Both are optional until filled in.
+CREATE TABLE food (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    name_norm TEXT NOT NULL,
+    ref_amount REAL,
+    ref_unit_id INTEGER REFERENCES quantity_unit(id) ON DELETE RESTRICT,
+    notes TEXT,
+    archived INTEGER AS Boolean NOT NULL DEFAULT 0,
+    UNIQUE (user_id, name_norm)
+);
+
+-- "1 <unit> = equals_amount <equals_unit>" (U-5). equals_* may be NULL while incomplete.
+CREATE TABLE food_unit (
+    food_id INTEGER NOT NULL REFERENCES food(id) ON DELETE CASCADE,
+    unit_id INTEGER NOT NULL REFERENCES quantity_unit(id) ON DELETE RESTRICT,
+    equals_amount REAL,
+    equals_unit_id INTEGER REFERENCES quantity_unit(id) ON DELETE RESTRICT,
+    PRIMARY KEY (food_id, unit_id)
+);
+
+CREATE TABLE food_nutrient (
+    food_id INTEGER NOT NULL REFERENCES food(id) ON DELETE CASCADE,
+    nutrient_id INTEGER NOT NULL REFERENCES nutrient(id) ON DELETE RESTRICT,
+    amount REAL NOT NULL,
+    PRIMARY KEY (food_id, nutrient_id)
+);

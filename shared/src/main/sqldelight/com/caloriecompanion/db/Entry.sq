@@ -1,0 +1,16 @@
+-- Local date/time without timezone (E-6): local_date 'YYYY-MM-DD', local_time 'HH:MM[:SS]'.
+CREATE TABLE entry (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
+    food_id INTEGER NOT NULL REFERENCES food(id) ON DELETE RESTRICT,
+    unit_id INTEGER NOT NULL REFERENCES quantity_unit(id) ON DELETE RESTRICT,
+    quantity REAL NOT NULL CHECK (quantity > 0),
+    local_date TEXT NOT NULL,
+    local_time TEXT NOT NULL,
+    note TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+
+CREATE INDEX entry_user_date ON entry(user_id, local_date);
+CREATE INDEX entry_food ON entry(food_id);

@@ -1,0 +1,15 @@
+import kotlin.Boolean;
+
+-- In Android local mode a single implicit user row owns all data.
+CREATE TABLE app_user (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    password_hash TEXT,
+    is_admin INTEGER AS Boolean NOT NULL DEFAULT 0,
+    is_disabled INTEGER AS Boolean NOT NULL DEFAULT 0,
+    locale TEXT,
+    created_at INTEGER NOT NULL
+);
+
+countUsers:
+SELECT count(*) FROM app_user;

@@ -1,0 +1,24 @@
+# Functionality
+I want a heavily customizable nurtrition tracking application. It should feature the following:
+- Ability to register food stuffs:
+	- Unique key: Name
+	- Food stuffs include all consumable - ingredients, meals, drinks etc.
+	- Setting up a food stuff, only the name is required (and must not match existing entry). Nutrient values can also be added. All entries can be customized later.
+	- A food stuff should link to:
+		- Date entries where it has been added (unit should be shown as a tooltip in addition to name for each entry)
+		- Units it has a link to (more on units down)
+- Ability to register units
+	- Unique key: Name (e.g. "serving", "count", "unit")
+	- Links to food stuffs that incorporate this unit as a quantity
+	- Links to date entries where this unit has been registered for at least one food stuff
+- Main functionality: Register food serving / meal
+	- Requires:
+		- A selected food stuff
+		- A selected unit for said food stuff
+		- Selected date (default: today)
+	- Calculates the total nurtritional value for a registered food stuff
+	- Also shows the total for all food stuffs that day
+- Register nutrient (?)
+	- E.g. calorie, protein
+	- Should link to food stuff that incorporates it
+	- Should link to food servings that incorporate it

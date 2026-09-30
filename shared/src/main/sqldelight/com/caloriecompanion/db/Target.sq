@@ -1,0 +1,10 @@
+-- One daily target per nutrient, versioned by effective_from (T-1, T-3).
+CREATE TABLE target (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
+    nutrient_id INTEGER NOT NULL REFERENCES nutrient(id) ON DELETE RESTRICT,
+    min_amount REAL,
+    max_amount REAL,
+    effective_from TEXT NOT NULL,
+    UNIQUE (user_id, nutrient_id, effective_from)
+);

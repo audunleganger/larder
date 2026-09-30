@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="welcome_title">Velkommen</string>
+    <string name="mode_local">Bruk på denne enheten</string>
+    <string name="mode_local_description">Dataene lagres bare på denne telefonen.</string>
+    <string name="mode_server">Koble til en server</string>
+    <string name="mode_server_description">Logg inn på en selvhostet Calorie Companion-server.</string>
+</resources>

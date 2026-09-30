@@ -1,0 +1,9 @@
+{
+  "appName": "Calorie Companion",
+  "server": {
+    "checking": "Sjekker serveren…",
+    "ok": "Koblet til server {{version}} (API v{{apiVersion}})",
+    "unreachable": "Får ikke kontakt med serveren",
+    "retry": "Prøv igjen"
+  }
+}

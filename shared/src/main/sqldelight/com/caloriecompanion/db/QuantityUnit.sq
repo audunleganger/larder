@@ -1,0 +1,13 @@
+import kotlin.Boolean;
+
+-- kind: 'mass' / 'volume' have a global base_factor (to g / ml); 'custom' is sized per food (U-2).
+CREATE TABLE quantity_unit (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    name_norm TEXT NOT NULL,
+    kind TEXT NOT NULL CHECK (kind IN ('mass', 'volume', 'custom')),
+    base_factor REAL,
+    archived INTEGER AS Boolean NOT NULL DEFAULT 0,
+    UNIQUE (user_id, name_norm)
+);

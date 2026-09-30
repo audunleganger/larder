@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Calorie Companion</string>
+    <string name="welcome_title">Welcome</string>
+    <string name="mode_local">Use on this device</string>
+    <string name="mode_local_description">Data is stored only on this phone.</string>
+    <string name="mode_server">Connect to a server</string>
+    <string name="mode_server_description">Log in to a self-hosted Calorie Companion server.</string>
+</resources>
