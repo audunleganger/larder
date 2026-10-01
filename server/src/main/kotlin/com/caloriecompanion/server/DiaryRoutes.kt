@@ -105,7 +105,7 @@ fun Route.diaryRoutes(database: Database, auth: Auth) {
         val file = try {
             call.receive<ExportFile>()
         } catch (e: BadRequestException) {
-            throw AppException(ErrorCodes.INVALID_IMPORT, "Not a valid Calorie Companion export file", 400)
+            throw AppException(ErrorCodes.INVALID_IMPORT, "Not a valid export file", 400)
         }
         call.respond(call.withUser(database, auth) { db, user -> TransferService(db, user).import(file, strategy) })
     }

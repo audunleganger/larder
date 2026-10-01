@@ -88,7 +88,7 @@ class TransferService(
      * existing one are skipped, so importing the same file twice is harmless. All or nothing.
      */
     fun import(file: ExportFile, strategy: ConflictStrategy): ImportResult {
-        if (file.format != ExportFile.FORMAT) invalid("Not a Calorie Companion export file")
+        if (file.format !in ExportFile.ACCEPTED_FORMATS) invalid("Not an export file from this app")
         if (file.version > ExportFile.VERSION) invalid("Export version ${file.version} is newer than supported (${ExportFile.VERSION})")
         return try {
             db.transactionWithResult { importInTransaction(file, strategy) }

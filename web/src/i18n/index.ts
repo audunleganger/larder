@@ -49,6 +49,9 @@ void i18n.use(initReactI18next).init({
   supportedLngs: LANGUAGES,
   interpolation: { escapeValue: false },
 })
-if (typeof document !== 'undefined') document.documentElement.lang = i18n.language
+if (typeof document !== 'undefined') {
+  document.documentElement.lang = i18n.language
+  document.title = i18n.t('appName')
+}
 
 export default i18n

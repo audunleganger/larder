@@ -316,7 +316,7 @@ await step('export and import', async () => {
   await page.getByRole('cell', { name: 'Entries' }).waitFor()
   await page.locator('input[type=file]').setInputFiles({ name: 'bad.json', mimeType: 'application/json', buffer: Buffer.from('{"format":"nope"}') })
   await page.getByRole('button', { name: 'Import', exact: true }).click()
-  await page.getByText('That file isn’t a Calorie Companion export.').waitFor()
+  await page.getByText('That file isn’t an export from Calorie Companion.').waitFor()
 })
 
 console.log('\nConsole problems:', problems.length ? '\n' + problems.join('\n') : 'none')

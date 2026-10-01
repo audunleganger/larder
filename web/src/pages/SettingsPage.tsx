@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import * as endpoints from '../api/endpoints'
 import { useApiMutation } from '../api/queries'
 import type { ConflictStrategy, ExportFile, ImportResult } from '../api/types.gen'
+import { EXPORT_FORMATS } from '../api/types.gen'
 import { useAuth } from '../auth/useAuth'
 import { LanguageSwitch } from '../components/LanguageSwitch'
 import { Card, ErrorText, Field, PageHeader } from '../components/ui'
@@ -104,7 +105,7 @@ function DataTransfer() {
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `calorie-companion-${todayIso()}.json`
+      link.download = `${t('appName').toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${todayIso()}.json`
       link.click()
       URL.revokeObjectURL(url)
     } catch (e) {
@@ -122,7 +123,7 @@ function DataTransfer() {
     } catch {
       data = {} as ExportFile
     }
-    if (data?.format !== 'calorie-companion-export') {
+    if (!EXPORT_FORMATS.includes(data?.format)) {
       setParseError(t('settings.invalidFile'))
       return
     }

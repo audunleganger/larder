@@ -1,4 +1,5 @@
 const en = {
+  // The app's name appears only here (and in index.html's initial title); other strings use $t(appName).
   appName: 'Calorie Companion',
   languages: { en: 'English', nb: 'Norsk' },
   composite: {
@@ -91,7 +92,7 @@ const en = {
   },
   server: {
     unreachableTitle: 'Server unreachable',
-    unreachableText: 'Calorie Companion can’t reach its server. Check that the server is running and that you’re on the right network.',
+    unreachableText: '$t(appName) can’t reach its server. Check that the server is running and that you’re on the right network.',
     retry: 'Try again',
     incompatibleTitle: 'Incompatible server',
     incompatibleText: 'This web app speaks API version 1, but the server speaks version {{server}}. Update the server and the web app to the same version.',
@@ -332,11 +333,11 @@ const en = {
     exportHint: 'Download all your foods, units, nutrients, entries and targets as a JSON file — for backup or to move to another server or the Android app.',
     download: 'Download export',
     import: 'Import',
-    importHint: 'Import a Calorie Companion export file. Items are matched by name; entries that already exist are skipped, so importing the same file twice is safe.',
+    importHint: 'Import an export file from $t(appName). Items are matched by name; entries that already exist are skipped, so importing the same file twice is safe.',
     onConflict: 'When a name already exists',
     strategies: { skip: 'Keep mine', overwrite: 'Use the imported version' },
     importButton: 'Import',
-    invalidFile: 'That file isn’t a Calorie Companion export.',
+    invalidFile: 'That file isn’t an export from $t(appName).',
     created: 'New',
     updated: 'Updated',
     skipped: 'Skipped',

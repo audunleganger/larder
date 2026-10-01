@@ -89,6 +89,9 @@ class TypeScriptTypesTest {
             appendLine("} as const")
             appendLine()
             appendLine("export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes]")
+            appendLine()
+            appendLine("/** Export file format ids that import accepts. */")
+            appendLine("export const EXPORT_FORMATS: readonly unknown[] = [${ExportFile.ACCEPTED_FORMATS.joinToString { "'$it'" }}]")
             declarations.toSortedMap().values.forEach { appendLine(); append(it) }
         }
     }
