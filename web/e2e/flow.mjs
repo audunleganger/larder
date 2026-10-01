@@ -268,6 +268,42 @@ await step('logout and login', async () => {
   await page.getByRole('button', { name: 'Log out' }).waitFor()
 })
 
+await step('composite food', async () => {
+  await page.getByRole('link', { name: 'Foods', exact: true }).click()
+  await page.getByPlaceholder('Name, e.g. Rye bread').fill('Juice breakfast')
+  await page.getByRole('button', { name: 'Create' }).click()
+  await page.getByRole('heading', { name: 'Juice breakfast' }).waitFor()
+  const add = async (food, option, quantity, unit) => {
+    await page.getByRole('button', { name: 'Add ingredient' }).click()
+    const row = page.locator('.ingredient-row').last()
+    await row.getByRole('combobox', { name: 'Ingredient' }).fill(food)
+    await page.getByRole('option', { name: option }).click()
+    await row.getByLabel('Amount').fill(quantity)
+    await row.getByLabel('Unit', { exact: true }).selectOption({ label: unit })
+  }
+  await add('rye', 'Rye bread', '2', 'servings')
+  await add('juice', 'Orange juice', '2', 'dl')
+  await page.getByRole('button', { name: 'Save' }).click()
+  // 2 servings of 35 g rye bread at 250 kcal / 100 g; the juice has no values.
+  await page.getByText('Nutrients in all of it (1 serving)').waitFor()
+  await page.locator('.nutrient-value', { hasText: 'Energy' }).getByText('175 kcal').waitFor()
+  await shot('18-composite')
+
+  // Logging it adds each item as its own entry.
+  await page.getByRole('link', { name: 'Day', exact: true }).click()
+  await page.getByRole('heading', { name: 'Log food' }).waitFor()
+  await page.locator('.entry').first().waitFor()
+  const before = await page.locator('.entry').count()
+  await page.getByPlaceholder('Search foods…').fill('juice b')
+  await page.getByRole('option', { name: /Juice breakfast/ }).click()
+  await page.getByText('Adds each item as its own entry:').waitFor()
+  await page.getByRole('button', { name: 'Add', exact: true }).click()
+  await page.locator('.entry-via').first().waitFor()
+  const after = await page.locator('.entry').count()
+  if (after !== before + 2) throw new Error(`expected 2 new entries, got ${after - before}`)
+  if ((await page.locator('.entry-via', { hasText: 'Juice breakfast' }).count()) !== 2) throw new Error('entries not marked as from the composite')
+})
+
 await step('export and import', async () => {
   await page.getByRole('link', { name: 'Settings' }).click()
   await page.getByRole('heading', { name: 'Settings' }).waitFor()

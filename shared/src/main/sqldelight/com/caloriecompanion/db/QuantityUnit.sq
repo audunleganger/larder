@@ -57,7 +57,8 @@ SELECT count(*) FROM entry WHERE unit_id = :unitId;
 countUnitFoodRefs:
 SELECT count(DISTINCT f.id) FROM food f
 LEFT JOIN food_unit fu ON fu.food_id = f.id
-WHERE f.ref_unit_id = :unitId OR fu.unit_id = :unitId OR fu.equals_unit_id = :unitId;
+WHERE f.ref_unit_id = :unitId OR f.yield_unit_id = :unitId OR fu.unit_id = :unitId OR fu.equals_unit_id = :unitId
+   OR f.id IN (SELECT food_id FROM food_ingredient WHERE unit_id = :unitId);
 
 selectUnitDates:
 SELECT DISTINCT local_date FROM entry WHERE user_id = ? AND unit_id = ? ORDER BY local_date DESC;

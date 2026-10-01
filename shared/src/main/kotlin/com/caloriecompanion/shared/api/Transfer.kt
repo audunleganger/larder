@@ -21,7 +21,7 @@ data class ExportFile(
     companion object {
         const val FORMAT = "calorie-companion-export"
 
-        /** 2: names per language and plural endings (L-5, U-8), food photos (F-13). */
+        /** 2: names per language and plural endings (L-5, U-8), food photos (F-13), composite foods (F-10). */
         const val VERSION = 2
     }
 }
@@ -65,6 +65,18 @@ data class ExportFood(
     val units: List<ExportFoodUnit> = emptyList(),
     val translations: List<NameTranslation> = emptyList(),
     val image: FoodImageData? = null,
+    /** Composite foods (F-10): ingredients by name. Empty for plain foods. */
+    val ingredients: List<ExportIngredient> = emptyList(),
+    val yieldAmount: Double? = null,
+    val yieldUnit: String? = null,
+    val logAsWhole: Boolean = false,
+)
+
+@Serializable
+data class ExportIngredient(
+    val food: String,
+    val unit: String,
+    val quantity: Double,
 )
 
 @Serializable
@@ -75,6 +87,8 @@ data class ExportEntry(
     val date: String,
     val time: String,
     val note: String? = null,
+    /** The composite food it was logged as part of. */
+    val via: String? = null,
 )
 
 @Serializable

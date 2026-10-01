@@ -168,6 +168,63 @@ data class FoodSummary(
     val nutrientCount: Int,
     /** Changes whenever the food's photo does; null when it has none (F-13). */
     val imageVersion: Long?,
+    /** Made of other foods (F-10). refAmount/refUnitId are then how much it makes. */
+    val composite: Boolean,
+)
+
+// ---- Composite foods (F-10) ----
+
+/** One ingredient of a composite food: [quantity] of [unitId] of food [foodId]. */
+@Serializable
+data class Ingredient(
+    val foodId: Long,
+    val unitId: Long,
+    val quantity: Double,
+)
+
+/**
+ * Makes a food composite (F-10): its nutrients are then calculated from [ingredients], and it is
+ * [yieldAmount] of [yieldUnitId] (both null: the ingredients' total weight). An empty ingredient
+ * list makes it a plain food again. Logging it logs each ingredient as its own entry, unless [logAsWhole].
+ */
+@Serializable
+data class CompositeInput(
+    val ingredients: List<Ingredient>,
+    val yieldAmount: Double? = null,
+    val yieldUnitId: Long? = null,
+    val logAsWhole: Boolean = false,
+)
+
+/** A composite food's ingredient as shown: display names, and whether its amount can be calculated. */
+@Serializable
+data class IngredientView(
+    val foodId: Long,
+    val foodName: String,
+    val foodImageVersion: Long?,
+    val unitId: Long,
+    val unitName: String,
+    val unitPluralSuffix: String,
+    val quantity: Double,
+    /** The unit has no size for that food (or the food can't be calculated); it then contributes nothing. */
+    val unresolved: Boolean,
+    /** The ingredient's weight, if it converts to a mass. */
+    val grams: Double?,
+)
+
+/** What a composite food is made of and what that adds up to (F-10). */
+@Serializable
+data class CompositeDetail(
+    val ingredients: List<IngredientView>,
+    /** How much the ingredients make: as set, or their total weight; null if that can't be calculated. */
+    val yieldAmount: Double?,
+    val yieldUnitId: Long?,
+    /** True when the yield is the ingredients' total weight. */
+    val yieldAutomatic: Boolean,
+    /** Total weight of the ingredients in g, if all of them convert to a mass. */
+    val totalGrams: Double?,
+    /** Nutrients of the whole yield, summed over the ingredients. */
+    val nutrients: List<FoodNutrientValue>,
+    val logAsWhole: Boolean,
 )
 
 @Serializable
@@ -185,6 +242,11 @@ data class FoodDto(
     val displayName: String,
     /** Changes whenever the food's photo does; null when it has none (F-13). */
     val imageVersion: Long?,
+    /**
+     * The food's ingredients if it's composite (F-10). Its refAmount, refUnitId and nutrients above are
+     * then the values entered by hand, unused while it's composite (see [FoodDetail.composite]).
+     */
+    val composite: CompositeInput?,
 )
 
 /**
@@ -209,6 +271,8 @@ data class FoodInput(
     val units: List<FoodUnitLink> = emptyList(),
     /** Null: unchanged on update (none on create). */
     val translations: List<NameTranslation>? = null,
+    /** Null: unchanged on update (not composite on create). */
+    val composite: CompositeInput? = null,
 )
 
 /** What a new food's reference amount is prefilled with (F-12). Both null when there is no suitable unit. */
@@ -248,4 +312,10 @@ data class FoodDetail(
     val usableUnits: List<UsableUnit>,
     /** Entries with this food, newest first. */
     val entries: List<FoodEntryRef>,
+    /** Set when the food is composite (F-10). */
+    val composite: CompositeDetail?,
+    /** Composite foods that contain this food. */
+    val usedIn: List<FoodRef>,
+    /** Dates when this composite food was logged as its ingredients (F-10), newest first. */
+    val loggedAsItemsOn: List<String>,
 )

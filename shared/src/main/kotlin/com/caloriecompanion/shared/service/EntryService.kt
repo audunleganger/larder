@@ -8,6 +8,8 @@ import com.caloriecompanion.shared.api.EntryView
 import com.caloriecompanion.shared.api.PreviewInput
 import com.caloriecompanion.shared.api.PreviewResult
 import com.caloriecompanion.shared.domain.Catalog
+import com.caloriecompanion.shared.domain.Composites
+import com.caloriecompanion.shared.domain.FoodDef
 import com.caloriecompanion.shared.domain.NutritionCalculator
 import com.caloriecompanion.shared.domain.TargetTimeline
 import com.caloriecompanion.shared.domain.UnitResolver
@@ -56,13 +58,43 @@ class EntryService(
         return PreviewResult(nutrition.toList(catalog.displayedNutrients), nutrition.unresolved)
     }
 
-    fun create(input: EntryInput): EntryView = db.transactionWithResult {
+    /** Logs an entry; see [log]. Returns the (first) entry created. */
+    fun create(input: EntryInput): EntryView = log(input).first()
+
+    /**
+     * Logs [input] (E-1). A composite food (F-10) is logged as one entry per ingredient, scaled to the
+     * amount logged and remembering the composite, unless it's set to be logged as a whole; composite
+     * ingredients are split the same way. Returns the entries created, in ingredient order.
+     */
+    fun log(input: EntryInput): List<EntryView> = db.transactionWithResult {
         val clean = validate(input)
+        val catalog = loadCatalog(db, userId)
+        val food = catalog.foods.getValue(clean.foodId)
         val timestamp = now()
-        queries.insertEntry(
-            userId, clean.foodId, clean.unitId, clean.quantity, clean.date, clean.time, clean.note, timestamp, timestamp,
-        )
-        get(db.appUserQueries.lastInsertRowId().executeAsOne())
+        val parts = if (food.composite?.logAsWhole == false) split(catalog, food, clean.unitId, clean.quantity, 0) else null
+        if (parts == null) {
+            queries.insertEntry(userId, clean.foodId, clean.unitId, clean.quantity, clean.date, clean.time, clean.note, timestamp, timestamp)
+            listOf(get(db.appUserQueries.lastInsertRowId().executeAsOne()))
+        } else {
+            parts.map { (partId, unitId, quantity) ->
+                val part = validate(clean.copy(foodId = partId, unitId = unitId, quantity = quantity))
+                queries.insertEntryVia(userId, partId, unitId, part.quantity, clean.date, clean.time, clean.note, timestamp, timestamp, food.id)
+                get(db.appUserQueries.lastInsertRowId().executeAsOne())
+            }
+        }
+    }
+
+    /** The plain foods (and whole-logged composites) that [quantity] [unitId] of a composite [food] is made of. */
+    private fun split(catalog: Catalog, food: FoodDef, unitId: Long, quantity: Double, depth: Int): List<Triple<Long, Long, Double>> {
+        val composite = food.composite
+        if (composite == null || composite.logAsWhole || depth > Composites.MAX_DEPTH) return listOf(Triple(food.id, unitId, quantity))
+        if (composite.ingredients.isEmpty()) validation("'${food.name}' has no ingredients")
+        // The share of the whole yield this entry is.
+        val share = NutritionCalculator(catalog).factor(food, unitId, quantity)
+            ?: validation("Can't split '${food.name}' into its ingredients: set how much it makes, or log it in a unit with a size")
+        return composite.ingredients.flatMap { ingredient ->
+            split(catalog, catalog.foods.getValue(ingredient.foodId), ingredient.unitId, ingredient.quantity * share, depth + 1)
+        }
     }
 
     fun update(id: Long, input: EntryInput): EntryView = db.transactionWithResult {
@@ -113,6 +145,8 @@ internal fun Entry.toView(
     unitId = unit_id,
     unitName = catalog.units[unit_id]?.displayName(language) ?: "?",
     unitPluralSuffix = catalog.units[unit_id]?.displayPluralSuffix(language).orEmpty(),
+    viaFoodId = via_food_id,
+    viaFoodName = via_food_id?.let { catalog.foods[it]?.displayName(language) },
     quantity = quantity,
     date = local_date,
     time = local_time,

@@ -51,6 +51,9 @@ data class EntryView(
     val note: String?,
     val nutrients: List<NutrientAmount>,
     val unresolved: Boolean,
+    /** The composite food this entry was logged as part of (F-10). */
+    val viaFoodId: Long?,
+    val viaFoodName: String?,
 )
 
 @Serializable

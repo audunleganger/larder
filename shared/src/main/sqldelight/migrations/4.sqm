@@ -1,0 +1,18 @@
+-- v4 -> v5: composite foods (F-10), made of other foods. Logging one logs each item as its own entry
+-- unless log_as_whole; such entries remember the composite they came from (via_food_id).
+CREATE TABLE food_ingredient (
+    food_id INTEGER NOT NULL REFERENCES food(id) ON DELETE CASCADE,
+    position INTEGER NOT NULL,
+    ingredient_id INTEGER NOT NULL REFERENCES food(id) ON DELETE RESTRICT,
+    unit_id INTEGER NOT NULL REFERENCES quantity_unit(id) ON DELETE RESTRICT,
+    quantity REAL NOT NULL CHECK (quantity > 0),
+    PRIMARY KEY (food_id, position)
+);
+
+CREATE INDEX food_ingredient_ingredient ON food_ingredient(ingredient_id);
+
+ALTER TABLE food ADD COLUMN yield_amount REAL;
+ALTER TABLE food ADD COLUMN yield_unit_id INTEGER REFERENCES quantity_unit(id) ON DELETE RESTRICT;
+ALTER TABLE food ADD COLUMN log_as_whole INTEGER NOT NULL DEFAULT 0;
+
+ALTER TABLE entry ADD COLUMN via_food_id INTEGER REFERENCES food(id) ON DELETE SET NULL;

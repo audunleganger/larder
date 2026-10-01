@@ -10,8 +10,25 @@ CREATE TABLE food (
     ref_unit_id INTEGER REFERENCES quantity_unit(id) ON DELETE RESTRICT,
     notes TEXT,
     archived INTEGER AS Boolean NOT NULL DEFAULT 0,
+    -- Composite foods (F-10): how much the ingredients make; NULL = their total weight.
+    yield_amount REAL,
+    yield_unit_id INTEGER REFERENCES quantity_unit(id) ON DELETE RESTRICT,
+    -- Log a composite as one entry instead of one entry per ingredient.
+    log_as_whole INTEGER AS Boolean NOT NULL DEFAULT 0,
     UNIQUE (user_id, name_norm)
 );
+
+-- The ingredients of a composite food (F-10), in order. A food with ingredients is composite.
+CREATE TABLE food_ingredient (
+    food_id INTEGER NOT NULL REFERENCES food(id) ON DELETE CASCADE,
+    position INTEGER NOT NULL,
+    ingredient_id INTEGER NOT NULL REFERENCES food(id) ON DELETE RESTRICT,
+    unit_id INTEGER NOT NULL REFERENCES quantity_unit(id) ON DELETE RESTRICT,
+    quantity REAL NOT NULL CHECK (quantity > 0),
+    PRIMARY KEY (food_id, position)
+);
+
+CREATE INDEX food_ingredient_ingredient ON food_ingredient(ingredient_id);
 
 -- "1 <unit> = equals_amount <equals_unit>" (U-5). equals_* may be NULL while incomplete.
 CREATE TABLE food_unit (
@@ -77,6 +94,21 @@ DELETE FROM food WHERE id = ? AND user_id = ?;
 
 countFoodEntryRefs:
 SELECT count(*) FROM entry WHERE food_id = ?;
+
+countFoodIngredientRefs:
+SELECT count(*) FROM food_ingredient WHERE ingredient_id = ?;
+
+selectFoodIngredients:
+SELECT fi.* FROM food_ingredient fi JOIN food f ON f.id = fi.food_id WHERE f.user_id = ? ORDER BY fi.food_id, fi.position;
+
+insertFoodIngredient:
+INSERT INTO food_ingredient(food_id, position, ingredient_id, unit_id, quantity) VALUES (?, ?, ?, ?, ?);
+
+deleteFoodIngredients:
+DELETE FROM food_ingredient WHERE food_id = ?;
+
+updateFoodComposite:
+UPDATE food SET yield_amount = ?, yield_unit_id = ?, log_as_whole = ? WHERE id = ? AND user_id = ?;
 
 selectFoodUnits:
 SELECT fu.* FROM food_unit fu JOIN food f ON f.id = fu.food_id WHERE f.user_id = ?;

@@ -4,22 +4,43 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import * as endpoints from '../api/endpoints'
 import { useApiMutation, useFoodDetail, useNutrients, useUnits } from '../api/queries'
-import type { EntryInput, EntryView, FoodDetail } from '../api/types.gen'
+import type { CompositeDetail, EntryInput, EntryView } from '../api/types.gen'
 import { DecimalInput } from '../components/DecimalInput'
 import { FoodPicker, type PickedFood } from '../components/FoodPicker'
 import { ErrorText, Field } from '../components/ui'
 import { nowTime } from '../lib/dates'
-import { formatAmount, parseDecimal, toInputValue } from '../lib/format'
+import { formatAmount, formatQuantity, parseDecimal, toInputValue } from '../lib/format'
+import { defaultUnitId } from '../lib/units'
 import { unitLabel } from '../lib/names'
 import { useDebounced } from '../lib/useDebounced'
 
-/** Unit to preselect for a food: the last one used, else the first resolvable explicit unit. */
-function defaultUnitId(detail: FoodDetail | undefined): number | null {
-  if (!detail) return null
-  const last = detail.entries[0]?.unitId
-  if (last !== undefined) return last
-  const usable = detail.usableUnits
-  return (usable.find((u) => u.explicit && u.amountInRefUnit !== null) ?? usable.find((u) => u.amountInRefUnit !== null) ?? usable[0])?.unitId ?? null
+/** The share of a composite food's whole yield that [quantity] of a unit is; null if unknown. */
+function splitShare(composite: CompositeDetail, amountInRefUnit: number | null | undefined, quantity: number): number | null {
+  if (!composite.yieldAmount || amountInRefUnit === null || amountInRefUnit === undefined) return null
+  return (quantity * amountInRefUnit) / composite.yieldAmount
+}
+
+/** What logging a composite food will add (F-10). */
+function CompositeNote({ composite, share }: { composite: CompositeDetail; share: number | null }) {
+  const { t } = useTranslation()
+  if (composite.logAsWhole) return <p className="field-hint">{t('composite.willLogWhole')}</p>
+  return (
+    <div className="composite-note">
+      <p className="field-hint">{t('composite.willLogItems')}</p>
+      {share !== null && (
+        <ul className="chips">
+          {composite.ingredients.map((ingredient, index) => {
+            const quantity = ingredient.quantity * share
+            return (
+              <li key={index} className="chip">
+                {ingredient.foodName} · {formatQuantity(quantity)} {unitLabel(ingredient.unitName, ingredient.unitPluralSuffix, quantity)}
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </div>
+  )
 }
 
 /** Registers or edits an entry (E-1), with a live nutrient preview (E-2). */
@@ -28,6 +49,8 @@ export function EntryForm({ date, entry, onDone }: { date: string; entry: EntryV
   const [food, setFood] = useState<PickedFood | null>(entry ? { id: entry.foodId, name: entry.foodName } : null)
   const [unitId, setUnitId] = useState<number | null>(entry?.unitId ?? null)
   const [quantity, setQuantity] = useState(entry ? toInputValue(entry.quantity) : '1')
+  // Until the user types a quantity, a composite food measured by weight defaults to all of it.
+  const [quantityEdited, setQuantityEdited] = useState(entry !== null)
   const [entryDate, setEntryDate] = useState(entry?.date ?? date)
   const [time, setTime] = useState(entry?.time ?? nowTime())
   const [note, setNote] = useState(entry?.note ?? '')
@@ -38,8 +61,12 @@ export function EntryForm({ date, entry, onDone }: { date: string; entry: EntryV
   const detail = useFoodDetail(food?.id ?? null)
   const units = useUnits(false)
   const nutrients = useNutrients(false)
-  const effectiveUnitId = unitId ?? defaultUnitId(detail.data)
-  const qty = parseDecimal(quantity)
+  const composite = food !== null && detail.data?.food.id === food.id ? detail.data.composite : null
+  // A composite food defaults to the unit of how much it makes (F-10).
+  const effectiveUnitId = unitId ?? (entry ? null : composite?.yieldUnitId) ?? defaultUnitId(detail.data)
+  const wholeByWeight = composite?.yieldAutomatic && composite.yieldAmount !== null && effectiveUnitId === composite.yieldUnitId
+  const shownQuantity = !quantityEdited && wholeByWeight ? toInputValue(Math.round(composite.yieldAmount!)) : quantity
+  const qty = parseDecimal(shownQuantity)
   const validQty = qty !== null && !Number.isNaN(qty) && qty > 0 ? qty : null
   const debouncedQty = useDebounced(validQty, 250)
 
@@ -71,6 +98,7 @@ export function EntryForm({ date, entry, onDone }: { date: string; entry: EntryV
       setFood(null)
       setUnitId(null)
       setQuantity('1')
+      setQuantityEdited(false)
       setNote('')
       setTime(nowTime())
       setPickerKey((k) => k + 1)
@@ -90,13 +118,21 @@ export function EntryForm({ date, entry, onDone }: { date: string; entry: EntryV
             onChange={(picked) => {
               setFood(picked)
               setUnitId(null)
+              if (!entry) setQuantityEdited(false)
             }}
           />
         </Field>
       </div>
       <div className="form-row">
         <Field label={t('entry.quantity')} className="qty">
-          <DecimalInput value={quantity} onChange={setQuantity} aria-label={t('entry.quantity')} />
+          <DecimalInput
+            value={shownQuantity}
+            onChange={(value) => {
+              setQuantity(value)
+              setQuantityEdited(true)
+            }}
+            aria-label={t('entry.quantity')}
+          />
         </Field>
         <Field label={t('entry.unit')} className="grow">
           <select
@@ -141,6 +177,8 @@ export function EntryForm({ date, entry, onDone }: { date: string; entry: EntryV
           <input className="input" value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} />
         </Field>
       </div>
+
+      {composite && !entry && validQty !== null && <CompositeNote composite={composite} share={splitShare(composite, selectedUsable?.amountInRefUnit, validQty)} />}
 
       {food && validQty !== null && effectiveUnitId !== null && (
         <div className="preview" aria-live="polite">

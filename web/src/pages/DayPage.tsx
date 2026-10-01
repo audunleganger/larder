@@ -62,6 +62,11 @@ function EntryItem({ entry, nutrients, onEdit }: { entry: EntryView; nutrients: 
           </span>
           {entry.unresolved && <Badge tone="warning">⚠ {t('day.incomplete')}</Badge>}
         </div>
+        {entry.viaFoodName && (
+          <p className="entry-via muted">
+            {t('composite.viaPrefix')} <Link to={`/foods/${entry.viaFoodId}`}>{entry.viaFoodName}</Link>
+          </p>
+        )}
         {entry.note && <p className="entry-note">{entry.note}</p>}
         {rest.some((a) => a.amount !== null) && (
           <p className="entry-nutrients">

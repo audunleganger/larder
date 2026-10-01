@@ -38,6 +38,23 @@ export interface BackupResult {
   sizeBytes: number
 }
 
+export interface CompositeDetail {
+  ingredients: IngredientView[]
+  yieldAmount: number | null
+  yieldUnitId: number | null
+  yieldAutomatic: boolean
+  totalGrams: number | null
+  nutrients: FoodNutrientValue[]
+  logAsWhole: boolean
+}
+
+export interface CompositeInput {
+  ingredients: Ingredient[]
+  yieldAmount?: number | null
+  yieldUnitId?: number | null
+  logAsWhole?: boolean
+}
+
 export type ConflictStrategy = 'skip' | 'overwrite'
 
 export interface DayContributions {
@@ -82,6 +99,8 @@ export interface EntryView {
   note: string | null
   nutrients: NutrientAmount[]
   unresolved: boolean
+  viaFoodId: number | null
+  viaFoodName: string | null
 }
 
 export interface ErrorResponse {
@@ -97,6 +116,7 @@ export interface ExportEntry {
   date: string
   time: string
   note?: string | null
+  via?: string | null
 }
 
 export interface ExportFile {
@@ -120,12 +140,22 @@ export interface ExportFood {
   units?: ExportFoodUnit[]
   translations?: NameTranslation[]
   image?: FoodImageData | null
+  ingredients?: ExportIngredient[]
+  yieldAmount?: number | null
+  yieldUnit?: string | null
+  logAsWhole?: boolean
 }
 
 export interface ExportFoodUnit {
   unit: string
   equalsAmount?: number | null
   equalsUnit?: string | null
+}
+
+export interface ExportIngredient {
+  food: string
+  unit: string
+  quantity: number
 }
 
 export interface ExportNutrient {
@@ -157,6 +187,9 @@ export interface FoodDetail {
   food: FoodDto
   usableUnits: UsableUnit[]
   entries: FoodEntryRef[]
+  composite: CompositeDetail | null
+  usedIn: FoodRef[]
+  loggedAsItemsOn: string[]
 }
 
 export interface FoodDto {
@@ -171,6 +204,7 @@ export interface FoodDto {
   translations: NameTranslation[]
   displayName: string
   imageVersion: number | null
+  composite: CompositeInput | null
 }
 
 export interface FoodEntryRef {
@@ -197,6 +231,7 @@ export interface FoodInput {
   nutrients?: FoodNutrientValue[]
   units?: FoodUnitLink[]
   translations?: NameTranslation[] | null
+  composite?: CompositeInput | null
 }
 
 export interface FoodNutrientValue {
@@ -223,6 +258,7 @@ export interface FoodSummary {
   refUnitId: number | null
   nutrientCount: number
   imageVersion: number | null
+  composite: boolean
 }
 
 export interface FoodUnitLink {
@@ -262,6 +298,24 @@ export interface ImportResult {
   foods: ImportCounts
   entries: ImportCounts
   targets: ImportCounts
+}
+
+export interface Ingredient {
+  foodId: number
+  unitId: number
+  quantity: number
+}
+
+export interface IngredientView {
+  foodId: number
+  foodName: string
+  foodImageVersion: number | null
+  unitId: number
+  unitName: string
+  unitPluralSuffix: string
+  quantity: number
+  unresolved: boolean
+  grams: number | null
 }
 
 export interface LocaleInput {

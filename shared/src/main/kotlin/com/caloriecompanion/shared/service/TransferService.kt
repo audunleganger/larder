@@ -6,7 +6,9 @@ import com.caloriecompanion.shared.api.ErrorCodes
 import com.caloriecompanion.shared.api.ExportEntry
 import com.caloriecompanion.shared.api.ExportFile
 import com.caloriecompanion.shared.api.ExportFood
+import com.caloriecompanion.shared.api.CompositeInput
 import com.caloriecompanion.shared.api.ExportFoodUnit
+import com.caloriecompanion.shared.api.ExportIngredient
 import com.caloriecompanion.shared.api.ExportNutrient
 import com.caloriecompanion.shared.api.ExportTarget
 import com.caloriecompanion.shared.api.ExportUnit
@@ -14,6 +16,7 @@ import com.caloriecompanion.shared.api.FoodInput
 import com.caloriecompanion.shared.api.FoodNutrientValue
 import com.caloriecompanion.shared.api.FoodUnitLink
 import com.caloriecompanion.shared.api.ImportCounts
+import com.caloriecompanion.shared.api.Ingredient
 import com.caloriecompanion.shared.api.ImportResult
 import com.caloriecompanion.shared.api.NameTranslation
 import com.caloriecompanion.shared.api.NutrientInput
@@ -47,20 +50,33 @@ class TransferService(
                 ExportNutrient(it.name, it.measureUnit, it.displayPrecision, it.parentId?.let(nutrientName), it.archived, it.translations.inLanguageOrder())
             },
             foods = catalog.foods.values.sortedBy { it.id }.map { food ->
+                // A composite food's own values are the ones entered by hand; the rest is recalculated on import.
+                val composite = food.composite
+                val refAmount = if (composite != null) composite.manualRefAmount else food.refAmount
+                val refUnitId = if (composite != null) composite.manualRefUnitId else food.refUnitId
                 ExportFood(
                     name = food.name,
-                    refAmount = food.refAmount,
-                    refUnit = food.refUnitId?.let(unitName),
+                    refAmount = refAmount,
+                    refUnit = refUnitId?.let(unitName),
                     notes = food.notes,
                     archived = food.archived,
-                    nutrients = food.nutrients.entries.associate { (id, amount) -> nutrientName(id) to amount },
+                    nutrients = (composite?.manualNutrients ?: food.nutrients).entries.associate { (id, amount) -> nutrientName(id) to amount },
                     units = food.links.map { ExportFoodUnit(unitName(it.unitId), it.equalsAmount, it.equalsUnitId?.let(unitName)) },
                     translations = food.translations.inLanguageOrder(),
                     image = food.imageVersion?.let { FoodService(db, userId).imageData(food.id) },
+                    ingredients = composite?.ingredients.orEmpty().map {
+                        ExportIngredient(catalog.foods.getValue(it.foodId).name, unitName(it.unitId), it.quantity)
+                    },
+                    yieldAmount = composite?.yieldAmount,
+                    yieldUnit = composite?.yieldUnitId?.let(unitName),
+                    logAsWhole = composite?.logAsWhole ?: false,
                 )
             },
             entries = db.entryQueries.selectAllEntries(userId).executeAsList().map {
-                ExportEntry(catalog.foods.getValue(it.food_id).name, unitName(it.unit_id), it.quantity, it.local_date, it.local_time, it.note)
+                ExportEntry(
+                    catalog.foods.getValue(it.food_id).name, unitName(it.unit_id), it.quantity, it.local_date, it.local_time, it.note,
+                    via = it.via_food_id?.let { via -> catalog.foods[via]?.name },
+                )
             },
             targets = TargetService(db, userId).list().map { ExportTarget(nutrientName(it.nutrientId), it.min, it.max, it.effectiveFrom) },
         )
@@ -149,6 +165,7 @@ class TransferService(
 
         // Foods
         var foodCounts = ImportCounts()
+        val touchedFoods = HashSet<String>()
         val foodIds = foodService.list(includeArchived = true).associateTo(HashMap()) { normalizeName(it.name) to it.id }
         for (food in file.foods) {
             val key = normalizeName(food.name)
@@ -163,6 +180,7 @@ class TransferService(
                 units = food.units.map { FoodUnitLink(unitId(it.unit), it.equalsAmount, it.equalsUnit?.let(::unitId)) },
                 translations = translations,
             )
+            if (existing == null || overwrite) touchedFoods += key
             foodCounts = when {
                 existing == null -> {
                     val created = foodService.create(input, food.archived, rememberRef = false).id
@@ -181,6 +199,23 @@ class TransferService(
         }
         fun foodId(name: String) = foodIds[normalizeName(name)] ?: invalid("Unknown food '$name'")
 
+        // Composite foods, once all foods exist (an ingredient may come later in the file).
+        for (food in file.foods) {
+            if (food.ingredients.isEmpty()) continue
+            val id = foodId(food.name)
+            // Only foods created or overwritten by this import; skipped ones keep their own definition.
+            if (normalizeName(food.name) !in touchedFoods) continue
+            foodService.setComposite(
+                id,
+                CompositeInput(
+                    ingredients = food.ingredients.map { Ingredient(foodId(it.food), unitId(it.unit), it.quantity) },
+                    yieldAmount = food.yieldAmount?.takeIf { food.yieldUnit != null },
+                    yieldUnitId = food.yieldUnit?.takeIf { food.yieldAmount != null }?.let(::unitId),
+                    logAsWhole = food.logAsWhole,
+                ),
+            )
+        }
+
         // Entries (appended; exact duplicates skipped)
         var entryCounts = ImportCounts()
         val timestamp = now()
@@ -195,7 +230,8 @@ class TransferService(
             entryCounts = if (duplicates > 0) {
                 entryCounts.copy(skipped = entryCounts.skipped + 1)
             } else {
-                db.entryQueries.insertEntry(userId, foodId, unitId, entry.quantity, date, time, note, timestamp, timestamp)
+                val via = entry.via?.let { foodIds[normalizeName(it)] }
+                db.entryQueries.insertEntryVia(userId, foodId, unitId, entry.quantity, date, time, note, timestamp, timestamp, via)
                 entryCounts.copy(created = entryCounts.created + 1)
             }
         }

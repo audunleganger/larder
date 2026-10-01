@@ -3,11 +3,13 @@ import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router'
 import * as endpoints from '../api/endpoints'
 import { useApiMutation, useFoodDetail, useNutrients, useUnits } from '../api/queries'
-import type { FoodDetail, FoodInput, NutrientDto, UnitDto } from '../api/types.gen'
+import type { CompositeInput, FoodDetail, FoodInput, NutrientDto, UnitDto } from '../api/types.gen'
 import { DecimalInput } from '../components/DecimalInput'
 import { Badge, Card, ConfirmButton, Empty, ErrorText, Field, PageHeader, QueryView } from '../components/ui'
 import { formatDate } from '../lib/dates'
-import { currentLocale, formatNumber, formatQuantity, parseDecimal, toInputValue } from '../lib/format'
+import { currentLocale, formatAmount, formatNumber, formatQuantity, parseDecimal, toInputValue } from '../lib/format'
+import { compositeDraft, toCompositeInput } from '../lib/composite'
+import { IngredientsEditor } from '../components/IngredientsEditor'
 import { draftTranslations, toTranslations, unitLabel } from '../lib/names'
 import { TranslationFields } from '../components/TranslationFields'
 import { FoodPhotoEditor } from '../components/FoodPhoto'
@@ -40,6 +42,8 @@ function FoodEditor({ detail, units, nutrients }: { detail: FoodDetail; units: U
   const [links, setLinks] = useState<LinkRow[]>(() =>
     food.units.map((l) => ({ key: rowKey++, unitId: l.unitId, equalsAmount: toInputValue(l.equalsAmount), equalsUnitId: l.equalsUnitId ?? '' })),
   )
+  const [composite, setComposite] = useState(() => compositeDraft(food, detail.composite, units))
+  const isComposite = composite.rows.length > 0
   const [formError, setFormError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
   const save = useApiMutation((input: FoodInput) => endpoints.updateFood(food.id, input))
@@ -79,9 +83,21 @@ function FoodEditor({ detail, units, nutrients }: { detail: FoodDetail; units: U
       const sized = equals !== null && row.equalsUnitId !== ''
       unitLinks.push({ unitId: row.unitId, equalsAmount: sized ? equals : null, equalsUnitId: sized ? Number(row.equalsUnitId) : null })
     }
+    let compositeInput: CompositeInput | undefined
+    if (isComposite) {
+      const result = toCompositeInput(composite)
+      if ('error' in result) {
+        setFormError(t(result.error))
+        return null
+      }
+      compositeInput = result
+    } else if (food.composite) {
+      compositeInput = { ingredients: [], yieldAmount: null, yieldUnitId: null, logAsWhole: false }
+    }
     return {
       name,
       translations: toTranslations(translations),
+      composite: compositeInput,
       refAmount: amount,
       refUnitId: refUnitId === '' ? null : refUnitId,
       notes: notes.trim() || null,
@@ -137,38 +153,51 @@ function FoodEditor({ detail, units, nutrients }: { detail: FoodDetail; units: U
           </Field>
         </div>
         <TranslationFields draft={translations} onChange={setTranslations} mainName={name} />
-        <div className="form-row">
-          <Field label={t('foods.refAmount')} className="qty-wide">
-            <DecimalInput value={refAmount} onChange={setRefAmount} placeholder="100" />
-          </Field>
-          <Field label={t('foods.refUnit')} className="grow">
-            <select className="input" value={refUnitId} onChange={(e) => setRefUnitId(e.target.value ? Number(e.target.value) : '')}>
-              <option value="">{t('foods.notSet')}</option>
-              {units.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {unitOption(u, t)}
-                </option>
-              ))}
-            </select>
-          </Field>
-        </div>
-        <p className="field-hint">{t('foods.refHint')}</p>
+        {/* A composite food's amount is how much its ingredients make (below). */}
+        {!isComposite && (
+          <>
+            <div className="form-row">
+              <Field label={t('foods.refAmount')} className="qty-wide">
+                <DecimalInput value={refAmount} onChange={setRefAmount} placeholder="100" />
+              </Field>
+              <Field label={t('foods.refUnit')} className="grow">
+                <select className="input" value={refUnitId} onChange={(e) => setRefUnitId(e.target.value ? Number(e.target.value) : '')}>
+                  <option value="">{t('foods.notSet')}</option>
+                  {units.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {unitOption(u, t)}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+            <p className="field-hint">{t('foods.refHint')}</p>
+          </>
+        )}
         <Field label={t('foods.notes')}>
           <textarea className="input" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
         </Field>
       </Card>
 
-      <Card title={refUnitName && parseDecimal(refAmount) ? t('foods.nutrientsPer', { amount: refAmount, unit: refUnitName }) : t('foods.nutrients')}>
-        {!refUnitName && <p className="warning-text">{t('foods.setReferenceFirst')}</p>}
-        <div className="nutrient-groups">
-          {groupNutrients(shownNutrients).map(({ main, subs }) => (
-            <div key={main.id} className="nutrient-group">
-              {nutrientInput(main)}
-              {subs.map((sub) => nutrientInput(sub, main))}
-            </div>
-          ))}
-        </div>
+      <Card title={t('composite.title')}>
+        <IngredientsEditor draft={composite} onChange={setComposite} units={units} saved={detail.composite} />
       </Card>
+
+      {isComposite ? (
+        <CompositeNutrients detail={detail} units={units} nutrients={nutrients} />
+      ) : (
+        <Card title={refUnitName && parseDecimal(refAmount) ? t('foods.nutrientsPer', { amount: refAmount, unit: refUnitName }) : t('foods.nutrients')}>
+          {!refUnitName && <p className="warning-text">{t('foods.setReferenceFirst')}</p>}
+          <div className="nutrient-groups">
+            {groupNutrients(shownNutrients).map(({ main, subs }) => (
+              <div key={main.id} className="nutrient-group">
+                {nutrientInput(main)}
+                {subs.map((sub) => nutrientInput(sub, main))}
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       <Card title={t('foods.units')}>
         <p className="field-hint">{t('foods.unitsHint')}</p>
@@ -214,7 +243,8 @@ function FoodEditor({ detail, units, nutrients }: { detail: FoodDetail; units: U
         ) : (
           <ul className="usable-units">
             {detail.usableUnits.map((u) => {
-              const ref = units.find((x) => x.id === food.refUnitId)?.displayName
+              // Sizes are relative to the reference unit; for a composite food, the unit of how much it makes.
+              const ref = units.find((x) => x.id === (detail.composite ? detail.composite.yieldUnitId : food.refUnitId))?.displayName
               return (
                 <li key={u.unitId}>
                   <Link to={`/units/${u.unitId}`}>{u.name}</Link>{' '}
@@ -246,14 +276,61 @@ function FoodEditor({ detail, units, nutrients }: { detail: FoodDetail; units: U
   )
 }
 
+/** A composite food's nutrients, calculated from its ingredients (F-10); read-only. */
+function CompositeNutrients({ detail, units, nutrients }: { detail: FoodDetail; units: UnitDto[]; nutrients: NutrientDto[] }) {
+  const { t } = useTranslation()
+  const composite = detail.composite
+  const yieldUnit = units.find((u) => u.id === composite?.yieldUnitId)
+  const values = new Map(composite?.nutrients.map((v) => [v.nutrientId, v.amount]))
+  const shown = nutrients.filter((n) => !n.archived || values.has(n.id))
+  return (
+    <Card
+      title={
+        composite?.yieldAmount && yieldUnit
+          ? t('composite.nutrientsOfAll', { amount: formatNumber(composite.yieldAmount, 3), unit: unitLabel(yieldUnit.displayName, yieldUnit.displayPluralSuffix, composite.yieldAmount) })
+          : t('foods.nutrients')
+      }
+    >
+      {!composite ? (
+        <p className="field-hint">{t('composite.saveToCalculate')}</p>
+      ) : (
+        <>
+          {!composite.yieldAmount && <p className="warning-text">{t('composite.noYield')}</p>}
+          <div className="nutrient-groups">
+            {groupNutrients(shown).map(({ main, subs }) => (
+              <div key={main.id} className="nutrient-group">
+                {[main, ...subs].map((n) => (
+                  <div key={n.id} className={n.id !== main.id ? 'nutrient-sub' : undefined}>
+                    <div className="nutrient-value">
+                      <span>
+                        {n.id !== main.id && <span className="muted of-which">{t('nutrients.ofWhich')} </span>}
+                        {n.displayName}
+                      </span>
+                      <span className="nutrient-amount">{values.has(n.id) ? formatAmount(values.get(n.id)!, n) : '—'}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+          <p className="field-hint">{t('composite.calculatedHint')}</p>
+        </>
+      )}
+    </Card>
+  )
+}
+
 function EntriesByDate({ detail }: { detail: FoodDetail }) {
   const { t } = useTranslation()
-  if (detail.entries.length === 0) return <Empty>{t('foods.noEntries')}</Empty>
+  if (detail.entries.length === 0 && detail.loggedAsItemsOn.length === 0) return <Empty>{t('foods.noEntries')}</Empty>
   const byDate = new Map<string, FoodDetail['entries']>()
   for (const entry of detail.entries) byDate.set(entry.date, [...(byDate.get(entry.date) ?? []), entry])
+  // A composite food logged as its ingredients has no entries of its own on those days.
+  for (const date of detail.loggedAsItemsOn) if (!byDate.has(date)) byDate.set(date, [])
+  const asItems = new Set(detail.loggedAsItemsOn)
   return (
     <ul className="date-list">
-      {[...byDate.entries()].map(([date, entries]) => (
+      {[...byDate.entries()].sort(([a], [b]) => b.localeCompare(a)).map(([date, entries]) => (
         <li key={date}>
           <Link to={`/day/${date}`}>{formatDate(date, currentLocale(), 'short')}</Link>
           <span className="date-list-items">
@@ -262,6 +339,7 @@ function EntriesByDate({ detail }: { detail: FoodDetail }) {
                 {detail.food.displayName} · {formatQuantity(e.quantity)} {unitLabel(e.unitName, e.unitPluralSuffix, e.quantity)}
               </span>
             ))}
+            {asItems.has(date) && <span className="chip chip-muted">{t('composite.loggedAsItems')}</span>}
           </span>
         </li>
       ))}
@@ -301,6 +379,17 @@ export function FoodDetailPage() {
             <Card title={t('foods.entries')}>
               <EntriesByDate detail={data} />
             </Card>
+            {data.usedIn.length > 0 && (
+              <Card title={t('composite.usedIn')}>
+                <ul className="link-list">
+                  {data.usedIn.map((f) => (
+                    <li key={f.id}>
+                      <Link to={`/foods/${f.id}`}>{f.name}</Link> {f.archived && <Badge>{t('common.archived')}</Badge>}
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            )}
             <Card title={t('common.manage')}>
               <div className="form-actions">
                 <button type="button" className="btn" onClick={() => archive.mutate(!data.food.archived)}>

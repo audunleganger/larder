@@ -2,17 +2,24 @@ package com.caloriecompanion.shared.service
 
 import com.caloriecompanion.db.CalorieCompanionDatabase
 import com.caloriecompanion.shared.api.ErrorCodes
+import com.caloriecompanion.shared.api.CompositeDetail
+import com.caloriecompanion.shared.api.CompositeInput
 import com.caloriecompanion.shared.api.FoodDetail
 import com.caloriecompanion.shared.api.FoodDto
 import com.caloriecompanion.shared.api.FoodEntryRef
 import com.caloriecompanion.shared.api.FoodImageData
 import com.caloriecompanion.shared.api.FoodInput
+import com.caloriecompanion.shared.api.FoodNutrientValue
+import com.caloriecompanion.shared.api.FoodRef
 import com.caloriecompanion.shared.api.FoodRefDefault
 import com.caloriecompanion.shared.api.FoodSummary
+import com.caloriecompanion.shared.api.IngredientView
 import com.caloriecompanion.shared.api.NameTranslation
 import com.caloriecompanion.shared.api.UnitKind
 import com.caloriecompanion.shared.domain.AppException
 import com.caloriecompanion.shared.domain.Catalog
+import com.caloriecompanion.shared.domain.Composites
+import com.caloriecompanion.shared.domain.FoodDef
 import com.caloriecompanion.shared.domain.ImageRules
 import com.caloriecompanion.shared.domain.StoredImage
 import com.caloriecompanion.shared.domain.UnitResolver
@@ -48,7 +55,10 @@ class FoodService(
             .map { (food, names) -> Triple(food, foldForSearch(food.displayName(language)), needle != null && names.none { it.startsWith(needle) }) }
             .sortedWith(compareBy({ it.third }, { it.second }))
             .map { (food, _, _) ->
-                FoodSummary(food.id, food.displayName(language), food.archived, food.refAmount, food.refUnitId, food.nutrients.size, food.imageVersion)
+                FoodSummary(
+                    food.id, food.displayName(language), food.archived, food.refAmount, food.refUnitId,
+                    food.nutrients.size, food.imageVersion, composite = food.composite != null,
+                )
             }
             .toList()
     }
@@ -65,7 +75,42 @@ class FoodService(
                 unit?.displayName(language) ?: "?", unit?.displayPluralSuffix(language).orEmpty(),
             )
         }
-        return FoodDetail(food.toDto(language), UnitResolver(catalog).usableUnits(food, language), entries)
+        val usedIn = catalog.foods.values
+            .filter { other -> other.composite?.ingredients.orEmpty().any { it.foodId == id } }
+            .map { FoodRef(it.id, it.displayName(language), it.archived) }
+            .sortedBy { it.name.lowercase() }
+        val loggedAsItemsOn = if (food.composite != null) db.entryQueries.selectDatesViaFood(userId, id).executeAsList() else emptyList()
+        return FoodDetail(
+            food.toDto(language), UnitResolver(catalog).usableUnits(food, language), entries,
+            compositeDetail(catalog, food), usedIn, loggedAsItemsOn,
+        )
+    }
+
+    private fun compositeDetail(catalog: Catalog, food: FoodDef): CompositeDetail? {
+        val composite = food.composite ?: return null
+        return CompositeDetail(
+            ingredients = composite.ingredients.mapIndexed { index, ingredient ->
+                val part = catalog.foods[ingredient.foodId]
+                val unit = catalog.units[ingredient.unitId]
+                IngredientView(
+                    foodId = ingredient.foodId,
+                    foodName = part?.displayName(language) ?: "?",
+                    foodImageVersion = part?.imageVersion,
+                    unitId = ingredient.unitId,
+                    unitName = unit?.displayName(language) ?: "?",
+                    unitPluralSuffix = unit?.displayPluralSuffix(language).orEmpty(),
+                    quantity = ingredient.quantity,
+                    unresolved = index in composite.unresolved,
+                    grams = composite.grams.getOrNull(index),
+                )
+            },
+            yieldAmount = food.refAmount,
+            yieldUnitId = food.refUnitId,
+            yieldAutomatic = composite.yieldAmount == null,
+            totalGrams = composite.totalGrams,
+            nutrients = catalog.nutrients.mapNotNull { n -> food.nutrients[n.id]?.let { FoodNutrientValue(n.id, it) } },
+            logAsWhole = composite.logAsWhole,
+        )
     }
 
     /**
@@ -89,6 +134,7 @@ class FoodService(
         val id = db.appUserQueries.lastInsertRowId().executeAsOne()
         writeRelations(id, clean)
         writeTranslations(id, clean.translations.orEmpty())
+        clean.composite?.let { writeComposite(id, it) }
         if (rememberRef) rememberRef(clean)
         get(id)
     }
@@ -98,14 +144,49 @@ class FoodService(
         val catalog = loadCatalog(db, userId)
         val before = catalog.foods[id] ?: notFound("Food")
         val clean = validate(catalog, input, selfId = id)
+        val beforeRef = before.composite?.let { it.manualRefAmount to it.manualRefUnitId } ?: (before.refAmount to before.refUnitId)
         // Only a changed reference counts as "used": editing an old food's notes shouldn't reset the default.
-        if (rememberRef && (clean.refAmount != before.refAmount || clean.refUnitId != before.refUnitId)) rememberRef(clean)
+        if (rememberRef && (clean.refAmount to clean.refUnitId) != beforeRef) rememberRef(clean)
         queries.updateFood(clean.name, normalizeName(clean.name), clean.refAmount, clean.refUnitId, clean.notes, id, userId)
         queries.deleteFoodUnits(id)
         queries.deleteFoodNutrients(id)
         writeRelations(id, clean)
         clean.translations?.let { writeTranslations(id, it) }
+        clean.composite?.let { writeComposite(id, it) }
         get(id)
+    }
+
+    /**
+     * Sets what a food is made of (F-10); an empty ingredient list makes it a plain food again.
+     * Used for import, where ingredients can only be linked once all foods exist.
+     */
+    fun setComposite(id: Long, input: CompositeInput): FoodDto = db.transactionWithResult {
+        val catalog = loadCatalog(db, userId)
+        if (id !in catalog.foods) notFound("Food")
+        writeComposite(id, validateComposite(catalog, input, id))
+        get(id)
+    }
+
+    private fun writeComposite(id: Long, input: CompositeInput) {
+        queries.deleteFoodIngredients(id)
+        input.ingredients.forEachIndexed { position, it -> queries.insertFoodIngredient(id, position.toLong(), it.foodId, it.unitId, it.quantity) }
+        queries.updateFoodComposite(input.yieldAmount, input.yieldUnitId, input.logAsWhole, id, userId)
+    }
+
+    private fun validateComposite(catalog: Catalog, input: CompositeInput, selfId: Long?): CompositeInput {
+        if (input.ingredients.size > MAX_INGREDIENTS) validation("A food can have at most $MAX_INGREDIENTS ingredients")
+        for (ingredient in input.ingredients) {
+            val part = catalog.foods[ingredient.foodId] ?: notFound("Ingredient")
+            if (ingredient.unitId !in catalog.units) notFound("Unit")
+            if (!ingredient.quantity.isFinite() || ingredient.quantity <= 0) validation("Ingredient amounts must be positive")
+            if (selfId != null && Composites.contains(catalog.foods, ingredient.foodId, selfId)) {
+                validation(if (ingredient.foodId == selfId) "A food can't be an ingredient of itself" else "'${part.name}' already contains this food")
+            }
+        }
+        if ((input.yieldAmount == null) != (input.yieldUnitId == null)) validation("How much it makes needs both an amount and a unit")
+        requirePositive(input.yieldAmount, "How much it makes")
+        input.yieldUnitId?.let { if (it !in catalog.units) notFound("Unit") }
+        return input
     }
 
     fun setArchived(id: Long, archived: Boolean): FoodDto {
@@ -114,12 +195,16 @@ class FoodService(
         return get(id)
     }
 
-    /** Deletes a food without entries (F-8); otherwise fails with REFERENCED. */
+    /** Deletes a food without entries that isn't an ingredient (F-8); otherwise fails with REFERENCED. */
     fun delete(id: Long) = db.transaction {
         get(id)
         val entries = queries.countFoodEntryRefs(id).executeAsOne()
-        if (entries > 0) {
-            throw AppException(ErrorCodes.REFERENCED, "Food is in use; archive it instead", 409, mapOf("entries" to entries))
+        val composites = queries.countFoodIngredientRefs(id).executeAsOne()
+        if (entries > 0 || composites > 0) {
+            throw AppException(
+                ErrorCodes.REFERENCED, "Food is in use; archive it instead", 409,
+                mapOf("entries" to entries, "composites" to composites),
+            )
         }
         queries.deleteFood(id, userId)
     }
@@ -202,6 +287,15 @@ class FoodService(
             if (!seenNutrients.add(value.nutrientId)) validation("A nutrient is given more than once")
             requireNonNegative(value.amount, "Nutrient amount")
         }
-        return input.copy(name = name, notes = cleanOptionalText(input.notes), translations = translations)
+        return input.copy(
+            name = name,
+            notes = cleanOptionalText(input.notes),
+            translations = translations,
+            composite = input.composite?.let { validateComposite(catalog, it, selfId) },
+        )
+    }
+
+    companion object {
+        const val MAX_INGREDIENTS = 100
     }
 }

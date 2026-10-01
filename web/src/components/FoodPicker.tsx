@@ -17,6 +17,7 @@ interface Option {
   label: string
   food?: PickedFood
   imageVersion?: number | null
+  composite?: boolean
   create?: string
 }
 
@@ -24,7 +25,7 @@ interface Option {
  * Searchable food combobox. Archived foods are excluded (F-7). Typing a new name offers to create
  * the food with only its name (F-1), so logging is never blocked on catalog work.
  */
-export function FoodPicker({ value, onChange, autoFocus }: { value: PickedFood | null; onChange: (food: PickedFood | null) => void; autoFocus?: boolean }) {
+export function FoodPicker({ value, onChange, autoFocus, ariaLabel }: { value: PickedFood | null; onChange: (food: PickedFood | null) => void; autoFocus?: boolean; ariaLabel?: string }) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const id = useId()
@@ -46,7 +47,7 @@ export function FoodPicker({ value, onChange, autoFocus }: { value: PickedFood |
   const matches = (foods.data ?? []).slice(0, 12)
   const exact = matches.some((f) => f.name.toLowerCase() === text.trim().toLowerCase())
   const options: Option[] = [
-    ...matches.map((f) => ({ key: `f${f.id}`, label: f.name, food: { id: f.id, name: f.name }, imageVersion: f.imageVersion })),
+    ...matches.map((f) => ({ key: `f${f.id}`, label: f.name, food: { id: f.id, name: f.name }, imageVersion: f.imageVersion, composite: f.composite })),
     ...(text.trim() && !exact ? [{ key: 'create', label: t('foodPicker.create', { name: text.trim() }), create: text.trim() }] : []),
   ]
 
@@ -80,6 +81,7 @@ export function FoodPicker({ value, onChange, autoFocus }: { value: PickedFood |
         aria-expanded={open}
         aria-controls={`${id}-list`}
         aria-autocomplete="list"
+        aria-label={ariaLabel}
         aria-activedescendant={open && options[active] ? `${id}-${options[active].key}` : undefined}
         placeholder={t('foodPicker.placeholder')}
         autoComplete="off"
@@ -126,6 +128,7 @@ export function FoodPicker({ value, onChange, autoFocus }: { value: PickedFood |
             >
               {option.food && <FoodThumb foodId={option.food.id} version={option.imageVersion ?? null} name={option.label} />}
               {option.label}
+              {option.composite && <span className="badge badge-info">{t('composite.badge')}</span>}
             </li>
           ))}
         </ul>

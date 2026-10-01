@@ -9,7 +9,9 @@ CREATE TABLE entry (
     local_time TEXT NOT NULL,
     note TEXT,
     created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL
+    updated_at INTEGER NOT NULL,
+    -- The composite food this entry was logged as part of (F-10), if any.
+    via_food_id INTEGER REFERENCES food(id) ON DELETE SET NULL
 );
 
 CREATE INDEX entry_user_date ON entry(user_id, local_date);
@@ -19,6 +21,10 @@ CREATE INDEX entry_unit ON entry(unit_id);
 insertEntry:
 INSERT INTO entry(user_id, food_id, unit_id, quantity, local_date, local_time, note, created_at, updated_at)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+insertEntryVia:
+INSERT INTO entry(user_id, food_id, unit_id, quantity, local_date, local_time, note, created_at, updated_at, via_food_id)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 updateEntry:
 UPDATE entry SET food_id = ?, unit_id = ?, quantity = ?, local_date = ?, local_time = ?, note = ?, updated_at = ?
@@ -52,3 +58,6 @@ WHERE user_id = ? AND food_id = ? AND unit_id = ? AND quantity = ? AND local_dat
 
 firstEntryDate:
 SELECT min(local_date) FROM entry WHERE user_id = ?;
+
+selectDatesViaFood:
+SELECT DISTINCT local_date FROM entry WHERE user_id = ? AND via_food_id = ? ORDER BY local_date DESC LIMIT 500;

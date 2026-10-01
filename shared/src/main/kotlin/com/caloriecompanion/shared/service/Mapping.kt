@@ -4,15 +4,19 @@ import com.caloriecompanion.db.CalorieCompanionDatabase
 import com.caloriecompanion.db.Food
 import com.caloriecompanion.db.Nutrient
 import com.caloriecompanion.db.Quantity_unit
+import com.caloriecompanion.shared.api.CompositeInput
 import com.caloriecompanion.shared.api.FoodDto
 import com.caloriecompanion.shared.api.FoodNutrientValue
 import com.caloriecompanion.shared.api.FoodUnitLink
+import com.caloriecompanion.shared.api.Ingredient
 import com.caloriecompanion.shared.api.NameTranslation
 import com.caloriecompanion.shared.api.NutrientDto
 import com.caloriecompanion.shared.api.TargetDto
 import com.caloriecompanion.shared.api.UnitDto
 import com.caloriecompanion.shared.api.UnitKind
 import com.caloriecompanion.shared.domain.Catalog
+import com.caloriecompanion.shared.domain.CompositeDef
+import com.caloriecompanion.shared.domain.Composites
 import com.caloriecompanion.shared.domain.FoodDef
 import com.caloriecompanion.shared.domain.NutrientDef
 import com.caloriecompanion.shared.domain.UnitDef
@@ -69,18 +73,20 @@ internal fun NutrientDef.toDto(language: String?) = NutrientDto(
     displayName = displayName(language),
 )
 
+/** A composite food's reference amount and nutrients are given as entered by hand; see [CompositeDef]. */
 internal fun FoodDef.toDto(language: String?) = FoodDto(
     id = id,
     name = name,
-    refAmount = refAmount,
-    refUnitId = refUnitId,
+    refAmount = if (composite != null) composite.manualRefAmount else refAmount,
+    refUnitId = if (composite != null) composite.manualRefUnitId else refUnitId,
     notes = notes,
     archived = archived,
-    nutrients = nutrients.map { (nutrientId, amount) -> FoodNutrientValue(nutrientId, amount) },
+    nutrients = (composite?.manualNutrients ?: nutrients).map { (nutrientId, amount) -> FoodNutrientValue(nutrientId, amount) },
     units = links,
     translations = translations.inLanguageOrder(),
     displayName = displayName(language),
     imageVersion = imageVersion,
+    composite = composite?.let { CompositeInput(it.ingredients, it.yieldAmount, it.yieldUnitId, it.logAsWhole) },
 )
 
 internal fun unitTranslations(db: CalorieCompanionDatabase, userId: Long): Map<Long, Map<String, NameTranslation>> =
@@ -104,9 +110,12 @@ fun loadCatalog(db: CalorieCompanionDatabase, userId: Long): Catalog {
     val foodNames = db.foodQueries.selectFoodTranslations(userId).executeAsList()
         .groupBy({ it.food_id }, { NameTranslation(it.locale, it.name) })
     val imageVersions = db.foodQueries.selectFoodImageVersions(userId).executeAsList().associate { it.food_id to it.updated_at }
+    val ingredients = db.foodQueries.selectFoodIngredients(userId).executeAsList()
+        .groupBy({ it.food_id }, { Ingredient(it.ingredient_id, it.unit_id, it.quantity) })
     val links = db.foodQueries.selectFoodUnits(userId).executeAsList().groupBy { it.food_id }
     val values = db.foodQueries.selectFoodNutrients(userId).executeAsList().groupBy { it.food_id }
     val foods = db.foodQueries.selectFoods(userId).executeAsList().map { food: Food ->
+        val manualNutrients = values[food.id].orEmpty().associate { it.nutrient_id to it.amount }
         FoodDef(
             id = food.id,
             name = food.name,
@@ -114,11 +123,14 @@ fun loadCatalog(db: CalorieCompanionDatabase, userId: Long): Catalog {
             refUnitId = food.ref_unit_id,
             notes = food.notes,
             archived = food.archived,
-            nutrients = values[food.id].orEmpty().associate { it.nutrient_id to it.amount },
+            nutrients = manualNutrients,
             links = links[food.id].orEmpty().map { FoodUnitLink(it.unit_id, it.equals_amount, it.equals_unit_id) },
             translations = foodNames[food.id].orEmpty().associateBy { it.locale },
             imageVersion = imageVersions[food.id],
+            composite = ingredients[food.id]?.let {
+                CompositeDef(it, food.yield_amount, food.yield_unit_id, food.log_as_whole, food.ref_amount, food.ref_unit_id, manualNutrients)
+            },
         )
     }
-    return Catalog(units, nutrients, foods)
+    return Catalog(units, nutrients, Composites.derive(units, nutrients, foods))
 }

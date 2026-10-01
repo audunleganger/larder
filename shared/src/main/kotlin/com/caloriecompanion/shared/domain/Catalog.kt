@@ -1,6 +1,7 @@
 package com.caloriecompanion.shared.domain
 
 import com.caloriecompanion.shared.api.FoodUnitLink
+import com.caloriecompanion.shared.api.Ingredient
 import com.caloriecompanion.shared.api.NameTranslation
 import com.caloriecompanion.shared.api.UnitKind
 import com.caloriecompanion.shared.normalizeName
@@ -56,7 +57,31 @@ data class FoodDef(
     override val translations: Map<String, NameTranslation> = emptyMap(),
     /** Version of the food's photo, or null without one (F-13). */
     val imageVersion: Long? = null,
+    /**
+     * Set for composite foods (F-10). In a loaded [Catalog], [refAmount], [refUnitId] and [nutrients]
+     * of a composite food are then derived from its ingredients (see [Composites]).
+     */
+    val composite: CompositeDef? = null,
 ) : Named
+
+/** A composite food's definition (F-10) and what was derived from it. */
+data class CompositeDef(
+    val ingredients: List<Ingredient>,
+    /** How much the ingredients make, as set; null = their total weight. */
+    val yieldAmount: Double?,
+    val yieldUnitId: Long?,
+    val logAsWhole: Boolean,
+    /** The reference amount and nutrient values entered by hand, kept for if the food stops being composite. */
+    val manualRefAmount: Double?,
+    val manualRefUnitId: Long?,
+    val manualNutrients: Map<Long, Double>,
+    /** Derived: the ingredients' total weight in grams, if each converts to a mass. */
+    val totalGrams: Double? = null,
+    /** Derived: positions of ingredients whose amount can't be calculated (they contribute nothing). */
+    val unresolved: Set<Int> = emptySet(),
+    /** Derived: each ingredient's weight in grams, if it converts. */
+    val grams: List<Double?> = emptyList(),
+)
 
 /** A user's complete catalog, loaded into memory for calculations. */
 class Catalog(

@@ -5,6 +5,7 @@ import * as endpoints from '../api/endpoints'
 import { useApiMutation, useFoodRefDefault, useFoods, useUnits } from '../api/queries'
 import { DecimalInput } from '../components/DecimalInput'
 import { FoodThumb } from '../components/FoodPhoto'
+import { unitLabel } from '../lib/names'
 import { Badge, Card, Empty, ErrorText, PageHeader, QueryView } from '../components/ui'
 import { formatNumber, parseDecimal, toInputValue } from '../lib/format'
 import { useDebounced } from '../lib/useDebounced'
@@ -21,7 +22,10 @@ export function FoodsPage() {
   const ref = newRef ?? { amount: toInputValue(refDefault.data?.refAmount ?? null), unitId: refDefault.data?.refUnitId ?? ('' as const) }
   const foods = useFoods(useDebounced(search.trim(), 150), showArchived)
   const units = useUnits(true)
-  const unitName = (id: number | null) => units.data?.find((u) => u.id === id)?.displayName ?? ''
+  const unitName = (id: number | null, amount: number) => {
+    const unit = units.data?.find((u) => u.id === id)
+    return unit ? unitLabel(unit.displayName, unit.displayPluralSuffix, amount) : ''
+  }
   const create = useApiMutation(endpoints.createFood)
 
   async function submit(event: FormEvent) {
@@ -88,11 +92,15 @@ export function FoodsPage() {
                         <Link to={`/foods/${food.id}`} className="food-link">
                           <FoodThumb foodId={food.id} version={food.imageVersion} name={food.name} />
                           {food.name}
-                        </Link> {food.archived && <Badge>{t('common.archived')}</Badge>}
+                        </Link> {food.composite && <Badge tone="info">{t('composite.badge')}</Badge>} {food.archived && <Badge>{t('common.archived')}</Badge>}
                       </td>
                       <td>
                         {food.refAmount !== null ? (
-                          `${t('foods.per')} ${formatNumber(food.refAmount, 3)} ${unitName(food.refUnitId)}`
+                          food.composite ? (
+                            t('composite.makesShort', { amount: formatNumber(food.refAmount, 3), unit: unitName(food.refUnitId, food.refAmount) })
+                          ) : (
+                            `${t('foods.per')} ${formatNumber(food.refAmount, 3)} ${unitName(food.refUnitId, food.refAmount)}`
+                          )
                         ) : (
                           <Badge tone="warning">{t('foods.noReference')}</Badge>
                         )}
