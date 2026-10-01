@@ -37,11 +37,29 @@ fun main() {
     embeddedServer(Netty, host = config.host, port = config.port) {
         module(config)
     }.start(wait = false)
+    // Ktor's own shutdown hook stops the server gracefully, but it can occasionally wait forever for
+    // Netty's event loops to finish (seen with Ktor 3.6 / Netty 4.2), leaving the process running after
+    // SIGTERM. Give it a few seconds, then end the process anyway: SQLite's write-ahead log keeps the
+    // database consistent without a clean close.
+    Runtime.getRuntime().addShutdownHook(
+        Thread {
+            Thread {
+                Thread.sleep(SHUTDOWN_TIMEOUT_MILLIS)
+                System.err.println("Graceful shutdown took longer than ${SHUTDOWN_TIMEOUT_MILLIS / 1000} s; exiting")
+                Runtime.getRuntime().halt(EXIT_AFTER_TIMEOUT)
+            }.apply { isDaemon = true }.start()
+        },
+    )
     // Keep running until the JVM shuts down (SIGTERM/SIGINT). Ktor's shutdown hook then stops the
     // server exactly once; with start(wait = true) the main thread stopped it concurrently with the
     // hook, which could leave the process hanging on shutdown.
     Thread.currentThread().join()
 }
+
+private const val SHUTDOWN_TIMEOUT_MILLIS = 5_000L
+
+/** 128 + SIGTERM, as if the signal had ended the process. */
+private const val EXIT_AFTER_TIMEOUT = 143
 
 fun Application.module(config: ServerConfig) {
     val database = Database(config.dataDir)
