@@ -181,4 +181,13 @@ class CompositeTest {
         assertEquals(267.0, otherFoods.detail(imported.id).composite!!.nutrients.first { it.nutrientId == NutrientService(other.db, other.userId).list().first { it.name == "Energy" }.id }.amount, 1e-9)
         assertTrue(EntryService(other.db, other.userId).day("2026-10-01").entries.all { it.viaFoodName == "Breakfast" })
     }
+
+    @Test
+    fun `overwriting with a plain food from a file makes a composite plain`() {
+        val id = breakfast()
+        val file = TransferService(t.db, t.userId).export()
+        val plain = file.copy(foods = file.foods.map { if (it.name == "Breakfast") it.copy(ingredients = emptyList(), yieldAmount = null, yieldUnit = null) else it })
+        TransferService(t.db, t.userId).import(plain, ConflictStrategy.OVERWRITE)
+        assertNull(foods.get(id).composite)
+    }
 }

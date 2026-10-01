@@ -612,6 +612,11 @@ textarea.input {
   vertical-align: top;
 }
 
+.table td:has(.food-thumb) ~ td,
+.table td:has(.food-thumb) {
+  vertical-align: middle;
+}
+
 .table th {
   font-size: 0.8rem;
   font-weight: 600;

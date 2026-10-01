@@ -179,6 +179,9 @@ class TransferService(
                 nutrients = food.nutrients.map { (name, amount) -> FoodNutrientValue(nutrientId(name), amount) },
                 units = food.units.map { FoodUnitLink(unitId(it.unit), it.equalsAmount, it.equalsUnit?.let(::unitId)) },
                 translations = translations,
+                // Ingredients are linked below, once all foods exist. A plain food in a version 2 file makes
+                // an overwritten composite plain; version 1 files don't know composites, so leave them.
+                composite = if (food.ingredients.isEmpty() && file.version >= 2) CompositeInput(emptyList()) else null,
             )
             if (existing == null || overwrite) touchedFoods += key
             foodCounts = when {
@@ -267,6 +270,7 @@ class TransferService(
         withSuffix: Boolean,
         items: () -> Collection<Named>,
     ): List<NameTranslation> {
+        if (translations.isEmpty()) return emptyList()
         val clean = NameRules.cleanTranslations(translations.filter { Languages.of(it.locale) in Languages.SUPPORTED }, withSuffix)
         return NameRules.withoutClashes(clean, selfId, items().filter { normalizeName(it.name) != normalizeName(mainName) }, mainName)
     }
