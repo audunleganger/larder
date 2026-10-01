@@ -118,6 +118,7 @@ const en = {
     },
   },
   foods: {
+    subExceedsMain: '{{sub}} is more than {{main}}. Check the values.',
     title: 'Foods',
     subtitle: 'Ingredients, meals, drinks — anything you eat.',
     new: 'New food',
@@ -196,7 +197,9 @@ const en = {
     parent: 'Part of',
     noParent: '—',
     order: 'Display order',
-    orderHint: 'Nutrients appear in this order in the day view and food editor.',
+    orderHint: 'Nutrients appear in this order in the day view and food editor. A nutrient that is part of another (“of which …”) always stays in its group.',
+    ofWhich: 'of which',
+    subsOf: 'Part of {{name}}',
     moveUp: 'Move {{name}} up',
     moveDown: 'Move {{name}} down',
     foods: 'Foods with a value',

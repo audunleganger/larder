@@ -3,12 +3,13 @@ import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router'
 import * as endpoints from '../api/endpoints'
 import { useApiMutation, useDay, useNutrients } from '../api/queries'
-import type { DayView, EntryView, NutrientDto } from '../api/types.gen'
+import type { DayView, EntryView, NutrientDto, NutrientTotal } from '../api/types.gen'
 import { TargetBar, TargetStatusLabel } from '../components/TargetBar'
 import { targetText } from '../lib/targets'
 import { Badge, Card, ConfirmButton, Empty, ErrorText, PageHeader, QueryView } from '../components/ui'
 import { addDays, formatDate, isValidIsoDate, todayIso } from '../lib/dates'
 import { currentLocale, formatAmount, formatQuantity } from '../lib/format'
+import { groupNutrients } from '../lib/nutrients'
 import { EntryForm } from './EntryForm'
 
 function DayNavigation({ date }: { date: string }) {
@@ -80,9 +81,43 @@ function EntryItem({ entry, nutrients, onEdit }: { entry: EntryView; nutrients: 
   )
 }
 
+function TotalItem({ total, nutrient, day, unresolved, isSub }: { total: NutrientTotal; nutrient: NutrientDto; day: DayView; unresolved: number; isSub: boolean }) {
+  const { t } = useTranslation()
+  // With no entry contributing a value, "0" would be misleading (C-3).
+  const noData = day.entries.length > 0 && total.missingCount === day.entries.length
+  return (
+    <div className="total">
+      <div className="total-row">
+        <Link to={`/nutrients/${nutrient.id}`} className="total-name">
+          {isSub && <span className="muted of-which">{t('nutrients.ofWhich')} </span>}
+          {nutrient.name}
+        </Link>
+        <span className="total-amount">{noData ? '—' : formatAmount(total.amount, nutrient)}</span>
+      </div>
+      {total.status !== 'none' && (
+        <>
+          <TargetBar total={total} nutrient={nutrient} />
+          <div className="total-row small">
+            <TargetStatusLabel status={total.status} />
+            <span className="muted">
+              {t('day.target')}: {targetText(total, nutrient)}
+            </span>
+          </div>
+        </>
+      )}
+      {/* Unresolved entries are explained above; only mention other missing values. */}
+      {total.missingCount > unresolved && <p className="total-missing">{noData ? t('day.noData') : t('day.missingData', { count: total.missingCount })}</p>}
+    </div>
+  )
+}
+
 function Totals({ day, nutrients }: { day: DayView; nutrients: Map<number, NutrientDto> }) {
   const { t } = useTranslation()
   const unresolved = day.entries.filter((e) => e.unresolved).length
+  const rows = day.totals.flatMap((total) => {
+    const nutrient = nutrients.get(total.nutrientId)
+    return nutrient ? [{ id: nutrient.id, parentId: nutrient.parentId, total, nutrient }] : []
+  })
   return (
     <>
       {unresolved > 0 && (
@@ -92,37 +127,20 @@ function Totals({ day, nutrients }: { day: DayView; nutrients: Map<number, Nutri
         </p>
       )}
       <ul className="totals">
-        {day.totals.map((total) => {
-          const nutrient = nutrients.get(total.nutrientId)
-          if (!nutrient) return null
-          // With no entry contributing a value, "0" would be misleading (C-3).
-          const noData = day.entries.length > 0 && total.missingCount === day.entries.length
-          return (
-            <li key={total.nutrientId} className={`total ${nutrient.parentId ? 'total-child' : ''}`}>
-              <div className="total-row">
-                <Link to={`/nutrients/${nutrient.id}`} className="total-name">
-                  {nutrient.name}
-                </Link>
-                <span className="total-amount">{noData ? '—' : formatAmount(total.amount, nutrient)}</span>
-              </div>
-              {total.status !== 'none' && (
-                <>
-                  <TargetBar total={total} nutrient={nutrient} />
-                  <div className="total-row small">
-                    <TargetStatusLabel status={total.status} />
-                    <span className="muted">
-                      {t('day.target')}: {targetText(total, nutrient)}
-                    </span>
-                  </div>
-                </>
-              )}
-              {/* Unresolved entries are explained above; only mention other missing values. */}
-              {total.missingCount > unresolved && (
-                <p className="total-missing">{noData ? t('day.noData') : t('day.missingData', { count: total.missingCount })}</p>
-              )}
-            </li>
-          )
-        })}
+        {groupNutrients(rows).map(({ main, subs }) => (
+          <li key={main.id} className="total-group">
+            <TotalItem total={main.total} nutrient={main.nutrient} day={day} unresolved={unresolved} isSub={false} />
+            {subs.length > 0 && (
+              <ul className="total-subs" aria-label={t('nutrients.subsOf', { name: main.nutrient.name })}>
+                {subs.map((sub) => (
+                  <li key={sub.id}>
+                    <TotalItem total={sub.total} nutrient={sub.nutrient} day={day} unresolved={unresolved} isSub />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </li>
+        ))}
       </ul>
     </>
   )

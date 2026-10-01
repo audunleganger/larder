@@ -8,6 +8,7 @@ import { DecimalInput } from '../components/DecimalInput'
 import { Badge, Card, ConfirmButton, Empty, ErrorText, Field, PageHeader, QueryView } from '../components/ui'
 import { formatDate } from '../lib/dates'
 import { currentLocale, formatNumber, formatQuantity, parseDecimal, toInputValue } from '../lib/format'
+import { groupNutrients } from '../lib/nutrients'
 
 interface LinkRow {
   key: number
@@ -94,6 +95,31 @@ function FoodEditor({ detail, units, nutrients }: { detail: FoodDetail; units: U
     setSaved(true)
   }
 
+  function nutrientInput(n: NutrientDto, main?: NutrientDto) {
+    const value = parseDecimal(values[n.id] ?? '')
+    const mainValue = main ? parseDecimal(values[main.id] ?? '') : null
+    // "Of which" can't be more than the whole; only comparable when measured in the same unit.
+    const exceeds = main !== undefined && main.measureUnit === n.measureUnit && value !== null && mainValue !== null && value > mainValue
+    return (
+      <div key={n.id} className={main ? 'nutrient-sub' : undefined}>
+        <label className="nutrient-input">
+          <span>
+            {main && <span className="muted of-which">{t('nutrients.ofWhich')} </span>}
+            {n.name}
+          </span>
+          <DecimalInput value={values[n.id] ?? ''} onChange={(text) => setValues((v) => ({ ...v, [n.id]: text }))} aria-label={n.name} />
+          <span className="muted">{n.measureUnit}</span>
+        </label>
+        {exceeds && (
+          <p className="nutrient-warning">
+            <span aria-hidden="true">⚠ </span>
+            {t('foods.subExceedsMain', { sub: n.name, main: main.name })}
+          </p>
+        )}
+      </div>
+    )
+  }
+
   const updateLink = (key: number, patch: Partial<LinkRow>) =>
     setLinks((rows) => rows.map((row) => (row.key === key ? { ...row, ...patch } : row)))
 
@@ -128,17 +154,12 @@ function FoodEditor({ detail, units, nutrients }: { detail: FoodDetail; units: U
 
       <Card title={refUnitName && parseDecimal(refAmount) ? t('foods.nutrientsPer', { amount: refAmount, unit: refUnitName }) : t('foods.nutrients')}>
         {!refUnitName && <p className="warning-text">{t('foods.setReferenceFirst')}</p>}
-        <div className="nutrient-grid">
-          {shownNutrients.map((n) => (
-            <label key={n.id} className={`nutrient-input ${n.parentId ? 'child' : ''}`}>
-              <span>{n.name}</span>
-              <DecimalInput
-                value={values[n.id] ?? ''}
-                onChange={(text) => setValues((v) => ({ ...v, [n.id]: text }))}
-                aria-label={n.name}
-              />
-              <span className="muted">{n.measureUnit}</span>
-            </label>
+        <div className="nutrient-groups">
+          {groupNutrients(shownNutrients).map(({ main, subs }) => (
+            <div key={main.id} className="nutrient-group">
+              {nutrientInput(main)}
+              {subs.map((sub) => nutrientInput(sub, main))}
+            </div>
           ))}
         </div>
       </Card>

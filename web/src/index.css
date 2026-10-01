@@ -606,6 +606,10 @@ textarea.input {
   padding-left: 1.5rem !important;
 }
 
+.table-group + .table-group {
+  border-top: 2px solid var(--border);
+}
+
 .link-list {
   list-style: none;
   padding: 0;
@@ -815,20 +819,26 @@ textarea.input {
   padding: 0;
 }
 
-.total {
+.total-group {
   padding: 0.5rem 0;
   border-bottom: 1px solid var(--border);
 }
 
-.total:last-child {
+.total-group:last-child {
   border-bottom: none;
 }
 
-.total-child {
-  padding-left: 1rem;
+.total-subs {
+  list-style: none;
+  margin: 0.4rem 0 0 0.6rem;
+  padding: 0 0 0 0.9rem;
+  border-left: 2px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
 }
 
-.total-child .total-name {
+.total-subs .total-name {
   font-weight: 400;
 }
 
@@ -913,10 +923,19 @@ textarea.input {
 
 /* ---------- Food editor ---------- */
 
-.nutrient-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
-  gap: 0.5rem 1.5rem;
+/* Groups never split across columns, so "of which" rows stay under their main nutrient. */
+.nutrient-groups {
+  columns: 2 22rem;
+  column-gap: 2rem;
+}
+
+.nutrient-group {
+  break-inside: avoid;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
 }
 
 .nutrient-input {
@@ -926,9 +945,20 @@ textarea.input {
   align-items: center;
 }
 
-.nutrient-input.child span:first-child {
-  padding-left: 1rem;
+.nutrient-sub {
+  margin-left: 0.6rem;
+  padding-left: 0.9rem;
+  border-left: 2px solid var(--border);
+}
+
+.nutrient-sub .nutrient-input > span:first-child {
   color: var(--text-2);
+}
+
+.nutrient-warning {
+  margin: 0.2rem 0 0;
+  font-size: 0.8rem;
+  color: var(--warning-text);
 }
 
 .link-rows {
@@ -994,16 +1024,30 @@ form > .card + .card {
   margin: 0;
 }
 
-.order-list li {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.order-list > li {
   padding: 0.35rem 0;
   border-bottom: 1px solid var(--border);
 }
 
-.order-list li.child .order-name {
-  padding-left: 1.5rem;
+.order-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.order-subs {
+  list-style: none;
+  margin: 0.35rem 0 0 0.6rem;
+  padding: 0 0 0 0.9rem;
+  border-left: 2px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.of-which {
+  font-size: 0.85em;
 }
 
 .order-buttons {

@@ -5,6 +5,7 @@ import * as endpoints from '../api/endpoints'
 import { useApiMutation, useNutrients } from '../api/queries'
 import type { NutrientDto, NutrientInput } from '../api/types.gen'
 import { Badge, Card, ErrorText, Field, PageHeader, QueryView } from '../components/ui'
+import { flattenGroups, groupNutrients, moved, type NutrientGroup } from '../lib/nutrients'
 
 /** Fields shared by the create and edit nutrient forms (N-1, N-6). */
 export function NutrientFields({ initial, all, submitLabel, onSubmit, error, busy }: { initial?: NutrientDto; all: NutrientDto[]; submitLabel: string; onSubmit: (input: NutrientInput) => Promise<unknown>; error: unknown; busy: boolean }) {
@@ -74,12 +75,9 @@ export function NutrientsPage() {
   const create = useApiMutation(endpoints.createNutrient)
   const reorder = useApiMutation(endpoints.reorderNutrients)
 
-  function move(list: NutrientDto[], index: number, delta: number) {
-    const ids = list.map((n) => n.id)
-    const target = index + delta
-    if (target < 0 || target >= ids.length) return
-    ;[ids[index], ids[target]] = [ids[target], ids[index]]
-    reorder.mutate(ids)
+  // Reorders the visible groups (or one group's sub-nutrients); hidden archived nutrients keep their place.
+  function send(groups: NutrientGroup<NutrientDto>[]) {
+    reorder.mutate(flattenGroups(groups).map((n) => n.id))
   }
 
   return (
@@ -101,25 +99,45 @@ export function NutrientsPage() {
         <p className="field-hint">{t('nutrients.orderHint')}</p>
         <QueryView query={nutrients}>
           {(data) => {
-            // Reordering the visible list; hidden archived nutrients move to the end.
-            const list = showArchived ? data : data.filter((n) => !n.archived)
+            const groups = groupNutrients(showArchived ? data : data.filter((n) => !n.archived))
+            const row = (n: NutrientDto, up: (() => void) | null, down: (() => void) | null) => (
+              <div className="order-row">
+                <span className="order-name">
+                  {n.parentId !== null && <span className="muted of-which">{t('nutrients.ofWhich')} </span>}
+                  <Link to={`/nutrients/${n.id}`}>{n.name}</Link> <span className="muted">({n.measureUnit})</span>{' '}
+                  {n.archived && <Badge>{t('common.archived')}</Badge>}
+                </span>
+                <span className="order-buttons">
+                  <button type="button" className="btn btn-icon btn-small" aria-label={t('nutrients.moveUp', { name: n.name })} disabled={!up || reorder.isPending} onClick={up ?? undefined}>
+                    ↑
+                  </button>
+                  <button type="button" className="btn btn-icon btn-small" aria-label={t('nutrients.moveDown', { name: n.name })} disabled={!down || reorder.isPending} onClick={down ?? undefined}>
+                    ↓
+                  </button>
+                </span>
+              </div>
+            )
+            const moveGroup = (index: number, delta: number) => {
+              const next = moved(groups, index, delta)
+              return next ? () => send(next) : null
+            }
+            const moveSub = (index: number, subIndex: number, delta: number) => {
+              const subs = moved(groups[index].subs, subIndex, delta)
+              return subs ? () => send(groups.map((g, i) => (i === index ? { ...g, subs } : g))) : null
+            }
             return (
               <ol className="order-list">
-                {list.map((n, index) => (
-                    <li key={n.id} className={n.parentId ? 'child' : ''}>
-                      <span className="order-name">
-                        <Link to={`/nutrients/${n.id}`}>{n.name}</Link> <span className="muted">({n.measureUnit})</span>{' '}
-                        {n.archived && <Badge>{t('common.archived')}</Badge>}
-                      </span>
-                      <span className="order-buttons">
-                        <button type="button" className="btn btn-icon btn-small" aria-label={t('nutrients.moveUp', { name: n.name })} disabled={index === 0 || reorder.isPending} onClick={() => move(list, index, -1)}>
-                          ↑
-                        </button>
-                        <button type="button" className="btn btn-icon btn-small" aria-label={t('nutrients.moveDown', { name: n.name })} disabled={index === list.length - 1 || reorder.isPending} onClick={() => move(list, index, 1)}>
-                          ↓
-                        </button>
-                      </span>
-                    </li>
+                {groups.map((group, index) => (
+                  <li key={group.main.id} className={`order-group ${group.subs.length > 0 ? 'has-subs' : ''}`}>
+                    {row(group.main, moveGroup(index, -1), moveGroup(index, 1))}
+                    {group.subs.length > 0 && (
+                      <ol className="order-subs" aria-label={t('nutrients.subsOf', { name: group.main.name })}>
+                        {group.subs.map((sub, subIndex) => (
+                          <li key={sub.id}>{row(sub, moveSub(index, subIndex, -1), moveSub(index, subIndex, 1))}</li>
+                        ))}
+                      </ol>
+                    )}
+                  </li>
                 ))}
               </ol>
             )

@@ -122,6 +122,7 @@ const nb: Translation<typeof en> = {
     },
   },
   foods: {
+    subExceedsMain: '{{sub}} er mer enn {{main}}. Sjekk verdiene.',
     title: 'Matvarer',
     subtitle: 'Ingredienser, måltider, drikke – alt du spiser.',
     new: 'Ny matvare',
@@ -200,7 +201,9 @@ const nb: Translation<typeof en> = {
     parent: 'Del av',
     noParent: '—',
     order: 'Rekkefølge',
-    orderHint: 'Næringsstoffene vises i denne rekkefølgen i dagsoversikten og matvareredigeringen.',
+    orderHint: 'Næringsstoffene vises i denne rekkefølgen i dagsoversikten og matvareredigeringen. Et næringsstoff som er del av et annet («hvorav …»), blir alltid i gruppen sin.',
+    ofWhich: 'hvorav',
+    subsOf: 'Del av {{name}}',
     moveUp: 'Flytt {{name}} opp',
     moveDown: 'Flytt {{name}} ned',
     foods: 'Matvarer med verdi',

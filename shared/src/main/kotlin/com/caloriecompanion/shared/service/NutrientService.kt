@@ -11,6 +11,7 @@ import com.caloriecompanion.shared.domain.AppException
 import com.caloriecompanion.shared.domain.NutrientDef
 import com.caloriecompanion.shared.domain.NutritionCalculator
 import com.caloriecompanion.shared.domain.cleanName
+import com.caloriecompanion.shared.domain.inDisplayOrder
 import com.caloriecompanion.shared.domain.notFound
 import com.caloriecompanion.shared.domain.validation
 import com.caloriecompanion.shared.normalizeName
@@ -76,18 +77,28 @@ class NutrientService(private val db: CalorieCompanionDatabase, private val user
             clean.name, normalizeName(clean.name), clean.measureUnit,
             clean.displayPrecision.toLong(), clean.parentId, id, userId,
         )
+        // A changed parent moves the nutrient into (or out of) a group; store the grouped order.
+        storeOrder(all())
         find(id).toDto()
     }
 
-    /** Sets the display order (N-3). Nutrients not listed keep their relative order after the listed ones. */
+    /**
+     * Sets the display order (N-3). Nutrients not listed keep their relative order after the listed ones.
+     * The result is always grouped: a main nutrient's position moves its whole group, and sub-nutrients
+     * are only ordered among their siblings.
+     */
     fun reorder(ids: List<Long>): List<NutrientDto> = db.transactionWithResult {
         val existing = all()
         val known = existing.map { it.id }.toSet()
         if (ids.any { it !in known }) notFound("Nutrient")
         if (ids.toSet().size != ids.size) validation("Duplicate nutrient in order")
-        val order = ids + existing.map { it.id }.filter { it !in ids }
-        order.forEachIndexed { index, nutrientId -> queries.setNutrientSortOrder(index.toLong(), nutrientId, userId) }
+        val position = (ids + existing.map { it.id }.filter { it !in ids }).withIndex().associate { it.value to it.index }
+        storeOrder(existing.map { it.copy(sortOrder = position.getValue(it.id)) })
         all().map { it.toDto() }
+    }
+
+    private fun storeOrder(nutrients: List<NutrientDef>) {
+        nutrients.inDisplayOrder().forEachIndexed { index, n -> queries.setNutrientSortOrder(index.toLong(), n.id, userId) }
     }
 
     fun setArchived(id: Long, archived: Boolean): NutrientDto {
@@ -110,7 +121,7 @@ class NutrientService(private val db: CalorieCompanionDatabase, private val user
         queries.deleteNutrient(id, userId)
     }
 
-    private fun all(): List<NutrientDef> = queries.selectNutrients(userId).executeAsList().map { it.toDef() }
+    private fun all(): List<NutrientDef> = queries.selectNutrients(userId).executeAsList().map { it.toDef() }.inDisplayOrder()
 
     private fun find(id: Long): NutrientDef = all().firstOrNull { it.id == id } ?: notFound("Nutrient")
 

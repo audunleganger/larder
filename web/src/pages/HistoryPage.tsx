@@ -7,6 +7,7 @@ import { TargetStatusLabel } from '../components/TargetBar'
 import { Card, Empty, PageHeader, QueryView } from '../components/ui'
 import { addDays, daysBetween, formatDate, isValidIsoDate, rollingAverage, todayIso } from '../lib/dates'
 import { currentLocale, formatAmount, formatNumber } from '../lib/format'
+import { groupNutrients } from '../lib/nutrients'
 
 const PRESETS = [7, 30, 90, 365] as const
 
@@ -149,6 +150,10 @@ function SmallMultiple({ view, nutrient, selected, onSelect }: { view: HistoryVi
 function SummaryTable({ view, nutrients }: { view: HistoryView; nutrients: NutrientDto[] }) {
   const { t } = useTranslation()
   const byId = new Map(nutrients.map((n) => [n.id, n]))
+  const rows = view.summary.flatMap((summary) => {
+    const nutrient = byId.get(summary.nutrientId)
+    return nutrient ? [{ id: nutrient.id, parentId: nutrient.parentId, summary, nutrient }] : []
+  })
   return (
     <div className="table-scroll">
       <table className="table">
@@ -161,21 +166,22 @@ function SummaryTable({ view, nutrients }: { view: HistoryView; nutrients: Nutri
             <th className="num">{t('history.withinTarget')}</th>
           </tr>
         </thead>
-        <tbody>
-          {view.summary.map((s) => {
-            const n = byId.get(s.nutrientId)
-            if (!n) return null
-            return (
+        {groupNutrients(rows).map(({ main, subs }) => (
+          <tbody key={main.id} className="table-group">
+            {[main, ...subs].map(({ summary: s, nutrient: n }) => (
               <tr key={s.nutrientId}>
-                <td className={n.parentId ? 'child' : ''}>{n.name}</td>
+                <td className={n.id !== main.id ? 'child' : ''}>
+                  {n.id !== main.id && <span className="muted of-which">{t('nutrients.ofWhich')} </span>}
+                  {n.name}
+                </td>
                 <td className="num">{formatAmount(s.average, n)}</td>
                 <td className="num">{formatAmount(s.min, n)}</td>
                 <td className="num">{formatAmount(s.max, n)}</td>
                 <td className="num">{s.daysWithTarget > 0 ? `${s.daysWithinTarget} / ${s.daysWithTarget}` : '—'}</td>
               </tr>
-            )
-          })}
-        </tbody>
+            ))}
+          </tbody>
+        ))}
       </table>
     </div>
   )
