@@ -1,6 +1,17 @@
 const en = {
   appName: 'Calorie Companion',
   languages: { en: 'English', nb: 'Norsk' },
+  photo: {
+    title: 'Photo',
+    add: 'Add photo',
+    replace: 'Replace photo',
+    remove: 'Remove photo',
+    uploading: 'Uploading…',
+    none: 'No photo yet',
+    alt: 'Photo of {{name}}',
+    hint: 'Shown next to the food when you log it. Photos are shrunk before uploading.',
+    unreadable: 'That file couldn’t be read as an image. Try a JPEG or PNG.',
+  },
   breakdown: {
     title: '{{nutrient}} by food',
     show: 'Show {{nutrient}} by food',

@@ -166,6 +166,8 @@ data class FoodSummary(
     val refUnitId: Long?,
     /** Number of nutrients with a value. */
     val nutrientCount: Int,
+    /** Changes whenever the food's photo does; null when it has none (F-13). */
+    val imageVersion: Long?,
 )
 
 @Serializable
@@ -181,6 +183,20 @@ data class FoodDto(
     val units: List<FoodUnitLink>,
     val translations: List<NameTranslation>,
     val displayName: String,
+    /** Changes whenever the food's photo does; null when it has none (F-13). */
+    val imageVersion: Long?,
+)
+
+/**
+ * A food's photo (F-13), base64-encoded and already resized by the client: [image] for the food page
+ * (at most about 1280 px) and a small square [thumbnail] for lists and pickers.
+ */
+@Serializable
+data class FoodImageData(
+    /** image/jpeg, image/png or image/webp; both images have this type. */
+    val contentType: String,
+    val image: String,
+    val thumbnail: String,
 )
 
 @Serializable

@@ -1,0 +1,8 @@
+-- v3 -> v4: a photo per food (F-13), resized by the client: a full image and a square thumbnail.
+CREATE TABLE food_image (
+    food_id INTEGER PRIMARY KEY NOT NULL REFERENCES food(id) ON DELETE CASCADE,
+    content_type TEXT NOT NULL,
+    image BLOB NOT NULL,
+    thumbnail BLOB NOT NULL,
+    updated_at INTEGER NOT NULL
+);

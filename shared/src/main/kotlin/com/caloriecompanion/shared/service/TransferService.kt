@@ -56,6 +56,7 @@ class TransferService(
                     nutrients = food.nutrients.entries.associate { (id, amount) -> nutrientName(id) to amount },
                     units = food.links.map { ExportFoodUnit(unitName(it.unitId), it.equalsAmount, it.equalsUnitId?.let(unitName)) },
                     translations = food.translations.inLanguageOrder(),
+                    image = food.imageVersion?.let { FoodService(db, userId).imageData(food.id) },
                 )
             },
             entries = db.entryQueries.selectAllEntries(userId).executeAsList().map {
@@ -164,12 +165,15 @@ class TransferService(
             )
             foodCounts = when {
                 existing == null -> {
-                    foodIds[key] = foodService.create(input, food.archived, rememberRef = false).id
+                    val created = foodService.create(input, food.archived, rememberRef = false).id
+                    foodIds[key] = created
+                    food.image?.let { foodService.setImage(created, it) }
                     foodCounts.copy(created = foodCounts.created + 1)
                 }
                 overwrite -> {
                     foodService.update(existing, input, rememberRef = false)
                     foodService.setArchived(existing, food.archived)
+                    food.image?.let { foodService.setImage(existing, it) }
                     foodCounts.copy(updated = foodCounts.updated + 1)
                 }
                 else -> foodCounts.copy(skipped = foodCounts.skipped + 1)

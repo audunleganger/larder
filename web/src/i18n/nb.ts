@@ -5,6 +5,17 @@ type Translation<T> = { [K in keyof T]: T[K] extends string ? string : Translati
 const nb: Translation<typeof en> = {
   appName: 'Calorie Companion',
   languages: { en: 'English', nb: 'Norsk' },
+  photo: {
+    title: 'Bilde',
+    add: 'Legg til bilde',
+    replace: 'Bytt bilde',
+    remove: 'Fjern bilde',
+    uploading: 'Laster opp …',
+    none: 'Ingen bilde ennå',
+    alt: 'Bilde av {{name}}',
+    hint: 'Vises ved siden av matvaren når du registrerer den. Bildene gjøres mindre før opplasting.',
+    unreadable: 'Filen kunne ikke leses som et bilde. Prøv JPEG eller PNG.',
+  },
   breakdown: {
     title: '{{nutrient}} fordelt på matvarer',
     show: 'Vis {{nutrient}} fordelt på matvarer',

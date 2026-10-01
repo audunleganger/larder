@@ -34,7 +34,7 @@ const queryClient = new QueryClient({
 })
 
 // Names of foods, units and nutrients come from the server in the UI language (L-5).
-i18n.on('languageChanged', () => void queryClient.invalidateQueries())
+i18n.on('languageChanged', () => void queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] !== 'images' }))
 
 function NotFound() {
   const { t } = useTranslation()

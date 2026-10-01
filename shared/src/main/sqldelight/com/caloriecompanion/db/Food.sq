@@ -31,6 +31,16 @@ CREATE TABLE food_translation (
     PRIMARY KEY (food_id, locale)
 );
 
+-- A photo of the food (F-13): the image and a small square thumbnail, both resized by the client.
+-- updated_at doubles as the version clients use to cache them.
+CREATE TABLE food_image (
+    food_id INTEGER PRIMARY KEY NOT NULL REFERENCES food(id) ON DELETE CASCADE,
+    content_type TEXT NOT NULL,
+    image BLOB NOT NULL,
+    thumbnail BLOB NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+
 CREATE TABLE food_nutrient (
     food_id INTEGER NOT NULL REFERENCES food(id) ON DELETE CASCADE,
     nutrient_id INTEGER NOT NULL REFERENCES nutrient(id) ON DELETE RESTRICT,
@@ -85,3 +95,21 @@ INSERT OR REPLACE INTO food_nutrient(food_id, nutrient_id, amount) VALUES (?, ?,
 
 deleteFoodNutrients:
 DELETE FROM food_nutrient WHERE food_id = ?;
+
+selectFoodImageVersions:
+SELECT i.food_id, i.updated_at FROM food_image i JOIN food f ON f.id = i.food_id WHERE f.user_id = ?;
+
+selectFoodImage:
+SELECT i.content_type, i.image, i.updated_at FROM food_image i JOIN food f ON f.id = i.food_id WHERE i.food_id = ? AND f.user_id = ?;
+
+selectFoodThumbnail:
+SELECT i.content_type, i.thumbnail, i.updated_at FROM food_image i JOIN food f ON f.id = i.food_id WHERE i.food_id = ? AND f.user_id = ?;
+
+selectFoodImageFull:
+SELECT i.* FROM food_image i JOIN food f ON f.id = i.food_id WHERE i.food_id = ? AND f.user_id = ?;
+
+upsertFoodImage:
+INSERT OR REPLACE INTO food_image(food_id, content_type, image, thumbnail, updated_at) VALUES (?, ?, ?, ?, ?);
+
+deleteFoodImage:
+DELETE FROM food_image WHERE food_id = ?;

@@ -803,7 +803,7 @@ textarea.input {
 .entry-title {
   display: flex;
   gap: 0.5rem;
-  align-items: baseline;
+  align-items: center;
   flex-wrap: wrap;
   font-weight: 500;
 }
@@ -1057,6 +1057,74 @@ textarea.input {
 
 .status-above {
   color: var(--serious-text);
+}
+
+/* ---------- Food photos (F-13) ---------- */
+
+.food-thumb {
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 6px;
+  object-fit: cover;
+  background: var(--surface-2);
+}
+
+.food-thumb.medium {
+  width: 2.75rem;
+  height: 2.75rem;
+}
+
+.food-thumb.placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-3);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.food-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.combobox-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.photo-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  align-items: flex-start;
+}
+
+.food-photo {
+  display: block;
+  max-width: 100%;
+  width: 22rem;
+  max-height: 22rem;
+  object-fit: cover;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.food-photo.placeholder {
+  height: 12rem;
+}
+
+.food-photo.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 8rem;
+  color: var(--text-3);
+  border: 1px dashed var(--border);
+  background: none;
 }
 
 /* ---------- Names in other languages ---------- */

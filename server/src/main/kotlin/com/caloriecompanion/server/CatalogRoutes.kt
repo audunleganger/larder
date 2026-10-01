@@ -1,15 +1,21 @@
 package com.caloriecompanion.server
 
+import com.caloriecompanion.shared.api.FoodImageData
 import com.caloriecompanion.shared.api.FoodInput
 import com.caloriecompanion.shared.api.NutrientInput
 import com.caloriecompanion.shared.api.NutrientOrderInput
 import com.caloriecompanion.shared.api.UnitInput
+import com.caloriecompanion.shared.domain.notFound
 import com.caloriecompanion.shared.service.FoodService
 import com.caloriecompanion.shared.service.NutrientService
 import com.caloriecompanion.shared.service.UnitService
+import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
+import io.ktor.server.response.header
 import io.ktor.server.response.respond
+import io.ktor.server.response.respondBytes
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
@@ -110,6 +116,24 @@ fun Route.catalogRoutes(database: Database, auth: Auth) {
             val id = call.idParam()
             val input = call.receive<FoodInput>()
             call.respond(call.withUserLanguage(database, auth) { db, user, language -> FoodService(db, user, language).update(id, input) })
+        }
+        // Photos (F-13). With ?v=<imageVersion> the response never changes, so browsers may cache it for good.
+        get("/{id}/image") {
+            val id = call.idParam()
+            val thumbnail = call.request.queryParameters["size"] == "thumbnail"
+            val image = call.withUser(database, auth) { db, user -> FoodService(db, user).image(id, thumbnail) } ?: notFound("Photo")
+            val versioned = call.request.queryParameters["v"] == image.version.toString()
+            call.response.header(HttpHeaders.CacheControl, if (versioned) "private, max-age=31536000, immutable" else "private, no-cache")
+            call.respondBytes(image.bytes, ContentType.parse(image.contentType))
+        }
+        put("/{id}/image") {
+            val id = call.idParam()
+            val input = call.receive<FoodImageData>()
+            call.respond(call.withUserLanguage(database, auth) { db, user, language -> FoodService(db, user, language).setImage(id, input) })
+        }
+        delete("/{id}/image") {
+            val id = call.idParam()
+            call.respond(call.withUserLanguage(database, auth) { db, user, language -> FoodService(db, user, language).deleteImage(id) })
         }
         post("/{id}/archive") {
             val id = call.idParam()

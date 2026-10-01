@@ -188,6 +188,21 @@ await step('settings and admin', async () => {
   await shot('13-admin')
 })
 
+await step('food photo', async () => {
+  // A small PNG; the app shrinks and re-encodes photos in the browser before uploading.
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAHgAAABQCAIAAABd+SbeAAAAzElEQVR4nO3QQRHAIADAMEDXNKEOgVOx8liioNd59jP43rod8BdGR4yOGB0xOmJ0xOiI0RGjI0ZHjI4YHTE6YnTE6IjREaMjRkeMjhgdMTpidMToiNERoyNGR4yOGB0xOmJ0xOiI0RGjI0ZHjI4YHTE6YnTE6IjREaMjRkeMjhgdMTpidMToiNERoyNGR4yOGB0xOmJ0xOiI0RGjI0ZHjI4YHTE6YnTE6IjREaMjRkeMjhgdMTpidMToiNERoyNGR4yOGB0xOmJ0xOjIC/b/Af6iJ0AQAAAAAElFTkSuQmCC', 'base64')
+  await page.getByRole('link', { name: 'Foods', exact: true }).click()
+  await page.getByRole('link', { name: 'Rye bread' }).click()
+  await page.locator('input[type=file]').setInputFiles({ name: 'bread.png', mimeType: 'image/png', buffer: png })
+  await page.getByRole('img', { name: 'Photo of Rye bread' }).waitFor()
+  await page.getByRole('button', { name: 'Replace photo' }).waitFor()
+  // The thumbnail shows in the food list and next to the food's entries.
+  await page.getByRole('link', { name: 'Foods', exact: true }).click()
+  await page.locator('a.food-link', { hasText: 'Rye bread' }).locator('img.food-thumb').waitFor()
+  await page.getByRole('link', { name: 'Day', exact: true }).click()
+  await page.locator('.entry a.food-link', { hasText: 'Rye bread' }).locator('img.food-thumb').waitFor()
+})
+
 await step('names in other languages', async () => {
   await page.getByRole('link', { name: 'Foods', exact: true }).click()
   await page.getByRole('link', { name: 'Rye bread' }).click()

@@ -64,7 +64,8 @@ export function useApiMutation<TArgs, TResult>(fn: (args: TArgs) => Promise<TRes
   return useMutation({
     mutationFn: fn,
     onSuccess: () => {
-      void client.invalidateQueries()
+      // Photos are cached by version and never go stale.
+      void client.invalidateQueries({ predicate: (query) => query.queryKey[0] !== 'images' })
     },
   })
 }

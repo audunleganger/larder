@@ -54,6 +54,8 @@ data class FoodDef(
     val nutrients: Map<Long, Double>,
     val links: List<FoodUnitLink>,
     override val translations: Map<String, NameTranslation> = emptyMap(),
+    /** Version of the food's photo, or null without one (F-13). */
+    val imageVersion: Long? = null,
 ) : Named
 
 /** A user's complete catalog, loaded into memory for calculations. */

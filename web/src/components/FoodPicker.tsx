@@ -5,6 +5,7 @@ import { useFoods } from '../api/queries'
 import { useQueryClient } from '@tanstack/react-query'
 import { useDebounced } from '../lib/useDebounced'
 import { errorMessage } from '../lib/errors'
+import { FoodThumb } from './FoodPhoto'
 
 export interface PickedFood {
   id: number
@@ -15,6 +16,7 @@ interface Option {
   key: string
   label: string
   food?: PickedFood
+  imageVersion?: number | null
   create?: string
 }
 
@@ -44,7 +46,7 @@ export function FoodPicker({ value, onChange, autoFocus }: { value: PickedFood |
   const matches = (foods.data ?? []).slice(0, 12)
   const exact = matches.some((f) => f.name.toLowerCase() === text.trim().toLowerCase())
   const options: Option[] = [
-    ...matches.map((f) => ({ key: `f${f.id}`, label: f.name, food: { id: f.id, name: f.name } })),
+    ...matches.map((f) => ({ key: `f${f.id}`, label: f.name, food: { id: f.id, name: f.name }, imageVersion: f.imageVersion })),
     ...(text.trim() && !exact ? [{ key: 'create', label: t('foodPicker.create', { name: text.trim() }), create: text.trim() }] : []),
   ]
 
@@ -122,6 +124,7 @@ export function FoodPicker({ value, onChange, autoFocus }: { value: PickedFood |
               }}
               onMouseEnter={() => setActive(index)}
             >
+              {option.food && <FoodThumb foodId={option.food.id} version={option.imageVersion ?? null} name={option.label} />}
               {option.label}
             </li>
           ))}

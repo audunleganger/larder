@@ -10,6 +10,7 @@ import { formatDate } from '../lib/dates'
 import { currentLocale, formatNumber, formatQuantity, parseDecimal, toInputValue } from '../lib/format'
 import { draftTranslations, toTranslations, unitLabel } from '../lib/names'
 import { TranslationFields } from '../components/TranslationFields'
+import { FoodPhotoEditor } from '../components/FoodPhoto'
 import { groupNutrients } from '../lib/nutrients'
 
 interface LinkRow {
@@ -291,6 +292,9 @@ export function FoodDetailPage() {
               }
               subtitle={<Link to="/foods">← {t('foods.title')}</Link>}
             />
+            <Card title={t('photo.title')}>
+              <FoodPhotoEditor food={data.food} />
+            </Card>
             {units.data && nutrients.data && (
               <FoodEditor key={data.food.id} detail={data} units={units.data} nutrients={nutrients.data} />
             )}

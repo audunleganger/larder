@@ -80,6 +80,7 @@ internal fun FoodDef.toDto(language: String?) = FoodDto(
     units = links,
     translations = translations.inLanguageOrder(),
     displayName = displayName(language),
+    imageVersion = imageVersion,
 )
 
 internal fun unitTranslations(db: CalorieCompanionDatabase, userId: Long): Map<Long, Map<String, NameTranslation>> =
@@ -102,6 +103,7 @@ fun loadCatalog(db: CalorieCompanionDatabase, userId: Long): Catalog {
     val nutrients = db.nutrientQueries.selectNutrients(userId).executeAsList().map { it.toDef(nutrientNames[it.id].orEmpty()) }
     val foodNames = db.foodQueries.selectFoodTranslations(userId).executeAsList()
         .groupBy({ it.food_id }, { NameTranslation(it.locale, it.name) })
+    val imageVersions = db.foodQueries.selectFoodImageVersions(userId).executeAsList().associate { it.food_id to it.updated_at }
     val links = db.foodQueries.selectFoodUnits(userId).executeAsList().groupBy { it.food_id }
     val values = db.foodQueries.selectFoodNutrients(userId).executeAsList().groupBy { it.food_id }
     val foods = db.foodQueries.selectFoods(userId).executeAsList().map { food: Food ->
@@ -115,6 +117,7 @@ fun loadCatalog(db: CalorieCompanionDatabase, userId: Long): Catalog {
             nutrients = values[food.id].orEmpty().associate { it.nutrient_id to it.amount },
             links = links[food.id].orEmpty().map { FoodUnitLink(it.unit_id, it.equals_amount, it.equals_unit_id) },
             translations = foodNames[food.id].orEmpty().associateBy { it.locale },
+            imageVersion = imageVersions[food.id],
         )
     }
     return Catalog(units, nutrients, foods)

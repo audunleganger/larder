@@ -1,4 +1,4 @@
-import { api, request } from './client'
+import { api, apiDataUrl, request } from './client'
 import type {
   AdminUserCreate,
   AdminUserUpdate,
@@ -10,6 +10,7 @@ import type {
   ExportFile,
   FoodDetail,
   FoodDto,
+  FoodImageData,
   FoodInput,
   FoodRefDefault,
   FoodSummary,
@@ -84,6 +85,11 @@ export const updateFood = (id: number, input: FoodInput) => api<FoodDto>(`/foods
 export const archiveFood = (id: number, archived: boolean) =>
   api<FoodDto>(`/foods/${id}/${archived ? 'archive' : 'unarchive'}`, { method: 'POST' })
 export const deleteFood = (id: number) => api<void>(`/foods/${id}`, { method: 'DELETE' })
+export const setFoodImage = (id: number, data: FoodImageData) => api<FoodDto>(`/foods/${id}/image`, { method: 'PUT', body: data })
+export const deleteFoodImage = (id: number) => api<FoodDto>(`/foods/${id}/image`, { method: 'DELETE' })
+/** The photo (or thumbnail) as a data: URL; [version] makes the URL cacheable for good. */
+export const foodImage = (id: number, version: number, size: 'full' | 'thumbnail') =>
+  apiDataUrl(`/foods/${id}/image`, { size, v: version })
 
 // Diary
 export const day = (date: string) => api<DayView>(`/days/${date}`)

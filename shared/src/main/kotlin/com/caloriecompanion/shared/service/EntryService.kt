@@ -109,6 +109,7 @@ internal fun Entry.toView(
     id = id,
     foodId = food_id,
     foodName = catalog.foods[food_id]?.displayName(language) ?: "?",
+    foodImageVersion = catalog.foods[food_id]?.imageVersion,
     unitId = unit_id,
     unitName = catalog.units[unit_id]?.displayName(language) ?: "?",
     unitPluralSuffix = catalog.units[unit_id]?.displayPluralSuffix(language).orEmpty(),

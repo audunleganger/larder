@@ -5,6 +5,7 @@ import com.caloriecompanion.shared.api.ErrorCodes
 import com.caloriecompanion.shared.api.FoodDetail
 import com.caloriecompanion.shared.api.FoodDto
 import com.caloriecompanion.shared.api.FoodEntryRef
+import com.caloriecompanion.shared.api.FoodImageData
 import com.caloriecompanion.shared.api.FoodInput
 import com.caloriecompanion.shared.api.FoodRefDefault
 import com.caloriecompanion.shared.api.FoodSummary
@@ -12,6 +13,8 @@ import com.caloriecompanion.shared.api.NameTranslation
 import com.caloriecompanion.shared.api.UnitKind
 import com.caloriecompanion.shared.domain.AppException
 import com.caloriecompanion.shared.domain.Catalog
+import com.caloriecompanion.shared.domain.ImageRules
+import com.caloriecompanion.shared.domain.StoredImage
 import com.caloriecompanion.shared.domain.UnitResolver
 import com.caloriecompanion.shared.domain.cleanName
 import com.caloriecompanion.shared.domain.cleanOptionalText
@@ -22,7 +25,12 @@ import com.caloriecompanion.shared.domain.validation
 import com.caloriecompanion.shared.normalizeName
 
 /** [language]: the reader's language, for display names (L-5). */
-class FoodService(private val db: CalorieCompanionDatabase, private val userId: Long, private val language: String? = null) {
+class FoodService(
+    private val db: CalorieCompanionDatabase,
+    private val userId: Long,
+    private val language: String? = null,
+    private val now: () -> Long = System::currentTimeMillis,
+) {
     private val queries = db.foodQueries
 
     /**
@@ -40,7 +48,7 @@ class FoodService(private val db: CalorieCompanionDatabase, private val userId: 
             .map { (food, names) -> Triple(food, foldForSearch(food.displayName(language)), needle != null && names.none { it.startsWith(needle) }) }
             .sortedWith(compareBy({ it.third }, { it.second }))
             .map { (food, _, _) ->
-                FoodSummary(food.id, food.displayName(language), food.archived, food.refAmount, food.refUnitId, food.nutrients.size)
+                FoodSummary(food.id, food.displayName(language), food.archived, food.refAmount, food.refUnitId, food.nutrients.size, food.imageVersion)
             }
             .toList()
     }
@@ -115,6 +123,37 @@ class FoodService(private val db: CalorieCompanionDatabase, private val userId: 
         }
         queries.deleteFood(id, userId)
     }
+
+    /** Stores the food's photo (F-13), replacing any previous one. Clients resize it before sending. */
+    fun setImage(id: Long, data: FoodImageData): FoodDto = db.transactionWithResult {
+        get(id)
+        val image = ImageRules.decode(data.image, data.contentType, ImageRules.MAX_IMAGE_BYTES, "image")
+        val thumbnail = ImageRules.decode(data.thumbnail, data.contentType, ImageRules.MAX_THUMBNAIL_BYTES, "thumbnail")
+        // The version must change even for two uploads within the same millisecond.
+        val previous = queries.selectFoodImageVersions(userId).executeAsList().firstOrNull { it.food_id == id }?.updated_at ?: 0
+        queries.upsertFoodImage(id, data.contentType, image, thumbnail, maxOf(now(), previous + 1))
+        get(id)
+    }
+
+    fun deleteImage(id: Long): FoodDto = db.transactionWithResult {
+        get(id)
+        queries.deleteFoodImage(id)
+        get(id)
+    }
+
+    /** The food's photo, or its [thumbnail]; null if it has none. */
+    fun image(id: Long, thumbnail: Boolean): StoredImage? =
+        if (thumbnail) {
+            queries.selectFoodThumbnail(id, userId).executeAsOneOrNull()?.let { StoredImage(it.content_type, it.thumbnail, it.updated_at) }
+        } else {
+            queries.selectFoodImage(id, userId).executeAsOneOrNull()?.let { StoredImage(it.content_type, it.image, it.updated_at) }
+        }
+
+    /** The photo as stored, for export; null if none. */
+    internal fun imageData(id: Long): FoodImageData? =
+        queries.selectFoodImageFull(id, userId).executeAsOneOrNull()?.let {
+            FoodImageData(it.content_type, ImageRules.encode(it.image), ImageRules.encode(it.thumbnail))
+        }
 
     private fun rememberRef(input: FoodInput) {
         if (input.refAmount != null && input.refUnitId != null) {

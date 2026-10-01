@@ -10,6 +10,7 @@ import com.caloriecompanion.shared.api.ErrorResponse
 import com.caloriecompanion.shared.api.ExportFile
 import com.caloriecompanion.shared.api.FoodDetail
 import com.caloriecompanion.shared.api.FoodDto
+import com.caloriecompanion.shared.api.FoodImageData
 import com.caloriecompanion.shared.api.FoodInput
 import com.caloriecompanion.shared.api.FoodNutrientValue
 import com.caloriecompanion.shared.api.FoodSummary
@@ -84,6 +85,40 @@ class ApiTest {
         client.put("/api/v1/me/locale") { bearerAuth(token); json(com.caloriecompanion.shared.api.LocaleInput("nb")) }
         val saved = client.get("/api/v1/units") { bearerAuth(token) }.body<List<UnitDto>>().first { it.id == serving.id }
         assertEquals("porsjon", saved.displayName)
+    }
+
+    @Test
+    fun `foods can have a photo`() = testApplication {
+        val client = jsonClient()
+        val token = client.setup()
+        val food: FoodDto = client.post("/api/v1/foods") { bearerAuth(token); json(FoodInput("Apple")) }.body()
+        assertEquals(null, food.imageVersion)
+        val png = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 1, 2, 3)
+        val jpeg = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte(), 0xE0.toByte(), 4, 5)
+        val b64 = { bytes: ByteArray -> java.util.Base64.getEncoder().encodeToString(bytes) }
+        val wrongType = client.put("/api/v1/foods/${food.id}/image") { bearerAuth(token); json(FoodImageData("image/jpeg", b64(png), b64(png))) }
+        assertEquals(HttpStatusCode.BadRequest, wrongType.status)
+
+        val updated: FoodDto = client.put("/api/v1/foods/${food.id}/image") { bearerAuth(token); json(FoodImageData("image/png", b64(png), b64(png))) }.body()
+        val version = updated.imageVersion!!
+        val image = client.get("/api/v1/foods/${food.id}/image?v=$version") { bearerAuth(token) }
+        assertEquals(ContentType.Image.PNG, image.contentType())
+        assertTrue(image.headers[HttpHeaders.CacheControl]!!.contains("immutable"))
+        assertTrue(png.contentEquals(image.body<ByteArray>()))
+        assertEquals(version, client.get("/api/v1/foods") { bearerAuth(token) }.body<List<FoodSummary>>().single().imageVersion)
+
+        // Replacing changes the version; the thumbnail is served separately.
+        val replaced: FoodDto = client.put("/api/v1/foods/${food.id}/image") { bearerAuth(token); json(FoodImageData("image/jpeg", b64(jpeg), b64(jpeg))) }.body()
+        assertTrue(replaced.imageVersion!! > version)
+        assertEquals(ContentType.Image.JPEG, client.get("/api/v1/foods/${food.id}/image?size=thumbnail") { bearerAuth(token) }.contentType())
+
+        // Photos belong to their owner.
+        val other: UserDto = client.post("/api/v1/admin/users") { bearerAuth(token); json(AdminUserCreate("bob", "password123")) }.body()
+        val bob: LoginResult = client.post("/api/v1/auth/login") { json(LoginInput(other.username, "password123")) }.body()
+        assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/foods/${food.id}/image") { bearerAuth(bob.token) }.status)
+
+        assertEquals(null, client.delete("/api/v1/foods/${food.id}/image") { bearerAuth(token) }.body<FoodDto>().imageVersion)
+        assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/foods/${food.id}/image") { bearerAuth(token) }.status)
     }
 
     @Test

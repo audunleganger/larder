@@ -5,6 +5,7 @@ import * as endpoints from '../api/endpoints'
 import { useApiMutation, useDay, useNutrients } from '../api/queries'
 import type { DayView, EntryView, NutrientDto, NutrientTotal } from '../api/types.gen'
 import { TargetStatusLabel, TotalBar } from '../components/TargetBar'
+import { FoodThumb } from '../components/FoodPhoto'
 import { targetText } from '../lib/targets'
 import { Badge, Card, ConfirmButton, Empty, ErrorText, PageHeader, QueryView } from '../components/ui'
 import { addDays, formatDate, isValidIsoDate, todayIso } from '../lib/dates'
@@ -52,7 +53,10 @@ function EntryItem({ entry, nutrients, onEdit }: { entry: EntryView; nutrients: 
       <span className="entry-time">{entry.time}</span>
       <div className="entry-main">
         <div className="entry-title">
-          <Link to={`/foods/${entry.foodId}`}>{entry.foodName}</Link>
+          <Link to={`/foods/${entry.foodId}`} className="food-link">
+            <FoodThumb foodId={entry.foodId} version={entry.foodImageVersion} name={entry.foodName} />
+            {entry.foodName}
+          </Link>
           <span className="muted">
             {formatQuantity(entry.quantity)} {unitLabel(entry.unitName, entry.unitPluralSuffix, entry.quantity)}
           </span>

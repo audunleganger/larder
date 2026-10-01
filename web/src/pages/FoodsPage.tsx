@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router'
 import * as endpoints from '../api/endpoints'
 import { useApiMutation, useFoodRefDefault, useFoods, useUnits } from '../api/queries'
 import { DecimalInput } from '../components/DecimalInput'
+import { FoodThumb } from '../components/FoodPhoto'
 import { Badge, Card, Empty, ErrorText, PageHeader, QueryView } from '../components/ui'
 import { formatNumber, parseDecimal, toInputValue } from '../lib/format'
 import { useDebounced } from '../lib/useDebounced'
@@ -84,7 +85,10 @@ export function FoodsPage() {
                   {data.map((food) => (
                     <tr key={food.id}>
                       <td>
-                        <Link to={`/foods/${food.id}`}>{food.name}</Link> {food.archived && <Badge>{t('common.archived')}</Badge>}
+                        <Link to={`/foods/${food.id}`} className="food-link">
+                          <FoodThumb foodId={food.id} version={food.imageVersion} name={food.name} />
+                          {food.name}
+                        </Link> {food.archived && <Badge>{t('common.archived')}</Badge>}
                       </td>
                       <td>
                         {food.refAmount !== null ? (

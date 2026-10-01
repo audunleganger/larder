@@ -260,4 +260,21 @@ class ServiceTest {
         // Sums match the day's total.
         assertEquals(entries.day("2026-10-01").totals.first { it.nutrientId == nutrient("Energy") }.amount, result.days[0].entries.sumOf { it.amount!! }, 1e-9)
     }
+
+    @Test
+    fun `photos are validated and survive export and import`() {
+        val png = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 1, 2, 3)
+        val b64 = kotlin.io.encoding.Base64.encode(png)
+        val bread = bread()
+        expectCode(ErrorCodes.VALIDATION) { foods.setImage(bread.id, com.caloriecompanion.shared.api.FoodImageData("image/gif", b64, b64)) }
+        expectCode(ErrorCodes.VALIDATION) { foods.setImage(bread.id, com.caloriecompanion.shared.api.FoodImageData("image/png", "not base64!", b64)) }
+        val withImage = foods.setImage(bread.id, com.caloriecompanion.shared.api.FoodImageData("image/png", b64, b64))
+        assertTrue(withImage.imageVersion != null)
+
+        val file = TransferService(t.db, t.userId).export()
+        val other = TestDb()
+        TransferService(other.db, other.userId).import(file, ConflictStrategy.SKIP)
+        val imported = FoodService(other.db, other.userId).list().single()
+        assertTrue(png.contentEquals(FoodService(other.db, other.userId).image(imported.id, thumbnail = false)!!.bytes))
+    }
 }

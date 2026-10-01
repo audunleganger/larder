@@ -110,6 +110,26 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   return data as T
 }
 
+/** A binary resource from the versioned API as a data: URL, e.g. a photo for an <img>, which can't send the token itself. */
+export async function apiDataUrl(path: string, query?: Query): Promise<string> {
+  const headers: Record<string, string> = {}
+  if (token) headers.Authorization = `Bearer ${token}`
+  let response: Response
+  try {
+    response = await fetch(buildUrl(`/api/v1${path}`, query), { headers })
+  } catch {
+    throw new ApiError(0, NETWORK_ERROR, 'Server unreachable')
+  }
+  if (!response.ok) throw new ApiError(response.status, `HTTP_${response.status}`, response.statusText)
+  const blob = await response.blob()
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result))
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(blob)
+  })
+}
+
 /** Request to the versioned API (/api/v1). */
 export function api<T>(path: string, options: RequestOptions = {}): Promise<T> {
   return request<T>(`/api/v1${path}`, options)

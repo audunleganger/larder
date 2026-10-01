@@ -72,6 +72,7 @@ export interface EntryView {
   id: number
   foodId: number
   foodName: string
+  foodImageVersion: number | null
   unitId: number
   unitName: string
   unitPluralSuffix: string
@@ -118,6 +119,7 @@ export interface ExportFood {
   nutrients?: Record<string, number>
   units?: ExportFoodUnit[]
   translations?: NameTranslation[]
+  image?: FoodImageData | null
 }
 
 export interface ExportFoodUnit {
@@ -168,6 +170,7 @@ export interface FoodDto {
   units: FoodUnitLink[]
   translations: NameTranslation[]
   displayName: string
+  imageVersion: number | null
 }
 
 export interface FoodEntryRef {
@@ -178,6 +181,12 @@ export interface FoodEntryRef {
   unitId: number
   unitName: string
   unitPluralSuffix: string
+}
+
+export interface FoodImageData {
+  contentType: string
+  image: string
+  thumbnail: string
 }
 
 export interface FoodInput {
@@ -213,6 +222,7 @@ export interface FoodSummary {
   refAmount: number | null
   refUnitId: number | null
   nutrientCount: number
+  imageVersion: number | null
 }
 
 export interface FoodUnitLink {
