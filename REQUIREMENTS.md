@@ -1,6 +1,8 @@
 # Calorie Companion — Requirement Specification
 
-Version 0.3 · 2026-09-30 · Supersedes `requirements.txt`
+Version 0.4 · 2026-10-02 · Supersedes `requirements.txt`
+
+*0.4 adds composite foods (F-10, now in scope), remembered reference amounts (F-12), food photos (F-13), plural endings (U-8), nutrient groups (N-6), totals split by food (H-5) and names per language (L-5). These are implemented in the server and web GUI; the Android app doesn't show them yet (it keeps working against the new server and in local mode).*
 
 Keywords: **MUST** = required for v1, **SHOULD** = v1 if feasible, **FUTURE** = explicitly out of v1 scope but the design must not block it.
 
@@ -52,8 +54,14 @@ The Norwegian terms are a first guess and may be changed; they live only in the 
 - **F-7 (MUST)** Can be **archived**: hidden from pickers, but still shown in history and links. Can be un-archived.
 - **F-8 (MUST)** Hard delete is **only allowed when nothing references it**. Otherwise the UI refuses and offers archiving.
 - **F-9 (SHOULD)** Optional notes/description field.
-- **F-10 (FUTURE)** **Composite food stuffs (recipes)**: a food stuff made of ingredients (food + unit + quantity) with a yield, and nutrients derived from the ingredients (manual override possible). *The v1 data model must leave room for an ingredient table without breaking changes.*
+- **F-10 (MUST)** **Composite food stuffs**: a food stuff made of other food stuffs (ingredient = food + quantity + unit), e.g. a recipe, or a meal eaten often ("Breakfast" = 2 slices of bread + 1 glass of milk).
+  - Its nutrients are the sum of its ingredients' (each calculated like an entry, C-1), **live** (E-4), for its **yield**: how much the ingredients make, as an amount + unit set by the user (a new composite starts as "1 serving" if such a unit exists), or else the ingredients' total weight. The yield is stored apart from the reference amount (F-3); the hand-entered reference amount and values are kept and come back if the food stops being composite.
+  - **Logging** a composite food logs **each ingredient as its own entry**, scaled to the amount logged (½ serving → half of each), recursively for composite ingredients, and each entry remembers the composite it came from. Per food, it can instead be set to be logged **as one entry** (e.g. a recipe like lasagne).
+  - Ingredients may be composite; a food can't contain itself, directly or indirectly. An ingredient can't be deleted while used (archive instead, F-8); a composite can.
+  - No manual override of the derived values (FUTURE).
+- **F-12 (MUST)** A new food stuff's reference amount (F-3) is **prefilled with the one last set** on a food (initially 100 g), remembered per user. Imports don't change it.
 - **F-11 (FUTURE)** Mass↔volume conversion via optional per-food density.
+- **F-13 (MUST)** A food stuff can have **one photo**, uploaded from a file or the camera. Clients shrink it before upload (max ~1280 px plus a square thumbnail); the server checks type (JPEG/PNG/WebP) and size and stores it in the database, so backups and export/import include it. The thumbnail is shown in the food picker, food list, entries and ingredients; the photo large on the food page.
 
 ### 3.2 Units
 
@@ -68,6 +76,7 @@ The Norwegian terms are a first guess and may be changed; they live only in the 
   - all **food stuffs** that have this unit linked (or can use it via U-4 — shown separately as "implicit")
   - all **dates** on which at least one entry used this unit.
 - **U-7 (MUST)** Archive/delete rules identical to F-7/F-8.
+- **U-8 (MUST)** A unit name has an editable **plural ending**, added when the quantity isn't exactly 1 ("1 slice", "2 slices", "0.5 slices"). Default: "s"; Norwegian "er" ("r" after a final e); none for standard units (g, ml). Each translation (L-5) has its own. *Kept as a suffix for now; the rule lives in one helper per client so it can become full plural forms later.*
 
 ### 3.3 Nutrients
 
@@ -79,7 +88,7 @@ The Norwegian terms are a first guess and may be changed; they live only in the 
   - all **food stuffs** that have a value for this nutrient
   - all **entries** that contribute to it (via their food stuff).
 - **N-5 (MUST)** Archive/delete rules identical to F-7/F-8 (a nutrient is "referenced" if any food stuff has a value for it or a target exists).
-- **N-6 (SHOULD)** Optional grouping or parent (e.g. sugars under carbohydrates) for display indentation only. Parents are not summed automatically.
+- **N-6 (MUST)** Optional parent, one level (e.g. "of which sugars" under carbohydrates); a group's heading is always a nutrient itself. Groups stay together everywhere: in the display order (moving a main nutrient moves its group; sub-nutrients only move within it), on the nutrients page, in the food editor (nutrition-label style, warning if a sub-value exceeds its main value), in day totals and in history. Parents are not summed automatically.
 
 ### 3.4 Entries (main function)
 
@@ -118,6 +127,7 @@ The Norwegian terms are a first guess and may be changed; they live only in the 
 - **H-2 (MUST)** Trend chart for one or more nutrients over a chosen date range, with daily values and an optional rolling average (7-day).
 - **H-3 (MUST)** Summary stats for a range: average per day, days within target, days logged.
 - **H-4 (SHOULD)** Days with no entries are shown as gaps, not zeros, and are excluded from averages.
+- **H-5 (MUST)** **Totals split by food**: every day total has a bar (scaled to the target if any, coloured by target status; otherwise the full bar is the total). Hovering, tapping or focusing it splits it into one segment per entry, earliest first, each food in its own colour (several entries of the same food: separate segments, same colour), with a list of foods, amounts and shares; leaving restores the status colours. In history, hovering a day's bar stacks it the same way (earliest at the bottom). Colours come from a validated 8-colour palette in fixed order; beyond 8 foods, the smallest share a neutral colour.
 
 ### 3.8 Import / export
 
@@ -131,7 +141,8 @@ The Norwegian terms are a first guess and may be changed; they live only in the 
 - **L-1 (MUST)** UI available in **English and Norwegian (bokmål)**, selectable per user or device, defaulting to the system locale.
 - **L-2 (MUST)** Numbers and dates are formatted per locale (decimal comma in Norwegian). Decimal input accepts both `,` and `.`.
 - **L-3 (MUST)** All UI strings are in resource files (web: i18n JSON; Android: `strings.xml`). No hardcoded strings.
-- **L-4** User data (food names, custom units, nutrients) is **not** translated. The seeded defaults are created in the user's language at account creation.
+- **L-4** The seeded defaults are created with their main name in the user's language at account creation, and the other language's name as a translation (L-5).
+- **L-5 (MUST)** Food stuffs, units and nutrients have a main name and an optional **name per UI language**. The name shown is the one in the reader's language if set, else the main name (for a language without translations, English before the main name). Search matches all names; a name belongs to only one item of a kind, in any language (F-2). Web clients send their language with each request; otherwise the user's saved language applies.
 
 ---
 
@@ -185,6 +196,7 @@ The Norwegian terms are a first guess and may be changed; they live only in the 
 - **DEP-4 (SHOULD)** A built-in consistent backup (SQLite `VACUUM INTO` / online backup), triggerable by an admin endpoint or on a schedule.
 - **DEP-5 (SHOULD)** A health endpoint (`/api/health`) and the server version exposed to clients (so clients can warn about API version mismatches).
 - **DEP-6 (MUST)** Android is distributed as a **sideloaded APK**, signed with a project release key, built by a Gradle release task. Play Store / F-Droid distribution is FUTURE.
+- **DEP-7 (MUST)** Schema changes are versioned migrations (SQLDelight `.sqm`, verified against snapshots of each released schema). Before migrating an existing database the server writes a copy to `data/backups/pre-migration-v<N>-<time>.db`, migrates in one transaction, and refuses to start on a database newer than it knows.
 
 ---
 
@@ -194,15 +206,17 @@ All tables except `user` carry `user_id`. Names are stored as entered, plus a no
 
 | Entity | Fields |
 |---|---|
-| user | id, username, password_hash, is_admin, is_disabled, locale, created_at |
-| quantity_unit | id, user_id, name, name_norm, kind (mass/volume/custom), base_factor (nullable; for mass/volume), archived |
+| user | id, username, password_hash, is_admin, is_disabled, locale, created_at, food_ref_amount, food_ref_unit_id (F-12) |
+| quantity_unit | id, user_id, name, name_norm, kind (mass/volume/custom), base_factor (nullable; for mass/volume), archived, plural_suffix |
+| unit_translation / nutrient_translation / food_translation | item id, locale, name, name_norm (+ plural_suffix for units) (L-5) |
 | nutrient | id, user_id, name, name_norm, measure_unit, display_precision, sort_order, parent_id (nullable), archived |
-| food | id, user_id, name, name_norm, ref_amount (nullable), ref_unit_id (nullable), notes, archived |
+| food | id, user_id, name, name_norm, ref_amount (nullable), ref_unit_id (nullable), notes, archived, yield_amount, yield_unit_id, log_as_whole (F-10) |
+| food_ingredient | food_id, position, ingredient_id, unit_id, quantity (F-10) |
+| food_image | food_id, content_type, image, thumbnail, updated_at (F-13) |
 | food_unit | food_id, unit_id, equals_amount (nullable), equals_unit_id (nullable) — "1 unit = equals_amount equals_unit" |
 | food_nutrient | food_id, nutrient_id, amount (per ref amount) |
-| entry | id, user_id, food_id, unit_id, quantity, local_date, local_time, note, created_at, updated_at |
+| entry | id, user_id, food_id, unit_id, quantity, local_date, local_time, note, created_at, updated_at, via_food_id (F-10) |
 | target | id, user_id, nutrient_id, min (nullable), max (nullable), effective_from |
-| *(future)* food_ingredient | food_id, ingredient_food_id, unit_id, quantity; + food.yield |
 
 ---
 
@@ -220,7 +234,7 @@ All tables except `user` carry `user_id`. Names are stored as entered, plus a no
 
 ## 8. Out of scope for v1 (tracked as FUTURE)
 
-Recipes/composite foods (F-10) · per-weekday targets · kcal↔kJ conversion · email password reset · Play Store / F-Droid distribution · mass↔volume density (F-11) · copy/repeat entries and recent/frequent sorting (E-7) · barcode + Open Food Facts (X-4) · multiple server profiles (A-8) · offline queue / sync between local and server · shared catalogs between users.
+Manual override of composite foods' derived values (F-10) · per-weekday targets · kcal↔kJ conversion · email password reset · Play Store / F-Droid distribution · mass↔volume density (F-11) · copy/repeat entries and recent/frequent sorting (E-7) · barcode + Open Food Facts (X-4) · multiple server profiles (A-8) · offline queue / sync between local and server · shared catalogs between users.
 
 ---
 
@@ -259,3 +273,19 @@ None at the moment.
 | Password reset | Admin-only for now |
 | Norwegian terms | Provisional guesses (see glossary), to be revised |
 | Android distribution | Sideloaded APK initially |
+
+## Appendix: Decisions from the second review (2026-10-01)
+
+| Topic | Decision |
+|---|---|
+| Composite foods | Logging one logs each item as its own entry; a composite can also be a meal template ("Lasagna breakfast" = lasagna + wine). Per-food "log as one entry" added for recipes |
+| New food reference | Prefilled with the last one used |
+| Photos | One per food; small in picker and lists, large on the food page |
+| Split totals | Per entry (same food = same colour), chronological; colours only while hovered, target colours otherwise; history bars the same |
+| Translations | For the user's own catalog in every UI language; selected language, else the main name; English preferred for languages without translations |
+| Plural | Editable suffix per name, kept separate so it can change later |
+| Nutrient groups | One level; headings are nutrients |
+| Clients | Web first; Android catches up later |
+| Repository | Stays one repository (shared module used by server and Android local mode) |
+| iOS | Not now (no Mac available) |
+| Name | Not final; keep the visible name in one place, no new name-specific identifiers |
