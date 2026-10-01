@@ -120,6 +120,32 @@ data class NutrientSummary(
     val daysWithinTarget: Int,
 )
 
+/** One entry's amount of a nutrient (H-5); null when it can't be calculated. */
+@Serializable
+data class EntryContribution(
+    val entryId: Long,
+    val foodId: Long,
+    /** Display name. */
+    val foodName: String,
+    val time: String,
+    val amount: Double?,
+)
+
+@Serializable
+data class DayContributions(
+    val date: String,
+    /** In time order. */
+    val entries: List<EntryContribution>,
+)
+
+/** How each entry contributed to one nutrient's daily totals, for splitting them by food (H-5). */
+@Serializable
+data class NutrientContributions(
+    val nutrientId: Long,
+    /** Only days with entries. */
+    val days: List<DayContributions>,
+)
+
 @Serializable
 data class HistoryView(
     val from: String,

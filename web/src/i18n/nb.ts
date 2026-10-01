@@ -5,6 +5,11 @@ type Translation<T> = { [K in keyof T]: T[K] extends string ? string : Translati
 const nb: Translation<typeof en> = {
   appName: 'Calorie Companion',
   languages: { en: 'English', nb: 'Norsk' },
+  breakdown: {
+    title: '{{nutrient}} fordelt på matvarer',
+    show: 'Vis {{nutrient}} fordelt på matvarer',
+    hint: 'Hold pekeren over eller trykk på en stolpe for å se hvilke matvarer den kommer fra.',
+  },
   names: {
     title: 'Navn på andre språk',
     hint: 'Vises når appen er på det språket. La stå tomt for å bruke hovednavnet.',

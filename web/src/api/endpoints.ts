@@ -17,6 +17,7 @@ import type {
   HistoryView,
   ImportResult,
   LoginResult,
+  NutrientContributions,
   NutrientDetail,
   NutrientDto,
   NutrientInput,
@@ -97,6 +98,8 @@ export const listTargets = () => api<TargetDto[]>('/targets')
 export const setTarget = (input: TargetInput) => api<TargetDto>('/targets', { method: 'POST', body: input })
 export const deleteTarget = (id: number) => api<void>(`/targets/${id}`, { method: 'DELETE' })
 export const history = (from: string, to: string) => api<HistoryView>('/history', { query: { from, to } })
+export const historyContributions = (from: string, to: string, nutrientId: number) =>
+  api<NutrientContributions>('/history/contributions', { query: { from, to, nutrientId } })
 
 // Import / export
 export const exportData = () => api<ExportFile>('/export')

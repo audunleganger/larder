@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Bar, BarChart, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { useHistory, useNutrients } from '../api/queries'
+import { Bar, BarChart, CartesianGrid, ComposedChart, Line, Rectangle, ResponsiveContainer, Tooltip, XAxis, YAxis, type BarShapeProps } from 'recharts'
+import { useContributions, useHistory, useNutrients } from '../api/queries'
 import type { HistoryView, NutrientDto, NutrientTotal } from '../api/types.gen'
-import { TargetStatusLabel } from '../components/TargetBar'
+import { BreakdownList, TargetStatusLabel } from '../components/TargetBar'
 import { Card, Empty, PageHeader, QueryView } from '../components/ui'
 import { addDays, daysBetween, formatDate, isValidIsoDate, rollingAverage, todayIso } from '../lib/dates'
 import { currentLocale, formatAmount, formatNumber } from '../lib/format'
 import { groupNutrients } from '../lib/nutrients'
+import { breakdown, colorVar, type Breakdown } from '../lib/segments'
 
 const PRESETS = [7, 30, 90, 365] as const
 
@@ -52,9 +53,10 @@ interface TooltipProps {
   active?: boolean
   payload?: { payload: Point }[]
   nutrient: NutrientDto
+  breakdowns: Map<string, Breakdown>
 }
 
-function ChartTooltip({ active, payload, nutrient }: TooltipProps) {
+function ChartTooltip({ active, payload, nutrient, breakdowns }: TooltipProps) {
   const { t } = useTranslation()
   const point = payload?.[0]?.payload
   if (!active || !point) return null
@@ -75,6 +77,7 @@ function ChartTooltip({ active, payload, nutrient }: TooltipProps) {
           )}
           {point.total && point.total.status !== 'none' && <TargetStatusLabel status={point.total.status} />}
           {point.total && point.total.missingCount > 0 && <div className="muted">{t('day.missingData', { count: point.total.missingCount })}</div>}
+          {breakdowns.get(point.date) && <BreakdownList parts={breakdowns.get(point.date)!} nutrient={nutrient} />}
         </>
       )}
     </div>
@@ -88,7 +91,31 @@ function TargetTick(props: { cx?: number; cy?: number; value?: number | null; in
   return <line key={index} x1={cx - halfWidth} x2={cx + halfWidth} y1={cy} y2={cy} stroke="var(--target-line)" strokeWidth={2} />
 }
 
-function MainChart({ view, nutrient, showAverage }: { view: HistoryView; nutrient: NutrientDto; showAverage: boolean }) {
+/**
+ * The hovered day's bar, split into one segment per entry with the earliest at the bottom and each
+ * food in its own colour (H-5), like the day view's bars. Other days stay plain.
+ */
+function SplitBar(props: BarShapeProps & { breakdowns: Map<string, Breakdown> }) {
+  const { x, y, width, height, payload, breakdowns } = props
+  const parts = breakdowns.get((payload as Point).date)
+  const gap = 2
+  const usable = parts ? height - gap * (parts.segments.length - 1) : 0
+  if (!parts || parts.segments.length === 0 || usable <= parts.segments.length) {
+    return <Rectangle x={x} y={y} width={width} height={height} radius={[4, 4, 0, 0]} fill="var(--series-1)" />
+  }
+  // Stack from the bottom, earliest entry first, with a gap between segments.
+  const heights = parts.segments.map((s) => (usable * s.amount) / parts.total)
+  const tops = heights.map((_, i) => y + height - heights.slice(0, i + 1).reduce((a, b) => a + b, 0) - gap * i)
+  return (
+    <g>
+      {parts.segments.map((s, i) => (
+        <Rectangle key={s.entryId} x={x} y={tops[i]} width={width} height={heights[i]} radius={i === parts.segments.length - 1 ? [4, 4, 0, 0] : 0} fill={colorVar(s.color)} />
+      ))}
+    </g>
+  )
+}
+
+function MainChart({ view, nutrient, showAverage, breakdowns }: { view: HistoryView; nutrient: NutrientDto; showAverage: boolean; breakdowns: Map<string, Breakdown> }) {
   const { t } = useTranslation()
   const data = seriesFor(view, nutrient.id)
   const days = view.days.length
@@ -117,8 +144,15 @@ function MainChart({ view, nutrient, showAverage }: { view: HistoryView; nutrien
             <CartesianGrid vertical={false} stroke="var(--grid)" />
             <XAxis dataKey="date" tickFormatter={tickFormatter(days)} tick={{ fill: 'var(--text-3)', fontSize: 12 }} tickLine={false} axisLine={{ stroke: 'var(--border)' }} minTickGap={16} />
             <YAxis tick={{ fill: 'var(--text-3)', fontSize: 12 }} tickLine={false} axisLine={false} width={48} tickFormatter={(v: number) => formatNumber(v, 0)} />
-            <Tooltip content={<ChartTooltip nutrient={nutrient} />} cursor={{ fill: 'var(--hover)' }} />
-            <Bar dataKey="amount" fill="var(--series-1)" radius={[4, 4, 0, 0]} maxBarSize={28} isAnimationActive={false} />
+            <Tooltip content={<ChartTooltip nutrient={nutrient} breakdowns={breakdowns} />} cursor={{ fill: 'var(--hover)' }} />
+            <Bar
+              dataKey="amount"
+              fill="var(--series-1)"
+              radius={[4, 4, 0, 0]}
+              maxBarSize={28}
+              isAnimationActive={false}
+              activeBar={(props: BarShapeProps) => <SplitBar {...props} breakdowns={breakdowns} />}
+            />
             {hasTarget && <Line dataKey="min" stroke="none" dot={(p: object) => <TargetTick {...p} halfWidth={halfWidth} />} activeDot={false} isAnimationActive={false} />}
             {hasTarget && <Line dataKey="max" stroke="none" dot={(p: object) => <TargetTick {...p} halfWidth={halfWidth} />} activeDot={false} isAnimationActive={false} />}
             {showAverage && (
@@ -230,6 +264,10 @@ export function HistoryPage() {
   const displayed = nutrients.data ?? []
   const selected = displayed.find((n) => n.id === nutrientId) ?? displayed[0]
   const span = daysBetween(from, to) + 1
+  const contributions = useContributions(validRange ? from : today, validRange ? to : today, selected?.id)
+  const breakdowns = new Map(
+    contributions.data?.nutrientId === selected?.id ? (contributions.data?.days ?? []).map((d) => [d.date, breakdown(d.entries)] as const) : [],
+  )
 
   return (
     <div className="page">
@@ -293,7 +331,7 @@ export function HistoryPage() {
                 {logged === 0 ? (
                   <Empty>{t('history.noData')}</Empty>
                 ) : selected ? (
-                  showTable ? <DataTable view={view} nutrient={selected} /> : <MainChart view={view} nutrient={selected} showAverage={showAverage} />
+                  showTable ? <DataTable view={view} nutrient={selected} /> : <MainChart view={view} nutrient={selected} showAverage={showAverage} breakdowns={breakdowns} />
                 ) : null}
               </Card>
               {logged > 0 && (

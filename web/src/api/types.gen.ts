@@ -40,10 +40,23 @@ export interface BackupResult {
 
 export type ConflictStrategy = 'skip' | 'overwrite'
 
+export interface DayContributions {
+  date: string
+  entries: EntryContribution[]
+}
+
 export interface DayView {
   date: string
   entries: EntryView[]
   totals: NutrientTotal[]
+}
+
+export interface EntryContribution {
+  entryId: number
+  foodId: number
+  foodName: string
+  time: string
+  amount: number | null
 }
 
 export interface EntryInput {
@@ -264,6 +277,11 @@ export interface NameTranslation {
 export interface NutrientAmount {
   nutrientId: number
   amount: number | null
+}
+
+export interface NutrientContributions {
+  nutrientId: number
+  days: DayContributions[]
 }
 
 export interface NutrientDetail {

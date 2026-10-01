@@ -118,6 +118,20 @@ await step('edit entry', async () => {
   await page.locator('.total-amount', { hasText: '350' }).first().waitFor()
 })
 
+await step('day totals split by food on hover', async () => {
+  await page.getByRole('link', { name: 'Day', exact: true }).click()
+  await page.locator('.total .target-bar').first().hover()
+  await page.locator('.breakdown-popover').getByText('Rye bread').waitFor()
+  if ((await page.locator('.segment').count()) < 1) throw new Error('no segments')
+  await shot('07b-day-split')
+  await page.mouse.move(0, 0)
+  await page.locator('.breakdown-popover').waitFor({ state: 'detached' })
+  // Keyboard: focusing a bar splits it too.
+  await page.locator('.total .target-bar').first().focus()
+  await page.locator('.breakdown-popover').waitFor()
+  await page.keyboard.press('Escape')
+})
+
 await step('units pages', async () => {
   await page.getByRole('link', { name: 'Units' }).click()
   await page.getByRole('link', { name: 'serving' }).click()
@@ -154,6 +168,9 @@ await step('history', async () => {
   await page.getByRole('link', { name: 'History' }).click()
   await page.locator('.recharts-surface').first().waitFor()
   await page.waitForTimeout(400)
+  // Hovering a day's bar splits it by food, with the foods listed in the tooltip.
+  await page.locator('.chart .recharts-bar-rectangle').last().hover()
+  await page.locator('.chart-tooltip .breakdown-list').getByText('Rye bread').waitFor()
   await shot('11-history')
 })
 

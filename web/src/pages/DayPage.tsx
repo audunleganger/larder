@@ -4,13 +4,14 @@ import { Link, useNavigate, useParams } from 'react-router'
 import * as endpoints from '../api/endpoints'
 import { useApiMutation, useDay, useNutrients } from '../api/queries'
 import type { DayView, EntryView, NutrientDto, NutrientTotal } from '../api/types.gen'
-import { TargetBar, TargetStatusLabel } from '../components/TargetBar'
+import { TargetStatusLabel, TotalBar } from '../components/TargetBar'
 import { targetText } from '../lib/targets'
 import { Badge, Card, ConfirmButton, Empty, ErrorText, PageHeader, QueryView } from '../components/ui'
 import { addDays, formatDate, isValidIsoDate, todayIso } from '../lib/dates'
 import { currentLocale, formatAmount, formatQuantity } from '../lib/format'
 import { unitLabel } from '../lib/names'
 import { groupNutrients } from '../lib/nutrients'
+import type { Contribution } from '../lib/segments'
 import { EntryForm } from './EntryForm'
 
 function DayNavigation({ date }: { date: string }) {
@@ -82,6 +83,17 @@ function EntryItem({ entry, nutrients, onEdit }: { entry: EntryView; nutrients: 
   )
 }
 
+/** Each entry's amount of one nutrient, for splitting the day's total by food (H-5). */
+function contributions(day: DayView, nutrientId: number): Contribution[] {
+  return day.entries.map((e) => ({
+    entryId: e.id,
+    foodId: e.foodId,
+    foodName: e.foodName,
+    time: e.time,
+    amount: e.nutrients.find((n) => n.nutrientId === nutrientId)?.amount ?? null,
+  }))
+}
+
 function TotalItem({ total, nutrient, day, unresolved, isSub }: { total: NutrientTotal; nutrient: NutrientDto; day: DayView; unresolved: number; isSub: boolean }) {
   const { t } = useTranslation()
   // With no entry contributing a value, "0" would be misleading (C-3).
@@ -95,9 +107,9 @@ function TotalItem({ total, nutrient, day, unresolved, isSub }: { total: Nutrien
         </Link>
         <span className="total-amount">{noData ? '—' : formatAmount(total.amount, nutrient)}</span>
       </div>
+      {!noData && (total.amount > 0 || total.status !== 'none') && <TotalBar total={total} nutrient={nutrient} contributions={contributions(day, nutrient.id)} />}
       {total.status !== 'none' && (
         <>
-          <TargetBar total={total} nutrient={nutrient} />
           <div className="total-row small">
             <TargetStatusLabel status={total.status} />
             <span className="muted">
@@ -143,6 +155,7 @@ function Totals({ day, nutrients }: { day: DayView; nutrients: Map<number, Nutri
           </li>
         ))}
       </ul>
+      {day.entries.length > 0 && <p className="field-hint">{t('breakdown.hint')}</p>}
     </>
   )
 }

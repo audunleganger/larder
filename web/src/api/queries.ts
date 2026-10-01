@@ -42,6 +42,15 @@ export const useHistory = (from: string, to: string) =>
     placeholderData: (previous) => previous,
   })
 
+/** Each entry's amount of one nutrient per day, for splitting history bars by food (H-5). */
+export const useContributions = (from: string, to: string, nutrientId: number | undefined) =>
+  useQuery({
+    queryKey: ['history', 'contributions', from, to, nutrientId],
+    queryFn: () => endpoints.historyContributions(from, to, nutrientId!),
+    enabled: nutrientId !== undefined,
+    placeholderData: (previous) => previous,
+  })
+
 export const useUsers = () => useQuery({ queryKey: ['users'], queryFn: endpoints.listUsers })
 
 /**

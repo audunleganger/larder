@@ -246,4 +246,18 @@ class ServiceTest {
         assertNull(entries.preview(com.caloriecompanion.shared.api.PreviewInput(food.id, unit("dl"), 1.0)).nutrients.first().amount)
         assertFalse(entries.preview(com.caloriecompanion.shared.api.PreviewInput(food.id, unit("slice"), 1.0)).unresolved)
     }
+
+    @Test
+    fun `contributions split daily totals by entry`() {
+        val bread = bread()
+        val slice = unit("slice")
+        entries.create(EntryInput(bread.id, slice, 2.0, "2026-10-01", "12:00"))
+        entries.create(EntryInput(bread.id, unit("g"), 100.0, "2026-10-01", "08:00"))
+        entries.create(EntryInput(bread.id, slice, 1.0, "2026-10-03", "09:00"))
+        val result = HistoryService(t.db, t.userId).contributions("2026-10-01", "2026-10-03", nutrient("Energy"))
+        assertEquals(listOf("2026-10-01", "2026-10-03"), result.days.map { it.date })
+        assertEquals(listOf("08:00" to 250.0, "12:00" to 175.0), result.days[0].entries.map { it.time to it.amount!! })
+        // Sums match the day's total.
+        assertEquals(entries.day("2026-10-01").totals.first { it.nutrientId == nutrient("Energy") }.amount, result.days[0].entries.sumOf { it.amount!! }, 1e-9)
+    }
 }

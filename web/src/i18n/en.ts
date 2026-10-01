@@ -1,6 +1,11 @@
 const en = {
   appName: 'Calorie Companion',
   languages: { en: 'English', nb: 'Norsk' },
+  breakdown: {
+    title: '{{nutrient}} by food',
+    show: 'Show {{nutrient}} by food',
+    hint: 'Hover over or tap a bar to see which foods it came from.',
+  },
   names: {
     title: 'Names in other languages',
     hint: 'Shown when the app is in that language. Leave empty to use the main name.',

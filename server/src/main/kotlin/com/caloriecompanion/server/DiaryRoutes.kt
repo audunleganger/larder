@@ -80,6 +80,13 @@ fun Route.diaryRoutes(database: Database, auth: Auth) {
         call.respond(call.withUser(database, auth) { db, user -> HistoryService(db, user).history(from, to) })
     }
 
+    get("/history/contributions") {
+        val from = call.request.queryParameters["from"] ?: validation("'from' is required")
+        val to = call.request.queryParameters["to"] ?: validation("'to' is required")
+        val nutrientId = call.request.queryParameters["nutrientId"]?.toLongOrNull() ?: validation("'nutrientId' is required")
+        call.respond(call.withUserLanguage(database, auth) { db, user, language -> HistoryService(db, user, language).contributions(from, to, nutrientId) })
+    }
+
     get("/export") {
         val file = call.withUser(database, auth) { db, user -> TransferService(db, user).export() }
         call.response.header(

@@ -1,24 +1,54 @@
 package com.caloriecompanion.shared.service
 
 import com.caloriecompanion.db.CalorieCompanionDatabase
+import com.caloriecompanion.shared.api.DayContributions
+import com.caloriecompanion.shared.api.EntryContribution
 import com.caloriecompanion.shared.api.HistoryDay
 import com.caloriecompanion.shared.api.HistoryView
+import com.caloriecompanion.shared.api.NutrientContributions
 import com.caloriecompanion.shared.api.NutrientSummary
 import com.caloriecompanion.shared.api.TargetStatus
 import com.caloriecompanion.shared.domain.NutritionCalculator
 import com.caloriecompanion.shared.domain.TargetTimeline
+import com.caloriecompanion.shared.domain.notFound
 import com.caloriecompanion.shared.domain.parseDate
 import com.caloriecompanion.shared.domain.validation
+import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
-/** Per-day totals and summary statistics over a date range (H-1 … H-4). */
-class HistoryService(private val db: CalorieCompanionDatabase, private val userId: Long) {
+/** Per-day totals and summary statistics over a date range (H-1 … H-5). [language]: for display names. */
+class HistoryService(private val db: CalorieCompanionDatabase, private val userId: Long, private val language: String? = null) {
 
-    fun history(from: String, to: String): HistoryView {
+    private fun range(from: String, to: String): Pair<LocalDate, LocalDate> {
         val start = parseDate(from)
         val end = parseDate(to)
         if (end < start) validation("'to' is before 'from'")
         if (ChronoUnit.DAYS.between(start, end) > MAX_DAYS) validation("Range is longer than $MAX_DAYS days")
+        return start to end
+    }
+
+    /** Each entry's amount of [nutrientId] on each logged day of the range (H-5). */
+    fun contributions(from: String, to: String, nutrientId: Long): NutrientContributions {
+        val (start, end) = range(from, to)
+        val catalog = loadCatalog(db, userId)
+        if (nutrientId !in catalog.nutrientsById) notFound("Nutrient")
+        val calculator = NutritionCalculator(catalog)
+        val days = db.entryQueries.selectEntriesInRange(userId, start.toString(), end.toString())
+            .executeAsList()
+            .groupBy { it.local_date }
+            .map { (date, rows) ->
+                DayContributions(date, rows.map { row ->
+                    val food = catalog.foods.getValue(row.food_id)
+                    val factor = calculator.factor(food, row.unit_id, row.quantity)
+                    val value = food.nutrients[nutrientId]
+                    EntryContribution(row.id, food.id, food.displayName(language), row.local_time, if (factor != null && value != null) factor * value else null)
+                })
+            }
+        return NutrientContributions(nutrientId, days)
+    }
+
+    fun history(from: String, to: String): HistoryView {
+        val (start, end) = range(from, to)
 
         val catalog = loadCatalog(db, userId)
         val calculator = NutritionCalculator(catalog)

@@ -18,6 +18,7 @@ import com.caloriecompanion.shared.api.ImportResult
 import com.caloriecompanion.shared.api.LocaleInput
 import com.caloriecompanion.shared.api.LoginInput
 import com.caloriecompanion.shared.api.LoginResult
+import com.caloriecompanion.shared.api.NutrientContributions
 import com.caloriecompanion.shared.api.NutrientDetail
 import com.caloriecompanion.shared.api.NutrientInput
 import com.caloriecompanion.shared.api.NutrientOrderInput
@@ -57,7 +58,7 @@ class TypeScriptTypesTest {
         serializer<NutrientInput>(), serializer<NutrientOrderInput>(), serializer<NutrientDetail>(),
         serializer<FoodSummary>(), serializer<FoodInput>(), serializer<FoodDetail>(), serializer<FoodRefDefault>(),
         serializer<EntryInput>(), serializer<PreviewInput>(), serializer<PreviewResult>(), serializer<DayView>(),
-        serializer<TargetDto>(), serializer<TargetInput>(), serializer<HistoryView>(),
+        serializer<TargetDto>(), serializer<TargetInput>(), serializer<HistoryView>(), serializer<NutrientContributions>(),
         serializer<ExportFile>(), serializer<ImportResult>(), serializer<ConflictStrategy>(),
     ).map { it.descriptor }
 
