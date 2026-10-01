@@ -157,6 +157,13 @@ data class FoodInput(
     val units: List<FoodUnitLink> = emptyList(),
 )
 
+/** What a new food's reference amount is prefilled with (F-12). Both null when there is no suitable unit. */
+@Serializable
+data class FoodRefDefault(
+    val refAmount: Double?,
+    val refUnitId: Long?,
+)
+
 @Serializable
 data class UsableUnit(
     val unitId: Long,

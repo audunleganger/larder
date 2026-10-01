@@ -11,6 +11,7 @@ import type {
   FoodDetail,
   FoodDto,
   FoodInput,
+  FoodRefDefault,
   FoodSummary,
   HealthResponse,
   HistoryView,
@@ -75,6 +76,7 @@ export const deleteNutrient = (id: number) => api<void>(`/nutrients/${id}`, { me
 // Foods
 export const listFoods = (q?: string, includeArchived = false) =>
   api<FoodSummary[]>('/foods', { query: { q, includeArchived } })
+export const foodRefDefault = () => api<FoodRefDefault>('/foods/ref-default')
 export const foodDetail = (id: number) => api<FoodDetail>(`/foods/${id}`)
 export const createFood = (input: FoodInput) => api<FoodDto>('/foods', { method: 'POST', body: input })
 export const updateFood = (id: number, input: FoodInput) => api<FoodDto>(`/foods/${id}`, { method: 'PUT', body: input })

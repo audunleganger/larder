@@ -126,7 +126,7 @@ const nb: Translation<typeof en> = {
     title: 'Matvarer',
     subtitle: 'Ingredienser, måltider, drikke – alt du spiser.',
     new: 'Ny matvare',
-    newHint: 'Bare navnet er påkrevd. Du kan legge til næringsstoffer og enheter etterpå.',
+    newHint: 'Bare navnet er påkrevd. Næringsverdiene gjelder per mengden ved siden av, som starter som den du brukte sist. Du kan legge til næringsstoffer og enheter etterpå.',
     namePlaceholder: 'Navn, f.eks. Rugbrød',
     all: 'Alle matvarer',
     search: 'Søk',

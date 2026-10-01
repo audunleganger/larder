@@ -179,6 +179,11 @@ export interface FoodRef {
   archived: boolean
 }
 
+export interface FoodRefDefault {
+  refAmount: number | null
+  refUnitId: number | null
+}
+
 export interface FoodSummary {
   id: number
   name: string

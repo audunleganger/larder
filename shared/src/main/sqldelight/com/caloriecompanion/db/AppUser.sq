@@ -8,7 +8,10 @@ CREATE TABLE app_user (
     is_admin INTEGER AS Boolean NOT NULL DEFAULT 0,
     is_disabled INTEGER AS Boolean NOT NULL DEFAULT 0,
     locale TEXT,
-    created_at INTEGER NOT NULL
+    created_at INTEGER NOT NULL,
+    -- The reference amount/unit of the food last set up; new foods start with it.
+    food_ref_amount REAL,
+    food_ref_unit_id INTEGER REFERENCES quantity_unit(id) ON DELETE SET NULL
 );
 
 countUsers:
@@ -47,3 +50,9 @@ UPDATE app_user SET is_admin = ? WHERE id = ?;
 
 updateDisabled:
 UPDATE app_user SET is_disabled = ? WHERE id = ?;
+
+selectFoodRefDefault:
+SELECT food_ref_amount, food_ref_unit_id FROM app_user WHERE id = ?;
+
+updateFoodRefDefault:
+UPDATE app_user SET food_ref_amount = ?, food_ref_unit_id = ? WHERE id = ?;

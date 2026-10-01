@@ -10,6 +10,7 @@ import com.caloriecompanion.shared.api.ErrorResponse
 import com.caloriecompanion.shared.api.ExportFile
 import com.caloriecompanion.shared.api.FoodDetail
 import com.caloriecompanion.shared.api.FoodInput
+import com.caloriecompanion.shared.api.FoodRefDefault
 import com.caloriecompanion.shared.api.FoodSummary
 import com.caloriecompanion.shared.api.HealthResponse
 import com.caloriecompanion.shared.api.HistoryView
@@ -54,7 +55,7 @@ class TypeScriptTypesTest {
         serializer<AdminUserCreate>(), serializer<AdminUserUpdate>(), serializer<BackupResult>(),
         serializer<UnitInput>(), serializer<UnitDetail>(),
         serializer<NutrientInput>(), serializer<NutrientOrderInput>(), serializer<NutrientDetail>(),
-        serializer<FoodSummary>(), serializer<FoodInput>(), serializer<FoodDetail>(),
+        serializer<FoodSummary>(), serializer<FoodInput>(), serializer<FoodDetail>(), serializer<FoodRefDefault>(),
         serializer<EntryInput>(), serializer<PreviewInput>(), serializer<PreviewResult>(), serializer<DayView>(),
         serializer<TargetDto>(), serializer<TargetInput>(), serializer<HistoryView>(),
         serializer<ExportFile>(), serializer<ImportResult>(), serializer<ConflictStrategy>(),

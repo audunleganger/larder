@@ -21,6 +21,9 @@ export const useFoods = (q = '', includeArchived = false) =>
     placeholderData: (previous) => previous,
   })
 
+/** The reference amount/unit new foods start with (F-12). Under 'foods' so food edits refresh it. */
+export const useFoodRefDefault = () => useQuery({ queryKey: ['foods', 'ref-default'], queryFn: endpoints.foodRefDefault })
+
 export const useFoodDetail = (id: number | null) =>
   useQuery({
     queryKey: ['foods', 'detail', id],

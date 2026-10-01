@@ -122,7 +122,7 @@ const en = {
     title: 'Foods',
     subtitle: 'Ingredients, meals, drinks — anything you eat.',
     new: 'New food',
-    newHint: 'Only the name is required. You can add nutrients and units afterwards.',
+    newHint: 'Only the name is required. Nutrient values are per the amount next to it, which starts as the one you used last. You can add nutrients and units afterwards.',
     namePlaceholder: 'Name, e.g. Rye bread',
     all: 'All foods',
     search: 'Search',

@@ -55,7 +55,9 @@ export function FoodPicker({ value, onChange, autoFocus }: { value: PickedFood |
       setText(option.food.name)
     } else if (option.create) {
       try {
-        const created = await endpoints.createFood({ name: option.create })
+        // New foods start with the remembered reference amount (F-12), like on the foods page.
+        const ref = await queryClient.fetchQuery({ queryKey: ['foods', 'ref-default'], queryFn: endpoints.foodRefDefault })
+        const created = await endpoints.createFood({ name: option.create, refAmount: ref.refAmount, refUnitId: ref.refUnitId })
         await queryClient.invalidateQueries({ queryKey: ['foods'] })
         onChange({ id: created.id, name: created.name })
         setText(created.name)

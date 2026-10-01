@@ -349,6 +349,15 @@ a:hover {
   align-items: center;
 }
 
+.inline-form .qty-input {
+  width: 5.5rem;
+}
+
+.inline-form .unit-select {
+  width: auto;
+  min-width: 6rem;
+}
+
 .inline-field {
   display: flex;
   flex-direction: column;

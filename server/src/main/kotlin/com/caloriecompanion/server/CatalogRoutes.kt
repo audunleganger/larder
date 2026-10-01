@@ -99,6 +99,9 @@ fun Route.catalogRoutes(database: Database, auth: Auth) {
             val input = call.receive<FoodInput>()
             call.respond(HttpStatusCode.Created, call.withUser(database, auth) { db, user -> FoodService(db, user).create(input) })
         }
+        get("/ref-default") {
+            call.respond(call.withUser(database, auth) { db, user -> FoodService(db, user).refDefault() })
+        }
         get("/{id}") {
             val id = call.idParam()
             call.respond(call.withUser(database, auth) { db, user -> FoodService(db, user).detail(id) })

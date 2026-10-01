@@ -150,11 +150,11 @@ class TransferService(
             )
             foodCounts = when {
                 existing == null -> {
-                    foodIds[key] = foodService.create(input, food.archived).id
+                    foodIds[key] = foodService.create(input, food.archived, rememberRef = false).id
                     foodCounts.copy(created = foodCounts.created + 1)
                 }
                 overwrite -> {
-                    foodService.update(existing, input)
+                    foodService.update(existing, input, rememberRef = false)
                     foodService.setArchived(existing, food.archived)
                     foodCounts.copy(updated = foodCounts.updated + 1)
                 }

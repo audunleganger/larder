@@ -77,6 +77,24 @@ await step('quick-create food from picker and log incomplete', async () => {
   await shot('05-day-with-entries')
 })
 
+await step('new foods start with the last used reference amount', async () => {
+  await page.getByRole('link', { name: 'Foods', exact: true }).click()
+  const amount = page.getByRole('textbox', { name: 'Reference amount' })
+  const unit = page.getByRole('combobox', { name: 'Reference unit' })
+  if ((await amount.inputValue()) !== '100') throw new Error('expected 100, got ' + (await amount.inputValue()))
+  await amount.fill('1')
+  await unit.selectOption({ label: 'dl' })
+  await page.getByPlaceholder('Name, e.g. Rye bread').fill('Orange juice')
+  await page.getByRole('button', { name: 'Create' }).click()
+  await page.getByRole('heading', { name: 'Orange juice' }).waitFor()
+  if ((await page.getByLabel('Reference amount').inputValue()) !== '1') throw new Error('juice not created per 1 dl')
+  await page.getByRole('link', { name: 'Foods', exact: true }).click()
+  await page.getByRole('link', { name: 'Orange juice' }).waitFor()
+  if ((await amount.inputValue()) !== '1') throw new Error('default not remembered')
+  if ((await unit.locator('option:checked').innerText()) !== 'dl') throw new Error('default unit not remembered')
+  await page.getByRole('link', { name: 'Day', exact: true }).click()
+})
+
 await step('targets', async () => {
   await page.getByRole('link', { name: 'Targets', exact: true }).click()
   const row = page.getByRole('row', { name: /Energy/ })

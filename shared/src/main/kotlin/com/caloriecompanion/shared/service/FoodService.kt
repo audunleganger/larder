@@ -6,7 +6,9 @@ import com.caloriecompanion.shared.api.FoodDetail
 import com.caloriecompanion.shared.api.FoodDto
 import com.caloriecompanion.shared.api.FoodEntryRef
 import com.caloriecompanion.shared.api.FoodInput
+import com.caloriecompanion.shared.api.FoodRefDefault
 import com.caloriecompanion.shared.api.FoodSummary
+import com.caloriecompanion.shared.api.UnitKind
 import com.caloriecompanion.shared.domain.AppException
 import com.caloriecompanion.shared.domain.Catalog
 import com.caloriecompanion.shared.domain.UnitResolver
@@ -46,20 +48,37 @@ class FoodService(private val db: CalorieCompanionDatabase, private val userId: 
         return FoodDetail(food.toDto(), UnitResolver(catalog).usableUnits(food), entries)
     }
 
-    fun create(input: FoodInput, archived: Boolean = false): FoodDto = db.transactionWithResult {
+    /**
+     * The reference amount and unit a new food starts with (F-12): the ones last set on a food, or
+     * 100 g when there are none yet (or that unit is gone or archived).
+     */
+    fun refDefault(): FoodRefDefault {
+        val catalog = loadCatalog(db, userId)
+        val stored = db.appUserQueries.selectFoodRefDefault(userId).executeAsOneOrNull()
+        val unit = stored?.food_ref_unit_id?.let { catalog.units[it] }
+        if (stored?.food_ref_amount != null && unit != null && !unit.archived) return FoodRefDefault(stored.food_ref_amount, unit.id)
+        val gram = catalog.units.values.filter { it.kind == UnitKind.MASS && it.baseFactor == 1.0 && !it.archived }.minByOrNull { it.id }
+        return FoodRefDefault(gram?.let { 100.0 }, gram?.id)
+    }
+
+    /** [rememberRef]: whether a reference amount set here becomes the default for new foods. */
+    fun create(input: FoodInput, archived: Boolean = false, rememberRef: Boolean = true): FoodDto = db.transactionWithResult {
         val catalog = loadCatalog(db, userId)
         val clean = validate(catalog, input, selfId = null)
         queries.insertFood(userId, clean.name, normalizeName(clean.name), clean.refAmount, clean.refUnitId, clean.notes, archived)
         val id = db.appUserQueries.lastInsertRowId().executeAsOne()
         writeRelations(id, clean)
+        if (rememberRef) rememberRef(clean)
         get(id)
     }
 
     /** Replaces all fields, unit links and nutrient values of a food. */
-    fun update(id: Long, input: FoodInput): FoodDto = db.transactionWithResult {
+    fun update(id: Long, input: FoodInput, rememberRef: Boolean = true): FoodDto = db.transactionWithResult {
         val catalog = loadCatalog(db, userId)
-        if (id !in catalog.foods) notFound("Food")
+        val before = catalog.foods[id] ?: notFound("Food")
         val clean = validate(catalog, input, selfId = id)
+        // Only a changed reference counts as "used": editing an old food's notes shouldn't reset the default.
+        if (rememberRef && (clean.refAmount != before.refAmount || clean.refUnitId != before.refUnitId)) rememberRef(clean)
         queries.updateFood(clean.name, normalizeName(clean.name), clean.refAmount, clean.refUnitId, clean.notes, id, userId)
         queries.deleteFoodUnits(id)
         queries.deleteFoodNutrients(id)
@@ -81,6 +100,12 @@ class FoodService(private val db: CalorieCompanionDatabase, private val userId: 
             throw AppException(ErrorCodes.REFERENCED, "Food is in use; archive it instead", 409, mapOf("entries" to entries))
         }
         queries.deleteFood(id, userId)
+    }
+
+    private fun rememberRef(input: FoodInput) {
+        if (input.refAmount != null && input.refUnitId != null) {
+            db.appUserQueries.updateFoodRefDefault(input.refAmount, input.refUnitId, userId)
+        }
     }
 
     private fun writeRelations(foodId: Long, input: FoodInput) {

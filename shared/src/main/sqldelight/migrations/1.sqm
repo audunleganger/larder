@@ -1,0 +1,3 @@
+-- v1 -> v2: remember the reference amount/unit last used for a food, to prefill new foods.
+ALTER TABLE app_user ADD COLUMN food_ref_amount REAL;
+ALTER TABLE app_user ADD COLUMN food_ref_unit_id INTEGER REFERENCES quantity_unit(id) ON DELETE SET NULL;
