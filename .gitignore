@@ -20,6 +20,8 @@ web/dist/
 # Runtime data
 /data/
 *.db
+# ...except SQLDelight's schema snapshots, which are source.
+!shared/src/main/sqldelight/databases/*.db
 *.db-shm
 *.db-wal
 
