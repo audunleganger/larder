@@ -5,6 +5,7 @@ import { useApiMutation, useNutrientDetail, useNutrients } from '../api/queries'
 import type { NutrientInput } from '../api/types.gen'
 import { Badge, Card, ConfirmButton, Empty, ErrorText, PageHeader, QueryView } from '../components/ui'
 import { formatDate } from '../lib/dates'
+import { unitLabel } from '../lib/names'
 import { currentLocale, formatAmount, formatNumber, formatQuantity } from '../lib/format'
 import { NutrientFields } from './NutrientsPage'
 
@@ -28,7 +29,7 @@ export function NutrientDetailPage() {
               <PageHeader
                 title={
                   <>
-                    {nutrient.name} {nutrient.archived && <Badge>{t('common.archived')}</Badge>}
+                    {nutrient.displayName} {nutrient.archived && <Badge>{t('common.archived')}</Badge>}
                   </>
                 }
                 subtitle={
@@ -104,7 +105,7 @@ export function NutrientDetailPage() {
                             <td>
                               {e.foodName}{' '}
                               <span className="muted">
-                                {formatQuantity(e.quantity)} {e.unitName}
+                                {formatQuantity(e.quantity)} {unitLabel(e.unitName, e.unitPluralSuffix, e.quantity)}
                               </span>
                             </td>
                             <td className="num">{formatAmount(e.amount, nutrient)}</td>

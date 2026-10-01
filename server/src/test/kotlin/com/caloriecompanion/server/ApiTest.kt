@@ -35,12 +35,14 @@ import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
+import io.ktor.client.request.header
 import io.ktor.client.request.patch
 import io.ktor.client.request.post
 import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
@@ -68,6 +70,20 @@ class ApiTest {
         val result: LoginResult = post("/api/v1/setup") { json(SetupInput("admin", "correct horse", "en")) }.body()
         assertTrue(result.user.isAdmin)
         return result.token
+    }
+
+    @Test
+    fun `names follow the reader's language`() = testApplication {
+        val client = jsonClient()
+        val token = client.setup()
+        val serving = client.get("/api/v1/units") { bearerAuth(token) }.body<List<UnitDto>>().first { it.name == "serving" }
+        assertEquals("serving", serving.displayName)
+        val nb = client.get("/api/v1/units/${serving.id}") { bearerAuth(token); header(HttpHeaders.AcceptLanguage, "nb-NO") }
+        assertEquals("porsjon", nb.body<com.caloriecompanion.shared.api.UnitDetail>().unit.displayName)
+        // Without the header, the user's saved language applies.
+        client.put("/api/v1/me/locale") { bearerAuth(token); json(com.caloriecompanion.shared.api.LocaleInput("nb")) }
+        val saved = client.get("/api/v1/units") { bearerAuth(token) }.body<List<UnitDto>>().first { it.id == serving.id }
+        assertEquals("porsjon", saved.displayName)
     }
 
     @Test

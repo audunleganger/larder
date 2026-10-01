@@ -1,29 +1,51 @@
 package com.caloriecompanion.shared.domain
 
 import com.caloriecompanion.shared.api.FoodUnitLink
+import com.caloriecompanion.shared.api.NameTranslation
 import com.caloriecompanion.shared.api.UnitKind
+import com.caloriecompanion.shared.normalizeName
+
+/** Something with a main name and optional names per language (L-5). */
+interface Named {
+    val id: Long
+    val name: String
+    /** Language code -> name in that language. */
+    val translations: Map<String, NameTranslation>
+
+    /** The name to show to a reader of [language]. */
+    fun displayName(language: String?): String = pickTranslation(translations, language)?.name ?: name
+
+    /** Every name this item is known by, normalized for comparison. */
+    fun allNames(): Set<String> = (listOf(name) + translations.values.map { it.name }).mapTo(HashSet(), ::normalizeName)
+}
 
 data class UnitDef(
-    val id: Long,
-    val name: String,
+    override val id: Long,
+    override val name: String,
     val kind: UnitKind,
     val baseFactor: Double?,
     val archived: Boolean,
-)
+    /** Plural ending of the main name (U-8). */
+    val pluralSuffix: String = "",
+    override val translations: Map<String, NameTranslation> = emptyMap(),
+) : Named {
+    fun displayPluralSuffix(language: String?): String = pickTranslation(translations, language)?.pluralSuffix ?: pluralSuffix
+}
 
 data class NutrientDef(
-    val id: Long,
-    val name: String,
+    override val id: Long,
+    override val name: String,
     val measureUnit: String,
     val displayPrecision: Int,
     val sortOrder: Int,
     val parentId: Long?,
     val archived: Boolean,
-)
+    override val translations: Map<String, NameTranslation> = emptyMap(),
+) : Named
 
 data class FoodDef(
-    val id: Long,
-    val name: String,
+    override val id: Long,
+    override val name: String,
     val refAmount: Double?,
     val refUnitId: Long?,
     val notes: String?,
@@ -31,7 +53,8 @@ data class FoodDef(
     /** Nutrient id -> amount per reference amount. */
     val nutrients: Map<Long, Double>,
     val links: List<FoodUnitLink>,
-)
+    override val translations: Map<String, NameTranslation> = emptyMap(),
+) : Named
 
 /** A user's complete catalog, loaded into memory for calculations. */
 class Catalog(

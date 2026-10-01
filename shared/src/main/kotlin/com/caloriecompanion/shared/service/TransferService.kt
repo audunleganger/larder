@@ -15,10 +15,14 @@ import com.caloriecompanion.shared.api.FoodNutrientValue
 import com.caloriecompanion.shared.api.FoodUnitLink
 import com.caloriecompanion.shared.api.ImportCounts
 import com.caloriecompanion.shared.api.ImportResult
+import com.caloriecompanion.shared.api.NameTranslation
 import com.caloriecompanion.shared.api.NutrientInput
 import com.caloriecompanion.shared.api.TargetInput
 import com.caloriecompanion.shared.api.UnitInput
 import com.caloriecompanion.shared.domain.AppException
+import com.caloriecompanion.shared.domain.Languages
+import com.caloriecompanion.shared.domain.Named
+import com.caloriecompanion.shared.domain.inLanguageOrder
 import com.caloriecompanion.shared.domain.normalizeTime
 import com.caloriecompanion.shared.domain.parseDate
 import com.caloriecompanion.shared.normalizeName
@@ -36,9 +40,11 @@ class TransferService(
         val nutrientName = { id: Long -> catalog.nutrientsById.getValue(id).name }
         return ExportFile(
             exportedAt = Instant.ofEpochMilli(now()).toString(),
-            units = catalog.units.values.sortedBy { it.id }.map { ExportUnit(it.name, it.kind, it.baseFactor, it.archived) },
+            units = catalog.units.values.sortedBy { it.id }.map {
+                ExportUnit(it.name, it.kind, it.baseFactor, it.archived, it.pluralSuffix, it.translations.inLanguageOrder())
+            },
             nutrients = catalog.nutrients.map {
-                ExportNutrient(it.name, it.measureUnit, it.displayPrecision, it.parentId?.let(nutrientName), it.archived)
+                ExportNutrient(it.name, it.measureUnit, it.displayPrecision, it.parentId?.let(nutrientName), it.archived, it.translations.inLanguageOrder())
             },
             foods = catalog.foods.values.sortedBy { it.id }.map { food ->
                 ExportFood(
@@ -49,6 +55,7 @@ class TransferService(
                     archived = food.archived,
                     nutrients = food.nutrients.entries.associate { (id, amount) -> nutrientName(id) to amount },
                     units = food.links.map { ExportFoodUnit(unitName(it.unitId), it.equalsAmount, it.equalsUnitId?.let(unitName)) },
+                    translations = food.translations.inLanguageOrder(),
                 )
             },
             entries = db.entryQueries.selectAllEntries(userId).executeAsList().map {
@@ -86,7 +93,10 @@ class TransferService(
         for (unit in file.units) {
             val key = normalizeName(unit.name)
             val existing = unitIds[key]
-            val input = UnitInput(unit.name, unit.kind, unit.baseFactor)
+            val translations = freeTranslations(unit.translations, existing, unit.name, withSuffix = true) { loadCatalog(db, userId).units.values }
+            // Version 1 files have no plural endings: keep existing ones, use the default for new units.
+            val suffix = if (file.version >= 2) unit.pluralSuffix else null
+            val input = UnitInput(unit.name, unit.kind, unit.baseFactor, suffix, translations)
             unitCounts = when {
                 existing == null -> {
                     unitIds[key] = unitService.create(input, unit.archived).id
@@ -109,7 +119,8 @@ class TransferService(
         for (nutrient in file.nutrients) {
             val key = normalizeName(nutrient.name)
             val existing = nutrientIds[key]
-            val input = NutrientInput(nutrient.name, nutrient.measureUnit, nutrient.displayPrecision)
+            val translations = freeTranslations(nutrient.translations, existing, nutrient.name, withSuffix = false) { loadCatalog(db, userId).nutrients }
+            val input = NutrientInput(nutrient.name, nutrient.measureUnit, nutrient.displayPrecision, translations = translations)
             nutrientCounts = when {
                 existing == null -> {
                     nutrientIds[key] = nutrientService.create(input, nutrient.archived).id
@@ -128,6 +139,7 @@ class TransferService(
         fun nutrientId(name: String) = nutrientIds[normalizeName(name)] ?: invalid("Unknown nutrient '$name'")
         for (nutrient in touched) {
             val parent = nutrient.parent ?: continue
+            // Translations were written above; null leaves them as they are.
             nutrientService.update(
                 nutrientId(nutrient.name),
                 NutrientInput(nutrient.name, nutrient.measureUnit, nutrient.displayPrecision, nutrientId(parent)),
@@ -140,6 +152,7 @@ class TransferService(
         for (food in file.foods) {
             val key = normalizeName(food.name)
             val existing = foodIds[key]
+            val translations = freeTranslations(food.translations, existing, food.name, withSuffix = false) { loadCatalog(db, userId).foods.values }
             val input = FoodInput(
                 name = food.name,
                 refAmount = food.refAmount,
@@ -147,6 +160,7 @@ class TransferService(
                 notes = food.notes,
                 nutrients = food.nutrients.map { (name, amount) -> FoodNutrientValue(nutrientId(name), amount) },
                 units = food.units.map { FoodUnitLink(unitId(it.unit), it.equalsAmount, it.equalsUnit?.let(::unitId)) },
+                translations = translations,
             )
             foodCounts = when {
                 existing == null -> {
@@ -200,6 +214,21 @@ class TransferService(
         }
 
         return ImportResult(unitCounts, nutrientCounts, foodCounts, entryCounts, targetCounts)
+    }
+
+    /**
+     * The imported translations of an item, minus any whose name already belongs to another item:
+     * translations are optional, so a clash drops the translation instead of failing the import.
+     */
+    private fun freeTranslations(
+        translations: List<NameTranslation>,
+        selfId: Long?,
+        mainName: String,
+        withSuffix: Boolean,
+        items: () -> Collection<Named>,
+    ): List<NameTranslation> {
+        val clean = NameRules.cleanTranslations(translations.filter { Languages.of(it.locale) in Languages.SUPPORTED }, withSuffix)
+        return NameRules.withoutClashes(clean, selfId, items().filter { normalizeName(it.name) != normalizeName(mainName) }, mainName)
     }
 
     private fun invalid(message: String): Nothing = throw AppException(ErrorCodes.INVALID_IMPORT, message, 400)

@@ -1,0 +1,154 @@
+-- v2 -> v3: names per language (L-5) and plural endings for units (U-8).
+
+ALTER TABLE quantity_unit ADD COLUMN plural_suffix TEXT NOT NULL DEFAULT '';
+
+CREATE TABLE unit_translation (
+    unit_id INTEGER NOT NULL REFERENCES quantity_unit(id) ON DELETE CASCADE,
+    locale TEXT NOT NULL,
+    name TEXT NOT NULL,
+    name_norm TEXT NOT NULL,
+    plural_suffix TEXT NOT NULL DEFAULT '',
+    PRIMARY KEY (unit_id, locale)
+);
+
+CREATE TABLE nutrient_translation (
+    nutrient_id INTEGER NOT NULL REFERENCES nutrient(id) ON DELETE CASCADE,
+    locale TEXT NOT NULL,
+    name TEXT NOT NULL,
+    name_norm TEXT NOT NULL,
+    PRIMARY KEY (nutrient_id, locale)
+);
+
+CREATE TABLE food_translation (
+    food_id INTEGER NOT NULL REFERENCES food(id) ON DELETE CASCADE,
+    locale TEXT NOT NULL,
+    name TEXT NOT NULL,
+    name_norm TEXT NOT NULL,
+    PRIMARY KEY (food_id, locale)
+);
+
+-- Plural endings for existing units: the built-in units get theirs; other custom units get the
+-- default for their owner's language ("s", or Norwegian "er"/"r" after a final e); mass and volume
+-- units (abbreviations such as g, ml) get none.
+UPDATE quantity_unit SET plural_suffix = CASE
+    WHEN name_norm IN ('serving', 'piece', 'cup', 'slice', 'glass', 'unit') THEN 's'
+    WHEN name_norm IN ('porsjon', 'kopp') THEN 'er'
+    WHEN name_norm IN ('stk', 'ts', 'ss', 'tsp', 'tbsp') THEN ''
+    WHEN kind <> 'custom' THEN ''
+    WHEN (SELECT lower(coalesce(locale, '')) FROM app_user WHERE app_user.id = quantity_unit.user_id) GLOB 'n[bon]*'
+        THEN CASE WHEN name_norm GLOB '*e' THEN 'r' ELSE 'er' END
+    ELSE 's'
+END;
+
+-- The built-in units and nutrients get their name in the other language, unless that name is
+-- already taken by another item.
+
+INSERT INTO unit_translation(unit_id, locale, name, name_norm, plural_suffix)
+SELECT u.id, 'nb', 'ts', 'ts', '' FROM quantity_unit u
+WHERE u.name_norm = 'tsp'
+  AND u.user_id NOT IN (SELECT user_id FROM quantity_unit WHERE name_norm = 'ts');
+
+INSERT INTO unit_translation(unit_id, locale, name, name_norm, plural_suffix)
+SELECT u.id, 'en', 'tsp', 'tsp', '' FROM quantity_unit u
+WHERE u.name_norm = 'ts'
+  AND u.user_id NOT IN (SELECT user_id FROM quantity_unit WHERE name_norm = 'tsp');
+
+INSERT INTO unit_translation(unit_id, locale, name, name_norm, plural_suffix)
+SELECT u.id, 'nb', 'ss', 'ss', '' FROM quantity_unit u
+WHERE u.name_norm = 'tbsp'
+  AND u.user_id NOT IN (SELECT user_id FROM quantity_unit WHERE name_norm = 'ss');
+
+INSERT INTO unit_translation(unit_id, locale, name, name_norm, plural_suffix)
+SELECT u.id, 'en', 'tbsp', 'tbsp', '' FROM quantity_unit u
+WHERE u.name_norm = 'ss'
+  AND u.user_id NOT IN (SELECT user_id FROM quantity_unit WHERE name_norm = 'tbsp');
+
+INSERT INTO unit_translation(unit_id, locale, name, name_norm, plural_suffix)
+SELECT u.id, 'nb', 'kopp', 'kopp', 'er' FROM quantity_unit u
+WHERE u.name_norm = 'cup'
+  AND u.user_id NOT IN (SELECT user_id FROM quantity_unit WHERE name_norm = 'kopp');
+
+INSERT INTO unit_translation(unit_id, locale, name, name_norm, plural_suffix)
+SELECT u.id, 'en', 'cup', 'cup', 's' FROM quantity_unit u
+WHERE u.name_norm = 'kopp'
+  AND u.user_id NOT IN (SELECT user_id FROM quantity_unit WHERE name_norm = 'cup');
+
+INSERT INTO unit_translation(unit_id, locale, name, name_norm, plural_suffix)
+SELECT u.id, 'nb', 'porsjon', 'porsjon', 'er' FROM quantity_unit u
+WHERE u.name_norm = 'serving'
+  AND u.user_id NOT IN (SELECT user_id FROM quantity_unit WHERE name_norm = 'porsjon');
+
+INSERT INTO unit_translation(unit_id, locale, name, name_norm, plural_suffix)
+SELECT u.id, 'en', 'serving', 'serving', 's' FROM quantity_unit u
+WHERE u.name_norm = 'porsjon'
+  AND u.user_id NOT IN (SELECT user_id FROM quantity_unit WHERE name_norm = 'serving');
+
+INSERT INTO unit_translation(unit_id, locale, name, name_norm, plural_suffix)
+SELECT u.id, 'nb', 'stk', 'stk', '' FROM quantity_unit u
+WHERE u.name_norm = 'piece'
+  AND u.user_id NOT IN (SELECT user_id FROM quantity_unit WHERE name_norm = 'stk');
+
+INSERT INTO unit_translation(unit_id, locale, name, name_norm, plural_suffix)
+SELECT u.id, 'en', 'piece', 'piece', 's' FROM quantity_unit u
+WHERE u.name_norm = 'stk'
+  AND u.user_id NOT IN (SELECT user_id FROM quantity_unit WHERE name_norm = 'piece');
+
+INSERT INTO nutrient_translation(nutrient_id, locale, name, name_norm)
+SELECT n.id, 'nb', 'Energi', 'energi' FROM nutrient n
+WHERE n.name_norm = 'energy'
+  AND n.user_id NOT IN (SELECT user_id FROM nutrient WHERE name_norm = 'energi');
+
+INSERT INTO nutrient_translation(nutrient_id, locale, name, name_norm)
+SELECT n.id, 'en', 'Energy', 'energy' FROM nutrient n
+WHERE n.name_norm = 'energi'
+  AND n.user_id NOT IN (SELECT user_id FROM nutrient WHERE name_norm = 'energy');
+
+INSERT INTO nutrient_translation(nutrient_id, locale, name, name_norm)
+SELECT n.id, 'nb', 'Karbohydrater', 'karbohydrater' FROM nutrient n
+WHERE n.name_norm = 'carbohydrates'
+  AND n.user_id NOT IN (SELECT user_id FROM nutrient WHERE name_norm = 'karbohydrater');
+
+INSERT INTO nutrient_translation(nutrient_id, locale, name, name_norm)
+SELECT n.id, 'en', 'Carbohydrates', 'carbohydrates' FROM nutrient n
+WHERE n.name_norm = 'karbohydrater'
+  AND n.user_id NOT IN (SELECT user_id FROM nutrient WHERE name_norm = 'carbohydrates');
+
+INSERT INTO nutrient_translation(nutrient_id, locale, name, name_norm)
+SELECT n.id, 'nb', 'Sukkerarter', 'sukkerarter' FROM nutrient n
+WHERE n.name_norm = 'sugars'
+  AND n.user_id NOT IN (SELECT user_id FROM nutrient WHERE name_norm = 'sukkerarter');
+
+INSERT INTO nutrient_translation(nutrient_id, locale, name, name_norm)
+SELECT n.id, 'en', 'Sugars', 'sugars' FROM nutrient n
+WHERE n.name_norm = 'sukkerarter'
+  AND n.user_id NOT IN (SELECT user_id FROM nutrient WHERE name_norm = 'sugars');
+
+INSERT INTO nutrient_translation(nutrient_id, locale, name, name_norm)
+SELECT n.id, 'nb', 'Fett', 'fett' FROM nutrient n
+WHERE n.name_norm = 'fat'
+  AND n.user_id NOT IN (SELECT user_id FROM nutrient WHERE name_norm = 'fett');
+
+INSERT INTO nutrient_translation(nutrient_id, locale, name, name_norm)
+SELECT n.id, 'en', 'Fat', 'fat' FROM nutrient n
+WHERE n.name_norm = 'fett'
+  AND n.user_id NOT IN (SELECT user_id FROM nutrient WHERE name_norm = 'fat');
+
+INSERT INTO nutrient_translation(nutrient_id, locale, name, name_norm)
+SELECT n.id, 'nb', 'Mettet fett', 'mettet fett' FROM nutrient n
+WHERE n.name_norm = 'saturated fat'
+  AND n.user_id NOT IN (SELECT user_id FROM nutrient WHERE name_norm = 'mettet fett');
+
+INSERT INTO nutrient_translation(nutrient_id, locale, name, name_norm)
+SELECT n.id, 'en', 'Saturated fat', 'saturated fat' FROM nutrient n
+WHERE n.name_norm = 'mettet fett'
+  AND n.user_id NOT IN (SELECT user_id FROM nutrient WHERE name_norm = 'saturated fat');
+
+INSERT INTO nutrient_translation(nutrient_id, locale, name, name_norm)
+SELECT n.id, 'nb', 'Kostfiber', 'kostfiber' FROM nutrient n
+WHERE n.name_norm = 'fiber'
+  AND n.user_id NOT IN (SELECT user_id FROM nutrient WHERE name_norm = 'kostfiber');
+
+INSERT INTO nutrient_translation(nutrient_id, locale, name, name_norm)
+SELECT n.id, 'en', 'Fiber', 'fiber' FROM nutrient n
+WHERE n.name_norm = 'kostfiber'
+  AND n.user_id NOT IN (SELECT user_id FROM nutrient WHERE name_norm = 'fiber');

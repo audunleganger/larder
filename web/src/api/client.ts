@@ -1,3 +1,4 @@
+import i18n from '../i18n'
 import type { ErrorResponse } from './types.gen'
 
 /** Error code used when the server can't be reached at all (O-1). */
@@ -67,7 +68,8 @@ function buildUrl(path: string, query?: Query): string {
 
 /** Low-level request to any server path. */
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const headers: Record<string, string> = { Accept: 'application/json' }
+  // The server returns item names in this language (L-5).
+  const headers: Record<string, string> = { Accept: 'application/json', 'Accept-Language': i18n.language }
   if (token) headers.Authorization = `Bearer ${token}`
   if (options.body !== undefined) headers['Content-Type'] = 'application/json'
 

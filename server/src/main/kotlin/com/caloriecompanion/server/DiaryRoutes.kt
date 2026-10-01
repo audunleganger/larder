@@ -31,30 +31,30 @@ import java.time.LocalDate
 fun Route.diaryRoutes(database: Database, auth: Auth) {
     get("/days/{date}") {
         val date = call.parameters["date"]!!
-        call.respond(call.withUser(database, auth) { db, user -> EntryService(db, user).day(date) })
+        call.respond(call.withUserLanguage(database, auth) { db, user, language -> EntryService(db, user, language = language).day(date) })
     }
 
     route("/entries") {
         post {
             val input = call.receive<EntryInput>()
-            call.respond(HttpStatusCode.Created, call.withUser(database, auth) { db, user -> EntryService(db, user).create(input) })
+            call.respond(HttpStatusCode.Created, call.withUserLanguage(database, auth) { db, user, language -> EntryService(db, user, language = language).create(input) })
         }
         post("/preview") {
             val input = call.receive<PreviewInput>()
-            call.respond(call.withUser(database, auth) { db, user -> EntryService(db, user).preview(input) })
+            call.respond(call.withUserLanguage(database, auth) { db, user, language -> EntryService(db, user, language = language).preview(input) })
         }
         get("/{id}") {
             val id = call.idParam()
-            call.respond(call.withUser(database, auth) { db, user -> EntryService(db, user).get(id) })
+            call.respond(call.withUserLanguage(database, auth) { db, user, language -> EntryService(db, user, language = language).get(id) })
         }
         put("/{id}") {
             val id = call.idParam()
             val input = call.receive<EntryInput>()
-            call.respond(call.withUser(database, auth) { db, user -> EntryService(db, user).update(id, input) })
+            call.respond(call.withUserLanguage(database, auth) { db, user, language -> EntryService(db, user, language = language).update(id, input) })
         }
         delete("/{id}") {
             val id = call.idParam()
-            call.withUser(database, auth) { db, user -> EntryService(db, user).delete(id) }
+            call.withUserLanguage(database, auth) { db, user, language -> EntryService(db, user, language = language).delete(id) }
             call.respond(HttpStatusCode.NoContent)
         }
     }

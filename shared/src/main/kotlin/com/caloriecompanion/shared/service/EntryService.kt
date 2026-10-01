@@ -17,10 +17,12 @@ import com.caloriecompanion.shared.domain.notFound
 import com.caloriecompanion.shared.domain.parseDate
 import com.caloriecompanion.shared.domain.validation
 
+/** [language]: the reader's language, for display names (L-5). */
 class EntryService(
     private val db: CalorieCompanionDatabase,
     private val userId: Long,
     private val now: () -> Long = System::currentTimeMillis,
+    private val language: String? = null,
 ) {
     private val queries = db.entryQueries
 
@@ -34,7 +36,7 @@ class EntryService(
         val targets = TargetTimeline(TargetService(db, userId).list()).on(day)
         return DayView(
             date = day,
-            entries = rows.zip(nutrition) { row, n -> row.toView(catalog, n.toList(catalog.displayedNutrients), n.unresolved) },
+            entries = rows.zip(nutrition) { row, n -> row.toView(catalog, n.toList(catalog.displayedNutrients), n.unresolved, language) },
             totals = calculator.totals(nutrition, targets),
         )
     }
@@ -94,7 +96,7 @@ class EntryService(
 
     private fun view(catalog: Catalog, row: Entry): EntryView {
         val n = NutritionCalculator(catalog).entryNutrition(catalog.foods.getValue(row.food_id), row.unit_id, row.quantity)
-        return row.toView(catalog, n.toList(catalog.displayedNutrients), n.unresolved)
+        return row.toView(catalog, n.toList(catalog.displayedNutrients), n.unresolved, language)
     }
 }
 
@@ -102,12 +104,14 @@ internal fun Entry.toView(
     catalog: Catalog,
     nutrients: List<com.caloriecompanion.shared.api.NutrientAmount>,
     unresolved: Boolean,
+    language: String?,
 ) = EntryView(
     id = id,
     foodId = food_id,
-    foodName = catalog.foods[food_id]?.name ?: "?",
+    foodName = catalog.foods[food_id]?.displayName(language) ?: "?",
     unitId = unit_id,
-    unitName = catalog.units[unit_id]?.name ?: "?",
+    unitName = catalog.units[unit_id]?.displayName(language) ?: "?",
+    unitPluralSuffix = catalog.units[unit_id]?.displayPluralSuffix(language).orEmpty(),
     quantity = quantity,
     date = local_date,
     time = local_time,

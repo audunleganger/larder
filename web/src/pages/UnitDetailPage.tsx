@@ -39,7 +39,7 @@ export function UnitDetailPage() {
             <PageHeader
               title={
                 <>
-                  {data.unit.name} {data.unit.archived && <Badge>{t('common.archived')}</Badge>}
+                  {data.unit.displayName} {data.unit.archived && <Badge>{t('common.archived')}</Badge>}
                 </>
               }
               subtitle={

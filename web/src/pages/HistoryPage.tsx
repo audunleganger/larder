@@ -111,7 +111,7 @@ function MainChart({ view, nutrient, showAverage }: { view: HistoryView; nutrien
           </li>
         )}
       </ul>
-      <div className="chart" role="img" aria-label={t('history.chartLabel', { nutrient: nutrient.name })}>
+      <div className="chart" role="img" aria-label={t('history.chartLabel', { nutrient: nutrient.displayName })}>
         <ResponsiveContainer width="100%" height={300}>
           <ComposedChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
             <CartesianGrid vertical={false} stroke="var(--grid)" />
@@ -136,7 +136,7 @@ function SmallMultiple({ view, nutrient, selected, onSelect }: { view: HistoryVi
   const summary = view.summary.find((s) => s.nutrientId === nutrient.id)
   return (
     <button type="button" className={`multiple ${selected ? 'selected' : ''}`} onClick={onSelect} aria-pressed={selected}>
-      <span className="multiple-title">{nutrient.name}</span>
+      <span className="multiple-title">{nutrient.displayName}</span>
       <span className="multiple-value">{formatAmount(summary?.average, nutrient)}</span>
       <ResponsiveContainer width="100%" height={56}>
         <BarChart data={data} margin={{ top: 2, right: 0, bottom: 0, left: 0 }}>
@@ -172,7 +172,7 @@ function SummaryTable({ view, nutrients }: { view: HistoryView; nutrients: Nutri
               <tr key={s.nutrientId}>
                 <td className={n.id !== main.id ? 'child' : ''}>
                   {n.id !== main.id && <span className="muted of-which">{t('nutrients.ofWhich')} </span>}
-                  {n.name}
+                  {n.displayName}
                 </td>
                 <td className="num">{formatAmount(s.average, n)}</td>
                 <td className="num">{formatAmount(s.min, n)}</td>
@@ -264,7 +264,7 @@ export function HistoryPage() {
             <select className="input" value={selected?.id ?? ''} onChange={(e) => setNutrientId(Number(e.target.value))}>
               {displayed.map((n) => (
                 <option key={n.id} value={n.id}>
-                  {n.name}
+                  {n.displayName}
                 </option>
               ))}
             </select>
@@ -282,7 +282,7 @@ export function HistoryPage() {
           return (
             <>
               <Card
-                title={selected ? selected.name : ''}
+                title={selected ? selected.displayName : ''}
                 actions={
                   <label className="checkbox">
                     <input type="checkbox" checked={showTable} onChange={(e) => setShowTable(e.target.checked)} /> {t('history.showTable')}

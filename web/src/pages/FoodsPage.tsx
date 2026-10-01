@@ -20,7 +20,7 @@ export function FoodsPage() {
   const ref = newRef ?? { amount: toInputValue(refDefault.data?.refAmount ?? null), unitId: refDefault.data?.refUnitId ?? ('' as const) }
   const foods = useFoods(useDebounced(search.trim(), 150), showArchived)
   const units = useUnits(true)
-  const unitName = (id: number | null) => units.data?.find((u) => u.id === id)?.name ?? ''
+  const unitName = (id: number | null) => units.data?.find((u) => u.id === id)?.displayName ?? ''
   const create = useApiMutation(endpoints.createFood)
 
   async function submit(event: FormEvent) {
@@ -47,7 +47,7 @@ export function FoodsPage() {
               .filter((u) => !u.archived || u.id === ref.unitId)
               .map((u) => (
                 <option key={u.id} value={u.id}>
-                  {u.name}
+                  {u.displayName}
                 </option>
               ))}
           </select>

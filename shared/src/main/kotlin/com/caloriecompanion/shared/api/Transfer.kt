@@ -20,7 +20,9 @@ data class ExportFile(
 ) {
     companion object {
         const val FORMAT = "calorie-companion-export"
-        const val VERSION = 1
+
+        /** 2: names per language and plural endings (L-5, U-8). */
+        const val VERSION = 2
     }
 }
 
@@ -30,6 +32,8 @@ data class ExportUnit(
     val kind: UnitKind,
     val baseFactor: Double? = null,
     val archived: Boolean = false,
+    val pluralSuffix: String = "",
+    val translations: List<NameTranslation> = emptyList(),
 )
 
 @Serializable
@@ -39,6 +43,7 @@ data class ExportNutrient(
     val displayPrecision: Int = 1,
     val parent: String? = null,
     val archived: Boolean = false,
+    val translations: List<NameTranslation> = emptyList(),
 )
 
 @Serializable
@@ -58,6 +63,7 @@ data class ExportFood(
     /** Nutrient name -> amount per reference amount. */
     val nutrients: Map<String, Double> = emptyMap(),
     val units: List<ExportFoodUnit> = emptyList(),
+    val translations: List<NameTranslation> = emptyList(),
 )
 
 @Serializable

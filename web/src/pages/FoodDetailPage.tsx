@@ -8,6 +8,8 @@ import { DecimalInput } from '../components/DecimalInput'
 import { Badge, Card, ConfirmButton, Empty, ErrorText, Field, PageHeader, QueryView } from '../components/ui'
 import { formatDate } from '../lib/dates'
 import { currentLocale, formatNumber, formatQuantity, parseDecimal, toInputValue } from '../lib/format'
+import { draftTranslations, toTranslations, unitLabel } from '../lib/names'
+import { TranslationFields } from '../components/TranslationFields'
 import { groupNutrients } from '../lib/nutrients'
 
 interface LinkRow {
@@ -19,14 +21,15 @@ interface LinkRow {
 
 let rowKey = 0
 
-function unitLabel(unit: UnitDto, t: (key: 'common.archived') => string) {
-  return unit.archived ? `${unit.name} (${t('common.archived')})` : unit.name
+function unitOption(unit: UnitDto, t: (key: 'common.archived') => string) {
+  return unit.archived ? `${unit.displayName} (${t('common.archived')})` : unit.displayName
 }
 
 function FoodEditor({ detail, units, nutrients }: { detail: FoodDetail; units: UnitDto[]; nutrients: NutrientDto[] }) {
   const { t } = useTranslation()
   const food = detail.food
   const [name, setName] = useState(food.name)
+  const [translations, setTranslations] = useState(() => draftTranslations(food.translations))
   const [refAmount, setRefAmount] = useState(toInputValue(food.refAmount))
   const [refUnitId, setRefUnitId] = useState<number | ''>(food.refUnitId ?? '')
   const [notes, setNotes] = useState(food.notes ?? '')
@@ -42,7 +45,7 @@ function FoodEditor({ detail, units, nutrients }: { detail: FoodDetail; units: U
 
   // Archived nutrients are only shown when this food has a value for them.
   const shownNutrients = nutrients.filter((n) => !n.archived || values[n.id] !== undefined)
-  const refUnitName = units.find((u) => u.id === refUnitId)?.name ?? ''
+  const refUnitName = units.find((u) => u.id === refUnitId)?.displayName ?? ''
 
   function build(): FoodInput | null {
     const amount = parseDecimal(refAmount)
@@ -59,7 +62,7 @@ function FoodEditor({ detail, units, nutrients }: { detail: FoodDetail; units: U
       const value = parseDecimal(text)
       if (value === null) continue
       if (Number.isNaN(value) || value < 0) {
-        setFormError(t('foods.errors.nutrient', { name: nutrients.find((n) => n.id === Number(id))?.name ?? id }))
+        setFormError(t('foods.errors.nutrient', { name: nutrients.find((n) => n.id === Number(id))?.displayName ?? id }))
         return null
       }
       nutrientValues.push({ nutrientId: Number(id), amount: value })
@@ -77,6 +80,7 @@ function FoodEditor({ detail, units, nutrients }: { detail: FoodDetail; units: U
     }
     return {
       name,
+      translations: toTranslations(translations),
       refAmount: amount,
       refUnitId: refUnitId === '' ? null : refUnitId,
       notes: notes.trim() || null,
@@ -105,15 +109,15 @@ function FoodEditor({ detail, units, nutrients }: { detail: FoodDetail; units: U
         <label className="nutrient-input">
           <span>
             {main && <span className="muted of-which">{t('nutrients.ofWhich')} </span>}
-            {n.name}
+            {n.displayName}
           </span>
-          <DecimalInput value={values[n.id] ?? ''} onChange={(text) => setValues((v) => ({ ...v, [n.id]: text }))} aria-label={n.name} />
+          <DecimalInput value={values[n.id] ?? ''} onChange={(text) => setValues((v) => ({ ...v, [n.id]: text }))} aria-label={n.displayName} />
           <span className="muted">{n.measureUnit}</span>
         </label>
         {exceeds && (
           <p className="nutrient-warning">
             <span aria-hidden="true">⚠ </span>
-            {t('foods.subExceedsMain', { sub: n.name, main: main.name })}
+            {t('foods.subExceedsMain', { sub: n.displayName, main: main.displayName })}
           </p>
         )}
       </div>
@@ -131,6 +135,7 @@ function FoodEditor({ detail, units, nutrients }: { detail: FoodDetail; units: U
             <input className="input" value={name} onChange={(e) => setName(e.target.value)} required />
           </Field>
         </div>
+        <TranslationFields draft={translations} onChange={setTranslations} mainName={name} />
         <div className="form-row">
           <Field label={t('foods.refAmount')} className="qty-wide">
             <DecimalInput value={refAmount} onChange={setRefAmount} placeholder="100" />
@@ -140,7 +145,7 @@ function FoodEditor({ detail, units, nutrients }: { detail: FoodDetail; units: U
               <option value="">{t('foods.notSet')}</option>
               {units.map((u) => (
                 <option key={u.id} value={u.id}>
-                  {unitLabel(u, t)}
+                  {unitOption(u, t)}
                 </option>
               ))}
             </select>
@@ -175,7 +180,7 @@ function FoodEditor({ detail, units, nutrients }: { detail: FoodDetail; units: U
                   <option value="">{t('foods.chooseUnit')}</option>
                   {units.map((u) => (
                     <option key={u.id} value={u.id}>
-                      {unitLabel(u, t)}
+                      {unitOption(u, t)}
                     </option>
                   ))}
                 </select>
@@ -187,7 +192,7 @@ function FoodEditor({ detail, units, nutrients }: { detail: FoodDetail; units: U
                     .filter((u) => u.id !== row.unitId)
                     .map((u) => (
                       <option key={u.id} value={u.id}>
-                        {unitLabel(u, t)}
+                        {unitOption(u, t)}
                       </option>
                     ))}
                 </select>
@@ -208,7 +213,7 @@ function FoodEditor({ detail, units, nutrients }: { detail: FoodDetail; units: U
         ) : (
           <ul className="usable-units">
             {detail.usableUnits.map((u) => {
-              const ref = units.find((x) => x.id === food.refUnitId)?.name
+              const ref = units.find((x) => x.id === food.refUnitId)?.displayName
               return (
                 <li key={u.unitId}>
                   <Link to={`/units/${u.unitId}`}>{u.name}</Link>{' '}
@@ -253,7 +258,7 @@ function EntriesByDate({ detail }: { detail: FoodDetail }) {
           <span className="date-list-items">
             {entries.map((e) => (
               <span key={e.entryId} className="chip" title={`${formatQuantity(e.quantity)} × ${e.unitName} · ${e.time}`}>
-                {detail.food.name} · {formatQuantity(e.quantity)} {e.unitName}
+                {detail.food.displayName} · {formatQuantity(e.quantity)} {unitLabel(e.unitName, e.unitPluralSuffix, e.quantity)}
               </span>
             ))}
           </span>
@@ -281,7 +286,7 @@ export function FoodDetailPage() {
             <PageHeader
               title={
                 <>
-                  {data.food.name} {data.food.archived && <Badge>{t('common.archived')}</Badge>}
+                  {data.food.displayName} {data.food.archived && <Badge>{t('common.archived')}</Badge>}
                 </>
               }
               subtitle={<Link to="/foods">← {t('foods.title')}</Link>}

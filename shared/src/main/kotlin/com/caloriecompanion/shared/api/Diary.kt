@@ -43,6 +43,7 @@ data class EntryView(
     val foodName: String,
     val unitId: Long,
     val unitName: String,
+    val unitPluralSuffix: String,
     val quantity: Double,
     val date: String,
     val time: String,

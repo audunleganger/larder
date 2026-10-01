@@ -5,6 +5,13 @@ type Translation<T> = { [K in keyof T]: T[K] extends string ? string : Translati
 const nb: Translation<typeof en> = {
   appName: 'Calorie Companion',
   languages: { en: 'English', nb: 'Norsk' },
+  names: {
+    title: 'Navn på andre språk',
+    hint: 'Vises når appen er på det språket. La stå tomt for å bruke hovednavnet.',
+    in: { en: 'Engelsk navn', nb: 'Norsk navn' },
+    pluralSuffix: 'Flertallsendelse',
+    pluralExample: 'f.eks. «{{example}}»',
+  },
   nav: {
     label: 'Hovedmeny',
     day: 'Dag',

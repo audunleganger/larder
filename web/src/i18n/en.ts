@@ -1,6 +1,13 @@
 const en = {
   appName: 'Calorie Companion',
   languages: { en: 'English', nb: 'Norsk' },
+  names: {
+    title: 'Names in other languages',
+    hint: 'Shown when the app is in that language. Leave empty to use the main name.',
+    in: { en: 'English name', nb: 'Norwegian name' },
+    pluralSuffix: 'Plural ending',
+    pluralExample: 'e.g. “{{example}}”',
+  },
   nav: {
     label: 'Main navigation',
     day: 'Day',

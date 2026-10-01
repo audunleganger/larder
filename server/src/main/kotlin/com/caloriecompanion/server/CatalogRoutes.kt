@@ -22,32 +22,32 @@ fun Route.catalogRoutes(database: Database, auth: Auth) {
     route("/units") {
         get {
             val all = call.flag("includeArchived")
-            call.respond(call.withUser(database, auth) { db, user -> UnitService(db, user).list(all) })
+            call.respond(call.withUserLanguage(database, auth) { db, user, language -> UnitService(db, user, language).list(all) })
         }
         post {
             val input = call.receive<UnitInput>()
-            call.respond(HttpStatusCode.Created, call.withUser(database, auth) { db, user -> UnitService(db, user).create(input) })
+            call.respond(HttpStatusCode.Created, call.withUserLanguage(database, auth) { db, user, language -> UnitService(db, user, language).create(input) })
         }
         get("/{id}") {
             val id = call.idParam()
-            call.respond(call.withUser(database, auth) { db, user -> UnitService(db, user).detail(id) })
+            call.respond(call.withUserLanguage(database, auth) { db, user, language -> UnitService(db, user, language).detail(id) })
         }
         put("/{id}") {
             val id = call.idParam()
             val input = call.receive<UnitInput>()
-            call.respond(call.withUser(database, auth) { db, user -> UnitService(db, user).update(id, input) })
+            call.respond(call.withUserLanguage(database, auth) { db, user, language -> UnitService(db, user, language).update(id, input) })
         }
         post("/{id}/archive") {
             val id = call.idParam()
-            call.respond(call.withUser(database, auth) { db, user -> UnitService(db, user).setArchived(id, true) })
+            call.respond(call.withUserLanguage(database, auth) { db, user, language -> UnitService(db, user, language).setArchived(id, true) })
         }
         post("/{id}/unarchive") {
             val id = call.idParam()
-            call.respond(call.withUser(database, auth) { db, user -> UnitService(db, user).setArchived(id, false) })
+            call.respond(call.withUserLanguage(database, auth) { db, user, language -> UnitService(db, user, language).setArchived(id, false) })
         }
         delete("/{id}") {
             val id = call.idParam()
-            call.withUser(database, auth) { db, user -> UnitService(db, user).delete(id) }
+            call.withUserLanguage(database, auth) { db, user, language -> UnitService(db, user, language).delete(id) }
             call.respond(HttpStatusCode.NoContent)
         }
     }
@@ -55,36 +55,36 @@ fun Route.catalogRoutes(database: Database, auth: Auth) {
     route("/nutrients") {
         get {
             val all = call.flag("includeArchived")
-            call.respond(call.withUser(database, auth) { db, user -> NutrientService(db, user).list(all) })
+            call.respond(call.withUserLanguage(database, auth) { db, user, language -> NutrientService(db, user, language).list(all) })
         }
         post {
             val input = call.receive<NutrientInput>()
-            call.respond(HttpStatusCode.Created, call.withUser(database, auth) { db, user -> NutrientService(db, user).create(input) })
+            call.respond(HttpStatusCode.Created, call.withUserLanguage(database, auth) { db, user, language -> NutrientService(db, user, language).create(input) })
         }
         put("/order") {
             val input = call.receive<NutrientOrderInput>()
-            call.respond(call.withUser(database, auth) { db, user -> NutrientService(db, user).reorder(input.ids) })
+            call.respond(call.withUserLanguage(database, auth) { db, user, language -> NutrientService(db, user, language).reorder(input.ids) })
         }
         get("/{id}") {
             val id = call.idParam()
-            call.respond(call.withUser(database, auth) { db, user -> NutrientService(db, user).detail(id) })
+            call.respond(call.withUserLanguage(database, auth) { db, user, language -> NutrientService(db, user, language).detail(id) })
         }
         put("/{id}") {
             val id = call.idParam()
             val input = call.receive<NutrientInput>()
-            call.respond(call.withUser(database, auth) { db, user -> NutrientService(db, user).update(id, input) })
+            call.respond(call.withUserLanguage(database, auth) { db, user, language -> NutrientService(db, user, language).update(id, input) })
         }
         post("/{id}/archive") {
             val id = call.idParam()
-            call.respond(call.withUser(database, auth) { db, user -> NutrientService(db, user).setArchived(id, true) })
+            call.respond(call.withUserLanguage(database, auth) { db, user, language -> NutrientService(db, user, language).setArchived(id, true) })
         }
         post("/{id}/unarchive") {
             val id = call.idParam()
-            call.respond(call.withUser(database, auth) { db, user -> NutrientService(db, user).setArchived(id, false) })
+            call.respond(call.withUserLanguage(database, auth) { db, user, language -> NutrientService(db, user, language).setArchived(id, false) })
         }
         delete("/{id}") {
             val id = call.idParam()
-            call.withUser(database, auth) { db, user -> NutrientService(db, user).delete(id) }
+            call.withUserLanguage(database, auth) { db, user, language -> NutrientService(db, user, language).delete(id) }
             call.respond(HttpStatusCode.NoContent)
         }
     }
@@ -93,35 +93,35 @@ fun Route.catalogRoutes(database: Database, auth: Auth) {
         get {
             val query = call.request.queryParameters["q"]
             val all = call.flag("includeArchived")
-            call.respond(call.withUser(database, auth) { db, user -> FoodService(db, user).list(query, all) })
+            call.respond(call.withUserLanguage(database, auth) { db, user, language -> FoodService(db, user, language).list(query, all) })
         }
         post {
             val input = call.receive<FoodInput>()
-            call.respond(HttpStatusCode.Created, call.withUser(database, auth) { db, user -> FoodService(db, user).create(input) })
+            call.respond(HttpStatusCode.Created, call.withUserLanguage(database, auth) { db, user, language -> FoodService(db, user, language).create(input) })
         }
         get("/ref-default") {
-            call.respond(call.withUser(database, auth) { db, user -> FoodService(db, user).refDefault() })
+            call.respond(call.withUserLanguage(database, auth) { db, user, language -> FoodService(db, user, language).refDefault() })
         }
         get("/{id}") {
             val id = call.idParam()
-            call.respond(call.withUser(database, auth) { db, user -> FoodService(db, user).detail(id) })
+            call.respond(call.withUserLanguage(database, auth) { db, user, language -> FoodService(db, user, language).detail(id) })
         }
         put("/{id}") {
             val id = call.idParam()
             val input = call.receive<FoodInput>()
-            call.respond(call.withUser(database, auth) { db, user -> FoodService(db, user).update(id, input) })
+            call.respond(call.withUserLanguage(database, auth) { db, user, language -> FoodService(db, user, language).update(id, input) })
         }
         post("/{id}/archive") {
             val id = call.idParam()
-            call.respond(call.withUser(database, auth) { db, user -> FoodService(db, user).setArchived(id, true) })
+            call.respond(call.withUserLanguage(database, auth) { db, user, language -> FoodService(db, user, language).setArchived(id, true) })
         }
         post("/{id}/unarchive") {
             val id = call.idParam()
-            call.respond(call.withUser(database, auth) { db, user -> FoodService(db, user).setArchived(id, false) })
+            call.respond(call.withUserLanguage(database, auth) { db, user, language -> FoodService(db, user, language).setArchived(id, false) })
         }
         delete("/{id}") {
             val id = call.idParam()
-            call.withUser(database, auth) { db, user -> FoodService(db, user).delete(id) }
+            call.withUserLanguage(database, auth) { db, user, language -> FoodService(db, user, language).delete(id) }
             call.respond(HttpStatusCode.NoContent)
         }
     }

@@ -9,6 +9,7 @@ import { targetText } from '../lib/targets'
 import { Badge, Card, ConfirmButton, Empty, ErrorText, PageHeader, QueryView } from '../components/ui'
 import { addDays, formatDate, isValidIsoDate, todayIso } from '../lib/dates'
 import { currentLocale, formatAmount, formatQuantity } from '../lib/format'
+import { unitLabel } from '../lib/names'
 import { groupNutrients } from '../lib/nutrients'
 import { EntryForm } from './EntryForm'
 
@@ -52,7 +53,7 @@ function EntryItem({ entry, nutrients, onEdit }: { entry: EntryView; nutrients: 
         <div className="entry-title">
           <Link to={`/foods/${entry.foodId}`}>{entry.foodName}</Link>
           <span className="muted">
-            {formatQuantity(entry.quantity)} {entry.unitName}
+            {formatQuantity(entry.quantity)} {unitLabel(entry.unitName, entry.unitPluralSuffix, entry.quantity)}
           </span>
           {entry.unresolved && <Badge tone="warning">⚠ {t('day.incomplete')}</Badge>}
         </div>
@@ -61,7 +62,7 @@ function EntryItem({ entry, nutrients, onEdit }: { entry: EntryView; nutrients: 
           <p className="entry-nutrients">
             {rest.filter((a) => a.amount !== null).map(({ nutrient, amount }) => (
               <span key={nutrient!.id}>
-                {nutrient!.name} {formatAmount(amount, nutrient!)}
+                {nutrient!.displayName} {formatAmount(amount, nutrient!)}
               </span>
             ))}
           </p>
@@ -90,7 +91,7 @@ function TotalItem({ total, nutrient, day, unresolved, isSub }: { total: Nutrien
       <div className="total-row">
         <Link to={`/nutrients/${nutrient.id}`} className="total-name">
           {isSub && <span className="muted of-which">{t('nutrients.ofWhich')} </span>}
-          {nutrient.name}
+          {nutrient.displayName}
         </Link>
         <span className="total-amount">{noData ? '—' : formatAmount(total.amount, nutrient)}</span>
       </div>
@@ -131,7 +132,7 @@ function Totals({ day, nutrients }: { day: DayView; nutrients: Map<number, Nutri
           <li key={main.id} className="total-group">
             <TotalItem total={main.total} nutrient={main.nutrient} day={day} unresolved={unresolved} isSub={false} />
             {subs.length > 0 && (
-              <ul className="total-subs" aria-label={t('nutrients.subsOf', { name: main.nutrient.name })}>
+              <ul className="total-subs" aria-label={t('nutrients.subsOf', { name: main.nutrient.displayName })}>
                 {subs.map((sub) => (
                   <li key={sub.id}>
                     <TotalItem total={sub.total} nutrient={sub.nutrient} day={day} unresolved={unresolved} isSub />

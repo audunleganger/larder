@@ -57,7 +57,8 @@ await step('log entry from day view', async () => {
   await picker.fill('rye')
   await page.getByRole('option', { name: 'Rye bread' }).click()
   await page.getByLabel('Quantity').first().fill('2')
-  await page.locator('.entry-form select').selectOption({ label: 'serving' })
+  // Unit names take their plural ending when the quantity isn't 1.
+  await page.locator('.entry-form select').selectOption({ label: 'servings' })
   await page.locator('.preview .chip').first().waitFor()
   await shot('04-day-preview')
   await page.getByRole('button', { name: 'Add', exact: true }).click()
@@ -170,12 +171,30 @@ await step('settings and admin', async () => {
   await shot('13-admin')
 })
 
+await step('names in other languages', async () => {
+  await page.getByRole('link', { name: 'Foods', exact: true }).click()
+  await page.getByRole('link', { name: 'Rye bread' }).click()
+  await page.getByText('Names in other languages').click()
+  await page.getByLabel('Norwegian name').fill('Rugbrød')
+  await page.getByRole('button', { name: 'Save' }).click()
+  await page.getByText('Saved').waitFor()
+  // Search finds a food by any of its names.
+  await page.getByRole('link', { name: 'Day', exact: true }).click()
+  await page.getByPlaceholder('Search foods…').fill('rugbr')
+  await page.getByRole('option', { name: 'Rye bread' }).waitFor()
+  await page.getByPlaceholder('Search foods…').fill('')
+})
+
 await step('norwegian', async () => {
   await page.getByRole('link', { name: 'Settings' }).click()
   await page.getByRole('button', { name: 'Norsk' }).click()
   await page.getByRole('heading', { name: 'Innstillinger' }).waitFor()
   await page.getByRole('link', { name: 'Dag', exact: true }).click()
   await page.getByRole('heading', { name: 'Registrer mat' }).waitFor()
+  // Names follow the language: the food's Norwegian name, built-in names, and Norwegian plurals.
+  await page.getByRole('link', { name: 'Rugbrød' }).waitFor()
+  await page.getByText('4 porsjoner').waitFor()
+  await page.getByText('Energi', { exact: true }).first().waitFor()
   await shot('14-day-nb')
   await page.getByRole('link', { name: 'Innstillinger' }).click()
   await page.getByRole('button', { name: 'English' }).click()

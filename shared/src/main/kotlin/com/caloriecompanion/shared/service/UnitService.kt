@@ -3,6 +3,7 @@ package com.caloriecompanion.shared.service
 import com.caloriecompanion.db.CalorieCompanionDatabase
 import com.caloriecompanion.shared.api.ErrorCodes
 import com.caloriecompanion.shared.api.FoodRef
+import com.caloriecompanion.shared.api.NameTranslation
 import com.caloriecompanion.shared.api.UnitDetail
 import com.caloriecompanion.shared.api.UnitDto
 import com.caloriecompanion.shared.api.UnitInput
@@ -11,17 +12,19 @@ import com.caloriecompanion.shared.domain.AppException
 import com.caloriecompanion.shared.domain.UnitDef
 import com.caloriecompanion.shared.domain.UnitResolver
 import com.caloriecompanion.shared.domain.cleanName
+import com.caloriecompanion.shared.domain.defaultPluralSuffix
 import com.caloriecompanion.shared.domain.notFound
 import com.caloriecompanion.shared.domain.validation
 import com.caloriecompanion.shared.normalizeName
 
-class UnitService(private val db: CalorieCompanionDatabase, private val userId: Long) {
+/** [language]: the reader's language, for display names (L-5). */
+class UnitService(private val db: CalorieCompanionDatabase, private val userId: Long, private val language: String? = null) {
     private val queries = db.quantityUnitQueries
 
     fun list(includeArchived: Boolean = false): List<UnitDto> =
-        all().filter { includeArchived || !it.archived }.map { it.toDto() }
+        all().filter { includeArchived || !it.archived }.map { it.toDto(language) }
 
-    fun get(id: Long): UnitDto = find(id).toDto()
+    fun get(id: Long): UnitDto = find(id).toDto(language)
 
     fun detail(id: Long): UnitDetail {
         val catalog = loadCatalog(db, userId)
@@ -36,9 +39,9 @@ class UnitService(private val db: CalorieCompanionDatabase, private val userId: 
             }
         } else emptyList()
         return UnitDetail(
-            unit = unit.toDto(),
-            foods = explicit.map { FoodRef(it.id, it.name, it.archived) }.sortedBy { it.name.lowercase() },
-            implicitFoods = implicit.map { FoodRef(it.id, it.name, it.archived) }.sortedBy { it.name.lowercase() },
+            unit = unit.toDto(language),
+            foods = explicit.map { FoodRef(it.id, it.displayName(language), it.archived) }.sortedBy { it.name.lowercase() },
+            implicitFoods = implicit.map { FoodRef(it.id, it.displayName(language), it.archived) }.sortedBy { it.name.lowercase() },
             dates = queries.selectUnitDates(userId, id).executeAsList(),
         )
     }
@@ -46,25 +49,32 @@ class UnitService(private val db: CalorieCompanionDatabase, private val userId: 
     fun create(input: UnitInput, archived: Boolean = false): UnitDto = db.transactionWithResult {
         val name = cleanName(input.name)
         val factor = validFactor(input.kind, input.baseFactor)
-        ensureNameFree(name, exceptId = null)
-        queries.insertUnit(userId, name, normalizeName(name), input.kind.dbValue(), factor, archived)
+        val translations = NameRules.cleanTranslations(input.translations.orEmpty(), withSuffix = true)
+        NameRules.ensureFree(listOf(name) + translations.map { it.name }, null, all(), "unit")
+        val suffix = input.pluralSuffix?.let(NameRules::cleanSuffix) ?: defaultPluralSuffix(name, input.kind, language)
+        queries.insertUnit(userId, name, normalizeName(name), input.kind.dbValue(), factor, archived, suffix)
         val id = db.appUserQueries.lastInsertRowId().executeAsOne()
-        find(id).toDto()
+        writeTranslations(id, translations)
+        find(id).toDto(language)
     }
 
+    /** A null plural ending or translation list in [input] leaves it unchanged. */
     fun update(id: Long, input: UnitInput): UnitDto = db.transactionWithResult {
-        find(id)
+        val before = find(id)
         val name = cleanName(input.name)
         val factor = validFactor(input.kind, input.baseFactor)
-        ensureNameFree(name, exceptId = id)
-        queries.updateUnit(name, normalizeName(name), input.kind.dbValue(), factor, id, userId)
-        find(id).toDto()
+        val translations = input.translations?.let { NameRules.cleanTranslations(it, withSuffix = true) }
+        NameRules.ensureFree(listOf(name) + (translations ?: before.translations.values).map { it.name }, id, all(), "unit")
+        val suffix = input.pluralSuffix?.let(NameRules::cleanSuffix) ?: before.pluralSuffix
+        queries.updateUnit(name, normalizeName(name), input.kind.dbValue(), factor, suffix, id, userId)
+        if (translations != null) writeTranslations(id, translations)
+        find(id).toDto(language)
     }
 
     fun setArchived(id: Long, archived: Boolean): UnitDto {
         find(id)
         queries.setUnitArchived(archived, id, userId)
-        return find(id).toDto()
+        return find(id).toDto(language)
     }
 
     /** Deletes an unreferenced unit (U-7); otherwise fails with REFERENCED. */
@@ -81,15 +91,16 @@ class UnitService(private val db: CalorieCompanionDatabase, private val userId: 
         queries.deleteUnit(id, userId)
     }
 
-    private fun all(): List<UnitDef> = queries.selectUnits(userId).executeAsList().map { it.toDef() }
+    private fun all(): List<UnitDef> {
+        val translations = unitTranslations(db, userId)
+        return queries.selectUnits(userId).executeAsList().map { it.toDef(translations[it.id].orEmpty()) }
+    }
 
     private fun find(id: Long): UnitDef = all().firstOrNull { it.id == id } ?: notFound("Unit")
 
-    private fun ensureNameFree(name: String, exceptId: Long?) {
-        val existing = queries.selectUnitByNorm(userId, normalizeName(name)).executeAsOneOrNull()
-        if (existing != null && existing.id != exceptId) {
-            throw AppException(ErrorCodes.NAME_TAKEN, "A unit named '${existing.name}' already exists", 409)
-        }
+    private fun writeTranslations(id: Long, translations: List<NameTranslation>) {
+        queries.deleteUnitTranslations(id)
+        translations.forEach { queries.insertUnitTranslation(id, it.locale, it.name, normalizeName(it.name), it.pluralSuffix) }
     }
 
     private fun validFactor(kind: UnitKind, factor: Double?): Double? {

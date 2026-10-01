@@ -8,6 +8,7 @@ import com.caloriecompanion.shared.api.FoodEntryRef
 import com.caloriecompanion.shared.api.FoodInput
 import com.caloriecompanion.shared.api.FoodRefDefault
 import com.caloriecompanion.shared.api.FoodSummary
+import com.caloriecompanion.shared.api.NameTranslation
 import com.caloriecompanion.shared.api.UnitKind
 import com.caloriecompanion.shared.domain.AppException
 import com.caloriecompanion.shared.domain.Catalog
@@ -20,32 +21,43 @@ import com.caloriecompanion.shared.domain.requirePositive
 import com.caloriecompanion.shared.domain.validation
 import com.caloriecompanion.shared.normalizeName
 
-class FoodService(private val db: CalorieCompanionDatabase, private val userId: Long) {
+/** [language]: the reader's language, for display names (L-5). */
+class FoodService(private val db: CalorieCompanionDatabase, private val userId: Long, private val language: String? = null) {
     private val queries = db.foodQueries
 
-    /** Foods matching [query] (substring, case- and diacritic-insensitive), prefix matches first. */
+    /**
+     * Foods matching [query] (substring, case- and diacritic-insensitive) in any of their names (L-5),
+     * prefix matches first, sorted by display name.
+     */
     fun list(query: String? = null, includeArchived: Boolean = false): List<FoodSummary> {
         val catalog = loadCatalog(db, userId)
         val needle = query?.trim()?.takeIf { it.isNotEmpty() }?.let(::foldForSearch)
         return catalog.foods.values
             .asSequence()
             .filter { includeArchived || !it.archived }
-            .map { it to foldForSearch(it.name) }
-            .filter { (_, folded) -> needle == null || needle in folded }
-            .sortedWith(compareBy({ (_, folded) -> needle != null && !folded.startsWith(needle) }, { (_, folded) -> folded }))
-            .map { (food, _) -> FoodSummary(food.id, food.name, food.archived, food.refAmount, food.refUnitId, food.nutrients.size) }
+            .map { food -> food to (listOf(food.name) + food.translations.values.map { it.name }).map(::foldForSearch) }
+            .filter { (_, names) -> needle == null || names.any { needle in it } }
+            .map { (food, names) -> Triple(food, foldForSearch(food.displayName(language)), needle != null && names.none { it.startsWith(needle) }) }
+            .sortedWith(compareBy({ it.third }, { it.second }))
+            .map { (food, _, _) ->
+                FoodSummary(food.id, food.displayName(language), food.archived, food.refAmount, food.refUnitId, food.nutrients.size)
+            }
             .toList()
     }
 
-    fun get(id: Long): FoodDto = (loadCatalog(db, userId).foods[id] ?: notFound("Food")).toDto()
+    fun get(id: Long): FoodDto = (loadCatalog(db, userId).foods[id] ?: notFound("Food")).toDto(language)
 
     fun detail(id: Long): FoodDetail {
         val catalog = loadCatalog(db, userId)
         val food = catalog.foods[id] ?: notFound("Food")
         val entries = db.entryQueries.selectEntriesForFood(userId, id).executeAsList().map {
-            FoodEntryRef(it.id, it.local_date, it.local_time, it.quantity, it.unit_id, catalog.units[it.unit_id]?.name ?: "?")
+            val unit = catalog.units[it.unit_id]
+            FoodEntryRef(
+                it.id, it.local_date, it.local_time, it.quantity, it.unit_id,
+                unit?.displayName(language) ?: "?", unit?.displayPluralSuffix(language).orEmpty(),
+            )
         }
-        return FoodDetail(food.toDto(), UnitResolver(catalog).usableUnits(food), entries)
+        return FoodDetail(food.toDto(language), UnitResolver(catalog).usableUnits(food, language), entries)
     }
 
     /**
@@ -68,6 +80,7 @@ class FoodService(private val db: CalorieCompanionDatabase, private val userId: 
         queries.insertFood(userId, clean.name, normalizeName(clean.name), clean.refAmount, clean.refUnitId, clean.notes, archived)
         val id = db.appUserQueries.lastInsertRowId().executeAsOne()
         writeRelations(id, clean)
+        writeTranslations(id, clean.translations.orEmpty())
         if (rememberRef) rememberRef(clean)
         get(id)
     }
@@ -83,6 +96,7 @@ class FoodService(private val db: CalorieCompanionDatabase, private val userId: 
         queries.deleteFoodUnits(id)
         queries.deleteFoodNutrients(id)
         writeRelations(id, clean)
+        clean.translations?.let { writeTranslations(id, it) }
         get(id)
     }
 
@@ -108,6 +122,11 @@ class FoodService(private val db: CalorieCompanionDatabase, private val userId: 
         }
     }
 
+    private fun writeTranslations(id: Long, translations: List<NameTranslation>) {
+        queries.deleteFoodTranslations(id)
+        translations.forEach { queries.insertFoodTranslation(id, it.locale, it.name, normalizeName(it.name)) }
+    }
+
     private fun writeRelations(foodId: Long, input: FoodInput) {
         input.units.forEach { queries.insertFoodUnit(foodId, it.unitId, it.equalsAmount, it.equalsUnitId) }
         input.nutrients.forEach { queries.insertFoodNutrient(foodId, it.nutrientId, it.amount) }
@@ -115,10 +134,9 @@ class FoodService(private val db: CalorieCompanionDatabase, private val userId: 
 
     private fun validate(catalog: Catalog, input: FoodInput, selfId: Long?): FoodInput {
         val name = cleanName(input.name)
-        val existing = catalog.foods.values.firstOrNull { normalizeName(it.name) == normalizeName(name) }
-        if (existing != null && existing.id != selfId) {
-            throw AppException(ErrorCodes.NAME_TAKEN, "A food named '${existing.name}' already exists", 409)
-        }
+        val translations = input.translations?.let { NameRules.cleanTranslations(it, withSuffix = false) }
+        val current = selfId?.let { catalog.foods[it] }?.translations?.values.orEmpty()
+        NameRules.ensureFree(listOf(name) + (translations ?: current).map { it.name }, selfId, catalog.foods.values, "food")
         if ((input.refAmount == null) != (input.refUnitId == null)) {
             validation("Reference amount and reference unit must be given together")
         }
@@ -145,6 +163,6 @@ class FoodService(private val db: CalorieCompanionDatabase, private val userId: 
             if (!seenNutrients.add(value.nutrientId)) validation("A nutrient is given more than once")
             requireNonNegative(value.amount, "Nutrient amount")
         }
-        return input.copy(name = name, notes = cleanOptionalText(input.notes))
+        return input.copy(name = name, notes = cleanOptionalText(input.notes), translations = translations)
     }
 }

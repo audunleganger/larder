@@ -44,7 +44,7 @@ class UnitResolver(private val catalog: Catalog) {
      * units in any dimension the food already has a standard unit in (U-4). Archived units are only
      * included when explicitly linked.
      */
-    fun usableUnits(food: FoodDef): List<UsableUnit> {
+    fun usableUnits(food: FoodDef, language: String? = null): List<UsableUnit> {
         val explicitIds = LinkedHashSet<Long>()
         food.refUnitId?.let(explicitIds::add)
         food.links.forEach { explicitIds.add(it.unitId) }
@@ -64,10 +64,11 @@ class UnitResolver(private val catalog: Catalog) {
                 val unit = catalog.units[id] ?: return@mapNotNull null
                 UsableUnit(
                     unitId = id,
-                    name = unit.name,
+                    name = unit.displayName(language),
                     kind = unit.kind,
                     explicit = explicit,
                     amountInRefUnit = amountInRefUnit(food, id),
+                    pluralSuffix = unit.displayPluralSuffix(language),
                 )
             }
             .sortedWith(compareBy({ !it.explicit }, { it.name.lowercase() }))

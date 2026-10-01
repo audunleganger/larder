@@ -9,7 +9,19 @@ CREATE TABLE quantity_unit (
     kind TEXT NOT NULL CHECK (kind IN ('mass', 'volume', 'custom')),
     base_factor REAL,
     archived INTEGER AS Boolean NOT NULL DEFAULT 0,
+    -- Appended to the name when the quantity isn't 1 (U-8): "slice" + "s".
+    plural_suffix TEXT NOT NULL DEFAULT '',
     UNIQUE (user_id, name_norm)
+);
+
+-- The unit's name in other languages (L-5); the main name is the fallback.
+CREATE TABLE unit_translation (
+    unit_id INTEGER NOT NULL REFERENCES quantity_unit(id) ON DELETE CASCADE,
+    locale TEXT NOT NULL,
+    name TEXT NOT NULL,
+    name_norm TEXT NOT NULL,
+    plural_suffix TEXT NOT NULL DEFAULT '',
+    PRIMARY KEY (unit_id, locale)
 );
 
 selectUnits:
@@ -19,10 +31,19 @@ selectUnitByNorm:
 SELECT * FROM quantity_unit WHERE user_id = ? AND name_norm = ?;
 
 insertUnit:
-INSERT INTO quantity_unit(user_id, name, name_norm, kind, base_factor, archived) VALUES (?, ?, ?, ?, ?, ?);
+INSERT INTO quantity_unit(user_id, name, name_norm, kind, base_factor, archived, plural_suffix) VALUES (?, ?, ?, ?, ?, ?, ?);
 
 updateUnit:
-UPDATE quantity_unit SET name = ?, name_norm = ?, kind = ?, base_factor = ? WHERE id = ? AND user_id = ?;
+UPDATE quantity_unit SET name = ?, name_norm = ?, kind = ?, base_factor = ?, plural_suffix = ? WHERE id = ? AND user_id = ?;
+
+selectUnitTranslations:
+SELECT t.* FROM unit_translation t JOIN quantity_unit u ON u.id = t.unit_id WHERE u.user_id = ?;
+
+insertUnitTranslation:
+INSERT INTO unit_translation(unit_id, locale, name, name_norm, plural_suffix) VALUES (?, ?, ?, ?, ?);
+
+deleteUnitTranslations:
+DELETE FROM unit_translation WHERE unit_id = ?;
 
 setUnitArchived:
 UPDATE quantity_unit SET archived = ? WHERE id = ? AND user_id = ?;

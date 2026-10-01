@@ -1,13 +1,18 @@
 package com.caloriecompanion.shared.service
 
 import com.caloriecompanion.db.CalorieCompanionDatabase
+import com.caloriecompanion.shared.api.NameTranslation
 import com.caloriecompanion.shared.api.NutrientInput
 import com.caloriecompanion.shared.api.UnitInput
 import com.caloriecompanion.shared.api.UnitKind
+import com.caloriecompanion.shared.domain.Languages
 
-/** Default units (U-3) and nutrients (N-2) for a new catalog, in the user's language (L-4). */
+/**
+ * Default units (U-3) and nutrients (N-2) for a new catalog. The main name is in the user's language
+ * (L-4), and the other language's name is added as a translation (L-5).
+ */
 object Seeder {
-    private data class SeedUnit(val en: String, val nb: String, val kind: UnitKind, val factor: Double?)
+    private data class SeedUnit(val en: String, val nb: String, val kind: UnitKind, val factor: Double?, val enSuffix: String = "", val nbSuffix: String = "")
     private data class SeedNutrient(val en: String, val nb: String, val unit: String, val precision: Int, val parent: String? = null)
 
     private val units = listOf(
@@ -21,9 +26,9 @@ object Seeder {
         SeedUnit("l", "l", UnitKind.VOLUME, 1000.0),
         SeedUnit("tsp", "ts", UnitKind.VOLUME, 5.0),
         SeedUnit("tbsp", "ss", UnitKind.VOLUME, 15.0),
-        SeedUnit("cup", "kopp", UnitKind.VOLUME, 250.0),
-        SeedUnit("serving", "porsjon", UnitKind.CUSTOM, null),
-        SeedUnit("piece", "stk", UnitKind.CUSTOM, null),
+        SeedUnit("cup", "kopp", UnitKind.VOLUME, 250.0, "s", "er"),
+        SeedUnit("serving", "porsjon", UnitKind.CUSTOM, null, "s", "er"),
+        SeedUnit("piece", "stk", UnitKind.CUSTOM, null, "s", ""),
     )
 
     private val nutrients = listOf(
@@ -37,22 +42,31 @@ object Seeder {
         SeedNutrient("Salt", "Salt", "g", 2),
     )
 
-    fun isNorwegian(locale: String?): Boolean =
-        locale != null && locale.lowercase().let { it.startsWith("nb") || it.startsWith("no") || it.startsWith("nn") }
+    fun isNorwegian(locale: String?): Boolean = Languages.isNorwegian(locale)
 
     /** Seeds an empty catalog. Does nothing if the user already has units or nutrients. */
     fun seed(db: CalorieCompanionDatabase, userId: Long, locale: String?) = db.transaction {
         val norwegian = isNorwegian(locale)
         val unitService = UnitService(db, userId)
         val nutrientService = NutrientService(db, userId)
+        // (name, plural ending) in the main language, and the other language's as a translation.
+        fun <T> names(en: T, nb: T) = if (norwegian) nb to en else en to nb
+        val other = if (norwegian) "en" else "nb"
         if (unitService.list(includeArchived = true).isEmpty()) {
-            units.forEach { unitService.create(UnitInput(if (norwegian) it.nb else it.en, it.kind, it.factor)) }
+            units.forEach { seed ->
+                val (name, otherName) = names(seed.en, seed.nb)
+                val (suffix, otherSuffix) = names(seed.enSuffix, seed.nbSuffix)
+                val translations = if (otherName != name) listOf(NameTranslation(other, otherName, otherSuffix)) else emptyList()
+                unitService.create(UnitInput(name, seed.kind, seed.factor, suffix, translations))
+            }
         }
         if (nutrientService.list(includeArchived = true).isEmpty()) {
             val ids = HashMap<String, Long>()
             nutrients.forEach { seed ->
                 val parentId = seed.parent?.let { ids.getValue(it) }
-                val created = nutrientService.create(NutrientInput(if (norwegian) seed.nb else seed.en, seed.unit, seed.precision, parentId))
+                val (name, otherName) = names(seed.en, seed.nb)
+                val translations = if (otherName != name) listOf(NameTranslation(other, otherName)) else emptyList()
+                val created = nutrientService.create(NutrientInput(name, seed.unit, seed.precision, parentId, translations))
                 ids[seed.en] = created.id
             }
         }

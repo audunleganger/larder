@@ -22,6 +22,15 @@ CREATE TABLE food_unit (
     PRIMARY KEY (food_id, unit_id)
 );
 
+-- The food's name in other languages (L-5); the main name is the fallback.
+CREATE TABLE food_translation (
+    food_id INTEGER NOT NULL REFERENCES food(id) ON DELETE CASCADE,
+    locale TEXT NOT NULL,
+    name TEXT NOT NULL,
+    name_norm TEXT NOT NULL,
+    PRIMARY KEY (food_id, locale)
+);
+
 CREATE TABLE food_nutrient (
     food_id INTEGER NOT NULL REFERENCES food(id) ON DELETE CASCADE,
     nutrient_id INTEGER NOT NULL REFERENCES nutrient(id) ON DELETE RESTRICT,
@@ -31,6 +40,15 @@ CREATE TABLE food_nutrient (
 
 selectFoods:
 SELECT * FROM food WHERE user_id = ? ORDER BY name_norm;
+
+selectFoodTranslations:
+SELECT t.* FROM food_translation t JOIN food f ON f.id = t.food_id WHERE f.user_id = ?;
+
+insertFoodTranslation:
+INSERT INTO food_translation(food_id, locale, name, name_norm) VALUES (?, ?, ?, ?);
+
+deleteFoodTranslations:
+DELETE FROM food_translation WHERE food_id = ?;
 
 selectFoodByNorm:
 SELECT * FROM food WHERE user_id = ? AND name_norm = ?;

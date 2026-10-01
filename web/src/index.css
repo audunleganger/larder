@@ -930,6 +930,29 @@ textarea.input {
   color: var(--serious-text);
 }
 
+/* ---------- Names in other languages ---------- */
+
+.translations {
+  margin: 0.75rem 0;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.translations > summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.translations[open] > summary {
+  margin-bottom: 0.25rem;
+}
+
+.field.suffix {
+  flex: 0 0 9rem;
+}
+
 /* ---------- Food editor ---------- */
 
 /* Groups never split across columns, so "of which" rows stay under their main nutrient. */

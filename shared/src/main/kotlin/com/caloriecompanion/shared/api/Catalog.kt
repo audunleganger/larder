@@ -13,16 +13,38 @@ enum class UnitKind {
     val isStandard: Boolean get() = this != CUSTOM
 }
 
+// ---- Names (L-5) ----
+
+/**
+ * An item's name in one language. [pluralSuffix] is only used for units (U-8).
+ * In responses, `name` fields of catalog items are the main name, and `displayName` is the name in
+ * the reader's language; names in references (e.g. an entry's foodName) are always display names.
+ */
+@Serializable
+data class NameTranslation(
+    /** Language code, e.g. "nb". */
+    val locale: String,
+    val name: String,
+    val pluralSuffix: String = "",
+)
+
 // ---- Units ----
 
 @Serializable
 data class UnitDto(
     val id: Long,
+    /** Main name. */
     val name: String,
     val kind: UnitKind,
     /** For mass/volume: size in g or ml. Null for custom units. */
     val baseFactor: Double?,
     val archived: Boolean,
+    /** Appended to the main name when the quantity isn't 1 (U-8). */
+    val pluralSuffix: String,
+    val translations: List<NameTranslation>,
+    /** The name and plural ending in the reader's language. */
+    val displayName: String,
+    val displayPluralSuffix: String,
 )
 
 @Serializable
@@ -30,11 +52,16 @@ data class UnitInput(
     val name: String,
     val kind: UnitKind,
     val baseFactor: Double? = null,
+    /** Null: the default for the kind and language (see defaultPluralSuffix); on update, unchanged. */
+    val pluralSuffix: String? = null,
+    /** Null: unchanged on update (none on create). */
+    val translations: List<NameTranslation>? = null,
 )
 
 @Serializable
 data class FoodRef(
     val id: Long,
+    /** Display name. */
     val name: String,
     val archived: Boolean,
 )
@@ -55,12 +82,15 @@ data class UnitDetail(
 @Serializable
 data class NutrientDto(
     val id: Long,
+    /** Main name. */
     val name: String,
     val measureUnit: String,
     val displayPrecision: Int,
     val sortOrder: Int,
     val parentId: Long?,
     val archived: Boolean,
+    val translations: List<NameTranslation>,
+    val displayName: String,
 )
 
 @Serializable
@@ -69,6 +99,8 @@ data class NutrientInput(
     val measureUnit: String,
     val displayPrecision: Int = 1,
     val parentId: Long? = null,
+    /** Null: unchanged on update (none on create). */
+    val translations: List<NameTranslation>? = null,
 )
 
 @Serializable
@@ -98,6 +130,7 @@ data class NutrientEntryRef(
     val unitName: String,
     /** This nutrient's amount in the entry; null when it can't be calculated. */
     val amount: Double?,
+    val unitPluralSuffix: String,
 )
 
 @Serializable
@@ -138,6 +171,7 @@ data class FoodSummary(
 @Serializable
 data class FoodDto(
     val id: Long,
+    /** Main name. */
     val name: String,
     val refAmount: Double?,
     val refUnitId: Long?,
@@ -145,6 +179,8 @@ data class FoodDto(
     val archived: Boolean,
     val nutrients: List<FoodNutrientValue>,
     val units: List<FoodUnitLink>,
+    val translations: List<NameTranslation>,
+    val displayName: String,
 )
 
 @Serializable
@@ -155,6 +191,8 @@ data class FoodInput(
     val notes: String? = null,
     val nutrients: List<FoodNutrientValue> = emptyList(),
     val units: List<FoodUnitLink> = emptyList(),
+    /** Null: unchanged on update (none on create). */
+    val translations: List<NameTranslation>? = null,
 )
 
 /** What a new food's reference amount is prefilled with (F-12). Both null when there is no suitable unit. */
@@ -167,12 +205,14 @@ data class FoodRefDefault(
 @Serializable
 data class UsableUnit(
     val unitId: Long,
+    /** Display name. */
     val name: String,
     val kind: UnitKind,
     /** True if linked explicitly (or the reference unit); false if usable through automatic conversion. */
     val explicit: Boolean,
     /** How much of the food's reference unit one of this unit is; null if it can't be resolved. */
     val amountInRefUnit: Double?,
+    val pluralSuffix: String,
 )
 
 @Serializable
@@ -183,6 +223,7 @@ data class FoodEntryRef(
     val quantity: Double,
     val unitId: Long,
     val unitName: String,
+    val unitPluralSuffix: String,
 )
 
 @Serializable

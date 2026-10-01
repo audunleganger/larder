@@ -8,14 +8,21 @@ import { BASE_UNIT, KINDS, unitSize } from '../lib/units'
 import { DecimalInput } from '../components/DecimalInput'
 import { Badge, Card, ErrorText, Field, PageHeader, QueryView } from '../components/ui'
 import { parseDecimal, toInputValue } from '../lib/format'
+import { draftTranslations, effectiveSuffix, toTranslations } from '../lib/names'
+import { PluralSuffixField, TranslationFields } from '../components/TranslationFields'
 
 /** Name, kind and size fields shared by the create and edit forms (U-1, U-2). */
 export function UnitFields({ initial, submitLabel, onSubmit, error, busy }: { initial?: UnitDto; submitLabel: string; onSubmit: (input: UnitInput) => Promise<unknown>; error: unknown; busy: boolean }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [name, setName] = useState(initial?.name ?? '')
   const [kind, setKind] = useState<UnitKind>(initial?.kind ?? 'custom')
   const [factor, setFactor] = useState(toInputValue(initial?.baseFactor))
+  // A new unit's plural ending follows the default for its name until the user edits it (U-8).
+  const [suffix, setSuffix] = useState(initial?.pluralSuffix ?? '')
+  const [suffixEdited, setSuffixEdited] = useState(initial !== undefined)
+  const [translations, setTranslations] = useState(() => draftTranslations(initial?.translations))
   const [formError, setFormError] = useState<string | null>(null)
+  const pluralSuffix = effectiveSuffix(name, suffix, suffixEdited, kind, i18n.language)
 
   async function submit(event: FormEvent) {
     event.preventDefault()
@@ -25,10 +32,13 @@ export function UnitFields({ initial, submitLabel, onSubmit, error, busy }: { in
       setFormError(t('units.errors.size', { base: BASE_UNIT[kind] }))
       return
     }
-    await onSubmit({ name, kind, baseFactor: kind === 'custom' ? null : value })
+    await onSubmit({ name, kind, baseFactor: kind === 'custom' ? null : value, pluralSuffix, translations: toTranslations(translations, kind) })
     if (!initial) {
       setName('')
       setFactor('')
+      setSuffix('')
+      setSuffixEdited(false)
+      setTranslations(draftTranslations([]))
     }
   }
 
@@ -38,6 +48,14 @@ export function UnitFields({ initial, submitLabel, onSubmit, error, busy }: { in
         <Field label={t('common.name')} className="grow">
           <input className="input" value={name} onChange={(e) => setName(e.target.value)} required />
         </Field>
+        <PluralSuffixField
+          name={name}
+          value={pluralSuffix}
+          onChange={(value) => {
+            setSuffix(value)
+            setSuffixEdited(true)
+          }}
+        />
         <Field label={t('units.kind')}>
           <select className="input" value={kind} onChange={(e) => setKind(e.target.value as UnitKind)}>
             {KINDS.map((k) => (
@@ -54,6 +72,7 @@ export function UnitFields({ initial, submitLabel, onSubmit, error, busy }: { in
         )}
       </div>
       <p className="field-hint">{t(`units.kindHints.${kind}`)}</p>
+      <TranslationFields draft={translations} onChange={setTranslations} mainName={name} kind={kind} />
       {formError && <p className="error-text">{formError}</p>}
       <ErrorText error={error} />
       <button type="submit" className="btn btn-primary" disabled={busy}>
@@ -97,7 +116,7 @@ export function UnitsPage() {
                 {data.map((unit) => (
                   <tr key={unit.id}>
                     <td>
-                      <Link to={`/units/${unit.id}`}>{unit.name}</Link> {unit.archived && <Badge>{t('common.archived')}</Badge>}
+                      <Link to={`/units/${unit.id}`}>{unit.displayName}</Link> {unit.archived && <Badge>{t('common.archived')}</Badge>}
                     </td>
                     <td>{t(`units.kinds.${unit.kind}`)}</td>
                     <td className="num">{unitSize(unit) || <span className="muted">{t('units.perFood')}</span>}</td>

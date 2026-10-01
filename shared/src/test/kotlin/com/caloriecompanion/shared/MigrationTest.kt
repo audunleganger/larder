@@ -6,6 +6,8 @@ import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import com.caloriecompanion.db.CalorieCompanionDatabase
 import com.caloriecompanion.shared.service.EntryService
 import com.caloriecompanion.shared.service.FoodService
+import com.caloriecompanion.shared.service.NutrientService
+import com.caloriecompanion.shared.service.UnitService
 import java.io.File
 import java.util.Properties
 import kotlin.io.path.createTempFile
@@ -43,6 +45,11 @@ class MigrationTest {
         assertEquals(1L, driver.long("SELECT count(*) FROM food"))
         // v2: no remembered reference yet, so new foods start at 100 g.
         assertEquals(100.0, FoodService(db, 1).refDefault().refAmount)
+        // v3: plural endings and the built-in names in the other language.
+        val units = UnitService(db, 1, "nb").list()
+        assertEquals("s", units.first { it.name == "slice" }.pluralSuffix)
+        assertEquals("", units.first { it.name == "g" }.pluralSuffix)
+        assertEquals(listOf("Energi", "Karbohydrater", "Sukkerarter"), NutrientService(db, 1, "nb").list().map { it.displayName })
     }
 
     companion object {

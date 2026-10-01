@@ -6,6 +6,8 @@ import { useApiMutation, useNutrients } from '../api/queries'
 import type { NutrientDto, NutrientInput } from '../api/types.gen'
 import { Badge, Card, ErrorText, Field, PageHeader, QueryView } from '../components/ui'
 import { flattenGroups, groupNutrients, moved, type NutrientGroup } from '../lib/nutrients'
+import { draftTranslations, toTranslations } from '../lib/names'
+import { TranslationFields } from '../components/TranslationFields'
 
 /** Fields shared by the create and edit nutrient forms (N-1, N-6). */
 export function NutrientFields({ initial, all, submitLabel, onSubmit, error, busy }: { initial?: NutrientDto; all: NutrientDto[]; submitLabel: string; onSubmit: (input: NutrientInput) => Promise<unknown>; error: unknown; busy: boolean }) {
@@ -14,15 +16,17 @@ export function NutrientFields({ initial, all, submitLabel, onSubmit, error, bus
   const [measureUnit, setMeasureUnit] = useState(initial?.measureUnit ?? 'g')
   const [precision, setPrecision] = useState(initial?.displayPrecision ?? 1)
   const [parentId, setParentId] = useState<number | ''>(initial?.parentId ?? '')
+  const [translations, setTranslations] = useState(() => draftTranslations(initial?.translations))
   const hasChildren = initial !== undefined && all.some((n) => n.parentId === initial.id)
   const parents = all.filter((n) => n.parentId === null && n.id !== initial?.id && !n.archived)
 
   async function submit(event: FormEvent) {
     event.preventDefault()
-    await onSubmit({ name, measureUnit, displayPrecision: precision, parentId: parentId === '' ? null : parentId })
+    await onSubmit({ name, measureUnit, displayPrecision: precision, parentId: parentId === '' ? null : parentId, translations: toTranslations(translations) })
     if (!initial) {
       setName('')
       setParentId('')
+      setTranslations(draftTranslations([]))
     }
   }
 
@@ -54,12 +58,13 @@ export function NutrientFields({ initial, all, submitLabel, onSubmit, error, bus
             <option value="">{t('nutrients.noParent')}</option>
             {parents.map((n) => (
               <option key={n.id} value={n.id}>
-                {n.name}
+                {n.displayName}
               </option>
             ))}
           </select>
         </Field>
       </div>
+      <TranslationFields draft={translations} onChange={setTranslations} mainName={name} />
       <ErrorText error={error} />
       <button type="submit" className="btn btn-primary" disabled={busy}>
         {submitLabel}
@@ -104,14 +109,14 @@ export function NutrientsPage() {
               <div className="order-row">
                 <span className="order-name">
                   {n.parentId !== null && <span className="muted of-which">{t('nutrients.ofWhich')} </span>}
-                  <Link to={`/nutrients/${n.id}`}>{n.name}</Link> <span className="muted">({n.measureUnit})</span>{' '}
+                  <Link to={`/nutrients/${n.id}`}>{n.displayName}</Link> <span className="muted">({n.measureUnit})</span>{' '}
                   {n.archived && <Badge>{t('common.archived')}</Badge>}
                 </span>
                 <span className="order-buttons">
-                  <button type="button" className="btn btn-icon btn-small" aria-label={t('nutrients.moveUp', { name: n.name })} disabled={!up || reorder.isPending} onClick={up ?? undefined}>
+                  <button type="button" className="btn btn-icon btn-small" aria-label={t('nutrients.moveUp', { name: n.displayName })} disabled={!up || reorder.isPending} onClick={up ?? undefined}>
                     ↑
                   </button>
-                  <button type="button" className="btn btn-icon btn-small" aria-label={t('nutrients.moveDown', { name: n.name })} disabled={!down || reorder.isPending} onClick={down ?? undefined}>
+                  <button type="button" className="btn btn-icon btn-small" aria-label={t('nutrients.moveDown', { name: n.displayName })} disabled={!down || reorder.isPending} onClick={down ?? undefined}>
                     ↓
                   </button>
                 </span>
@@ -131,7 +136,7 @@ export function NutrientsPage() {
                   <li key={group.main.id} className={`order-group ${group.subs.length > 0 ? 'has-subs' : ''}`}>
                     {row(group.main, moveGroup(index, -1), moveGroup(index, 1))}
                     {group.subs.length > 0 && (
-                      <ol className="order-subs" aria-label={t('nutrients.subsOf', { name: group.main.name })}>
+                      <ol className="order-subs" aria-label={t('nutrients.subsOf', { name: group.main.displayName })}>
                         {group.subs.map((sub, subIndex) => (
                           <li key={sub.id}>{row(sub, moveSub(index, subIndex, -1), moveSub(index, subIndex, 1))}</li>
                         ))}

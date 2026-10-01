@@ -61,6 +61,7 @@ export interface EntryView {
   foodName: string
   unitId: number
   unitName: string
+  unitPluralSuffix: string
   quantity: number
   date: string
   time: string
@@ -103,6 +104,7 @@ export interface ExportFood {
   archived?: boolean
   nutrients?: Record<string, number>
   units?: ExportFoodUnit[]
+  translations?: NameTranslation[]
 }
 
 export interface ExportFoodUnit {
@@ -117,6 +119,7 @@ export interface ExportNutrient {
   displayPrecision?: number
   parent?: string | null
   archived?: boolean
+  translations?: NameTranslation[]
 }
 
 export interface ExportTarget {
@@ -131,6 +134,8 @@ export interface ExportUnit {
   kind: UnitKind
   baseFactor?: number | null
   archived?: boolean
+  pluralSuffix?: string
+  translations?: NameTranslation[]
 }
 
 export interface FoodDetail {
@@ -148,6 +153,8 @@ export interface FoodDto {
   archived: boolean
   nutrients: FoodNutrientValue[]
   units: FoodUnitLink[]
+  translations: NameTranslation[]
+  displayName: string
 }
 
 export interface FoodEntryRef {
@@ -157,6 +164,7 @@ export interface FoodEntryRef {
   quantity: number
   unitId: number
   unitName: string
+  unitPluralSuffix: string
 }
 
 export interface FoodInput {
@@ -166,6 +174,7 @@ export interface FoodInput {
   notes?: string | null
   nutrients?: FoodNutrientValue[]
   units?: FoodUnitLink[]
+  translations?: NameTranslation[] | null
 }
 
 export interface FoodNutrientValue {
@@ -246,6 +255,12 @@ export interface LoginResult {
   user: UserDto
 }
 
+export interface NameTranslation {
+  locale: string
+  name: string
+  pluralSuffix?: string
+}
+
 export interface NutrientAmount {
   nutrientId: number
   amount: number | null
@@ -266,6 +281,8 @@ export interface NutrientDto {
   sortOrder: number
   parentId: number | null
   archived: boolean
+  translations: NameTranslation[]
+  displayName: string
 }
 
 export interface NutrientEntryRef {
@@ -277,6 +294,7 @@ export interface NutrientEntryRef {
   quantity: number
   unitName: string
   amount: number | null
+  unitPluralSuffix: string
 }
 
 export interface NutrientFoodValue {
@@ -293,6 +311,7 @@ export interface NutrientInput {
   measureUnit: string
   displayPrecision?: number
   parentId?: number | null
+  translations?: NameTranslation[] | null
 }
 
 export interface NutrientOrderInput {
@@ -374,12 +393,18 @@ export interface UnitDto {
   kind: UnitKind
   baseFactor: number | null
   archived: boolean
+  pluralSuffix: string
+  translations: NameTranslation[]
+  displayName: string
+  displayPluralSuffix: string
 }
 
 export interface UnitInput {
   name: string
   kind: UnitKind
   baseFactor?: number | null
+  pluralSuffix?: string | null
+  translations?: NameTranslation[] | null
 }
 
 export type UnitKind = 'mass' | 'volume' | 'custom'
@@ -390,6 +415,7 @@ export interface UsableUnit {
   kind: UnitKind
   explicit: boolean
   amountInRefUnit: number | null
+  pluralSuffix: string
 }
 
 export interface UserDto {

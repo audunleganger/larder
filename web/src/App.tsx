@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import i18n from './i18n'
 import { lazy, Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
 import { BrowserRouter, Link, Route, Routes } from 'react-router'
@@ -31,6 +32,9 @@ const queryClient = new QueryClient({
     },
   },
 })
+
+// Names of foods, units and nutrients come from the server in the UI language (L-5).
+i18n.on('languageChanged', () => void queryClient.invalidateQueries())
 
 function NotFound() {
   const { t } = useTranslation()

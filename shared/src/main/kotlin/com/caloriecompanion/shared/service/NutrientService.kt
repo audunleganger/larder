@@ -2,6 +2,7 @@ package com.caloriecompanion.shared.service
 
 import com.caloriecompanion.db.CalorieCompanionDatabase
 import com.caloriecompanion.shared.api.ErrorCodes
+import com.caloriecompanion.shared.api.NameTranslation
 import com.caloriecompanion.shared.api.NutrientDetail
 import com.caloriecompanion.shared.api.NutrientDto
 import com.caloriecompanion.shared.api.NutrientEntryRef
@@ -16,13 +17,14 @@ import com.caloriecompanion.shared.domain.notFound
 import com.caloriecompanion.shared.domain.validation
 import com.caloriecompanion.shared.normalizeName
 
-class NutrientService(private val db: CalorieCompanionDatabase, private val userId: Long) {
+/** [language]: the reader's language, for display names (L-5). */
+class NutrientService(private val db: CalorieCompanionDatabase, private val userId: Long, private val language: String? = null) {
     private val queries = db.nutrientQueries
 
     fun list(includeArchived: Boolean = false): List<NutrientDto> =
-        all().filter { includeArchived || !it.archived }.map { it.toDto() }
+        all().filter { includeArchived || !it.archived }.map { it.toDto(language) }
 
-    fun get(id: Long): NutrientDto = find(id).toDto()
+    fun get(id: Long): NutrientDto = find(id).toDto(language)
 
     fun detail(id: Long, entryLimit: Int = 500): NutrientDetail {
         val catalog = loadCatalog(db, userId)
@@ -30,34 +32,36 @@ class NutrientService(private val db: CalorieCompanionDatabase, private val user
         val calculator = NutritionCalculator(catalog)
         val foods = catalog.foods.values
             .filter { id in it.nutrients }
-            .sortedBy { it.name.lowercase() }
             .map { food ->
                 NutrientFoodValue(
                     foodId = food.id,
-                    foodName = food.name,
+                    foodName = food.displayName(language),
                     foodArchived = food.archived,
                     amount = food.nutrients.getValue(id),
                     refAmount = food.refAmount,
-                    refUnitName = food.refUnitId?.let { catalog.units[it]?.name },
+                    refUnitName = food.refUnitId?.let { catalog.units[it]?.displayName(language) },
                 )
             }
+            .sortedBy { it.foodName.lowercase() }
         val rows = db.entryQueries.selectEntriesForNutrient(userId, id, entryLimit.toLong() + 1).executeAsList()
         val entries = rows.take(entryLimit).map { entry ->
             val food = catalog.foods.getValue(entry.food_id)
             val value = food.nutrients[id]
             val factor = calculator.factor(food, entry.unit_id, entry.quantity)
+            val unit = catalog.units[entry.unit_id]
             NutrientEntryRef(
                 entryId = entry.id,
                 date = entry.local_date,
                 time = entry.local_time,
                 foodId = food.id,
-                foodName = food.name,
+                foodName = food.displayName(language),
                 quantity = entry.quantity,
-                unitName = catalog.units[entry.unit_id]?.name ?: "?",
+                unitName = unit?.displayName(language) ?: "?",
                 amount = if (factor != null && value != null) factor * value else null,
+                unitPluralSuffix = unit?.displayPluralSuffix(language).orEmpty(),
             )
         }
-        return NutrientDetail(nutrient.toDto(), foods, entries, entriesTruncated = rows.size > entryLimit)
+        return NutrientDetail(nutrient.toDto(language), foods, entries, entriesTruncated = rows.size > entryLimit)
     }
 
     fun create(input: NutrientInput, archived: Boolean = false): NutrientDto = db.transactionWithResult {
@@ -67,9 +71,12 @@ class NutrientService(private val db: CalorieCompanionDatabase, private val user
             userId, clean.name, normalizeName(clean.name), clean.measureUnit,
             clean.displayPrecision.toLong(), sortOrder, clean.parentId, archived,
         )
-        find(db.appUserQueries.lastInsertRowId().executeAsOne()).toDto()
+        val id = db.appUserQueries.lastInsertRowId().executeAsOne()
+        writeTranslations(id, clean.translations.orEmpty())
+        find(id).toDto(language)
     }
 
+    /** A null translation list in [input] leaves the translations unchanged. */
     fun update(id: Long, input: NutrientInput): NutrientDto = db.transactionWithResult {
         find(id)
         val clean = validate(input, selfId = id)
@@ -77,9 +84,10 @@ class NutrientService(private val db: CalorieCompanionDatabase, private val user
             clean.name, normalizeName(clean.name), clean.measureUnit,
             clean.displayPrecision.toLong(), clean.parentId, id, userId,
         )
+        clean.translations?.let { writeTranslations(id, it) }
         // A changed parent moves the nutrient into (or out of) a group; store the grouped order.
         storeOrder(all())
-        find(id).toDto()
+        find(id).toDto(language)
     }
 
     /**
@@ -94,7 +102,7 @@ class NutrientService(private val db: CalorieCompanionDatabase, private val user
         if (ids.toSet().size != ids.size) validation("Duplicate nutrient in order")
         val position = (ids + existing.map { it.id }.filter { it !in ids }).withIndex().associate { it.value to it.index }
         storeOrder(existing.map { it.copy(sortOrder = position.getValue(it.id)) })
-        all().map { it.toDto() }
+        all().map { it.toDto(language) }
     }
 
     private fun storeOrder(nutrients: List<NutrientDef>) {
@@ -104,7 +112,7 @@ class NutrientService(private val db: CalorieCompanionDatabase, private val user
     fun setArchived(id: Long, archived: Boolean): NutrientDto {
         find(id)
         queries.setNutrientArchived(archived, id, userId)
-        return find(id).toDto()
+        return find(id).toDto(language)
     }
 
     /** Deletes an unreferenced nutrient (N-5); otherwise fails with REFERENCED. */
@@ -121,16 +129,23 @@ class NutrientService(private val db: CalorieCompanionDatabase, private val user
         queries.deleteNutrient(id, userId)
     }
 
-    private fun all(): List<NutrientDef> = queries.selectNutrients(userId).executeAsList().map { it.toDef() }.inDisplayOrder()
+    private fun all(): List<NutrientDef> {
+        val translations = nutrientTranslations(db, userId)
+        return queries.selectNutrients(userId).executeAsList().map { it.toDef(translations[it.id].orEmpty()) }.inDisplayOrder()
+    }
+
+    private fun writeTranslations(id: Long, translations: List<NameTranslation>) {
+        queries.deleteNutrientTranslations(id)
+        translations.forEach { queries.insertNutrientTranslation(id, it.locale, it.name, normalizeName(it.name)) }
+    }
 
     private fun find(id: Long): NutrientDef = all().firstOrNull { it.id == id } ?: notFound("Nutrient")
 
     private fun validate(input: NutrientInput, selfId: Long?): NutrientInput {
         val name = cleanName(input.name)
-        val existing = queries.selectNutrientByNorm(userId, normalizeName(name)).executeAsOneOrNull()
-        if (existing != null && existing.id != selfId) {
-            throw AppException(ErrorCodes.NAME_TAKEN, "A nutrient named '${existing.name}' already exists", 409)
-        }
+        val translations = input.translations?.let { NameRules.cleanTranslations(it, withSuffix = false) }
+        val current = selfId?.let { id -> all().firstOrNull { it.id == id } }?.translations?.values.orEmpty()
+        NameRules.ensureFree(listOf(name) + (translations ?: current).map { it.name }, selfId, all(), "nutrient")
         val measureUnit = input.measureUnit.trim()
         if (measureUnit.isEmpty()) validation("Measurement unit is required")
         if (measureUnit.length > 20) validation("Measurement unit is too long")
@@ -145,6 +160,6 @@ class NutrientService(private val db: CalorieCompanionDatabase, private val user
                 validation("This nutrient has sub-nutrients and can't have a parent itself")
             }
         }
-        return NutrientInput(name, measureUnit, input.displayPrecision, parentId)
+        return NutrientInput(name, measureUnit, input.displayPrecision, parentId, translations)
     }
 }

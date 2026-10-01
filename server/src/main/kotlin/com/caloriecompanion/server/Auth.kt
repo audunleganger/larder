@@ -12,7 +12,7 @@ import java.security.SecureRandom
 import java.util.Base64
 import java.util.concurrent.TimeUnit
 
-data class UserPrincipal(val id: Long, val username: String, val isAdmin: Boolean)
+data class UserPrincipal(val id: Long, val username: String, val isAdmin: Boolean, val locale: String? = null)
 
 fun App_user.toDto() = UserDto(id, username, is_admin, is_disabled, locale, created_at)
 
@@ -81,7 +81,7 @@ class Auth(private val config: ServerConfig, private val now: () -> Long = Syste
         if (session.expires_at - time < lifetimeMillis - TimeUnit.HOURS.toMillis(1)) {
             db.sessionQueries.extendSession(time + lifetimeMillis, hash)
         }
-        return UserPrincipal(user.id, user.username, user.is_admin)
+        return UserPrincipal(user.id, user.username, user.is_admin, user.locale)
     }
 
     fun logout(db: CalorieCompanionDatabase, token: String) = db.sessionQueries.deleteSession(hashToken(token))

@@ -37,23 +37,23 @@ function TargetRow({ nutrient, current }: { nutrient: NutrientDto; current: Targ
   return (
     <tr>
       <th scope="row" className={nutrient.parentId ? 'child' : ''}>
-        {nutrient.name}
+        {nutrient.displayName}
         <div className="muted small">{current ? rangeText(current, nutrient, t('targets.none')) : t('targets.none')}</div>
       </th>
       <td colSpan={4}>
         <form className="target-form" onSubmit={submit}>
           <label>
             <span className="sr-only">{t('targets.min')}</span>
-            <DecimalInput value={min} onChange={setMin} placeholder={t('targets.min')} aria-label={`${nutrient.name} ${t('targets.min')}`} />
+            <DecimalInput value={min} onChange={setMin} placeholder={t('targets.min')} aria-label={`${nutrient.displayName} ${t('targets.min')}`} />
           </label>
           <label>
             <span className="sr-only">{t('targets.max')}</span>
-            <DecimalInput value={max} onChange={setMax} placeholder={t('targets.max')} aria-label={`${nutrient.name} ${t('targets.max')}`} />
+            <DecimalInput value={max} onChange={setMax} placeholder={t('targets.max')} aria-label={`${nutrient.displayName} ${t('targets.max')}`} />
           </label>
           <span className="muted">{nutrient.measureUnit}</span>
           <label className="target-from">
             <span className="muted small">{t('targets.from')}</span>
-            <input className="input" type="date" value={from} onChange={(e) => setFrom(e.target.value)} required aria-label={`${nutrient.name} ${t('targets.from')}`} />
+            <input className="input" type="date" value={from} onChange={(e) => setFrom(e.target.value)} required aria-label={`${nutrient.displayName} ${t('targets.from')}`} />
           </label>
           <button type="submit" className="btn btn-small btn-primary" disabled={save.isPending}>
             {t('common.save')}
@@ -73,7 +73,7 @@ function Version({ target, nutrient }: { target: TargetDto; nutrient: NutrientDt
   return (
     <li>
       <span>
-        <strong>{nutrient.name}</strong> {rangeText(target, nutrient, t('targets.cleared'))}{' '}
+        <strong>{nutrient.displayName}</strong> {rangeText(target, nutrient, t('targets.cleared'))}{' '}
         <span className="muted">
           {t('targets.fromDate', { date: formatDate(target.effectiveFrom, currentLocale(), 'short') })}
           {target.effectiveFrom > todayIso() && ` · ${t('targets.upcoming')}`}

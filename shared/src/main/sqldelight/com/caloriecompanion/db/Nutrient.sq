@@ -13,8 +13,26 @@ CREATE TABLE nutrient (
     UNIQUE (user_id, name_norm)
 );
 
+-- The nutrient's name in other languages (L-5); the main name is the fallback.
+CREATE TABLE nutrient_translation (
+    nutrient_id INTEGER NOT NULL REFERENCES nutrient(id) ON DELETE CASCADE,
+    locale TEXT NOT NULL,
+    name TEXT NOT NULL,
+    name_norm TEXT NOT NULL,
+    PRIMARY KEY (nutrient_id, locale)
+);
+
 selectNutrients:
 SELECT * FROM nutrient WHERE user_id = ? ORDER BY sort_order, id;
+
+selectNutrientTranslations:
+SELECT t.* FROM nutrient_translation t JOIN nutrient n ON n.id = t.nutrient_id WHERE n.user_id = ?;
+
+insertNutrientTranslation:
+INSERT INTO nutrient_translation(nutrient_id, locale, name, name_norm) VALUES (?, ?, ?, ?);
+
+deleteNutrientTranslations:
+DELETE FROM nutrient_translation WHERE nutrient_id = ?;
 
 selectNutrientByNorm:
 SELECT * FROM nutrient WHERE user_id = ? AND name_norm = ?;

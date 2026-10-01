@@ -10,6 +10,7 @@ import { FoodPicker, type PickedFood } from '../components/FoodPicker'
 import { ErrorText, Field } from '../components/ui'
 import { nowTime } from '../lib/dates'
 import { formatAmount, parseDecimal, toInputValue } from '../lib/format'
+import { unitLabel } from '../lib/names'
 import { useDebounced } from '../lib/useDebounced'
 
 /** Unit to preselect for a food: the last one used, else the first resolvable explicit unit. */
@@ -111,7 +112,7 @@ export function EntryForm({ date, entry, onDone }: { date: string; entry: EntryV
               <optgroup label={t('entry.unitsForFood')}>
                 {usable.map((u) => (
                   <option key={u.unitId} value={u.unitId}>
-                    {u.name}
+                    {unitLabel(u.name, u.pluralSuffix, validQty)}
                     {u.amountInRefUnit === null ? ' ⚠' : ''}
                   </option>
                 ))}
@@ -121,7 +122,7 @@ export function EntryForm({ date, entry, onDone }: { date: string; entry: EntryV
               <optgroup label={t('entry.otherUnits')}>
                 {otherUnits.map((u) => (
                   <option key={u.id} value={u.id}>
-                    {u.name}
+                    {unitLabel(u.displayName, u.displayPluralSuffix, validQty)}
                   </option>
                 ))}
               </optgroup>
@@ -154,7 +155,7 @@ export function EntryForm({ date, entry, onDone }: { date: string; entry: EntryV
                 const amount = preview.data?.nutrients.find((a) => a.nutrientId === n.id)?.amount
                 return (
                   <li key={n.id} className="chip">
-                    <span className="chip-label">{n.name}</span> {formatAmount(amount, n)}
+                    <span className="chip-label">{n.displayName}</span> {formatAmount(amount, n)}
                   </li>
                 )
               })}
