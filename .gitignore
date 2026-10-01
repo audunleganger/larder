@@ -18,7 +18,7 @@ node_modules/
 web/dist/
 
 # Runtime data
-data/
+/data/
 *.db
 *.db-shm
 *.db-wal
