@@ -300,6 +300,7 @@ export interface FoodSummary {
   composite: boolean
   ingredientOnly: boolean
   tagIds: number[]
+  nutrients: Record<string, number>
 }
 
 export interface FoodUnitLink {

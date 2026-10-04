@@ -61,6 +61,7 @@ class FoodService(
                     food.nutrients.size, food.imageVersion, composite = food.composite != null,
                     ingredientOnly = food.ingredientOnly,
                     tagIds = food.tagIds,
+                    nutrients = food.nutrients,
                 )
             }
             .toList()

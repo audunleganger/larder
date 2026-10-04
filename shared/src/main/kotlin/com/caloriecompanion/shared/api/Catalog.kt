@@ -227,6 +227,11 @@ data class FoodSummary(
     val ingredientOnly: Boolean,
     /** Its tags (F-16). */
     val tagIds: List<Long>,
+    /**
+     * Nutrient values per reference amount, by nutrient id (F-17); calculated for composite foods.
+     * A nutrient without a value is left out.
+     */
+    val nutrients: Map<Long, Double>,
 )
 
 // ---- Tags (F-16) ----
