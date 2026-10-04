@@ -17,7 +17,8 @@ can log a food before you know its nutrition. Fill in the numbers later, and eve
 - **Composite foods.** Build a food out of other foods, like a recipe or a meal you often eat. Its nutrients are
   calculated from the ingredients. Logging it adds each ingredient as its own entry, or one entry if you set it to. Mark a food
   as "ingredient only" to keep it out of the picker when logging.
-- **Tags.** Group your foods with tags like fruit or breakfast, with names in each language.
+- **Tags.** Group your foods with colored tags like fruit or breakfast, with names in each language. Tags are made
+  on a food's page and saved at once; a tag no food has any more is deleted.
 - **Food table.** The food list shows a column per nutrient, with filters by tag, composite, ingredient only and
   missing values.
 - **Live totals.** Correct a food's values, and every day it was eaten is recalculated. Entries with missing data
@@ -239,7 +240,7 @@ All endpoints except health, setup and login need `Authorization: Bearer <token>
 | `GET /api/v1/foods/ref-default` | The reference amount a new food starts with |
 | `GET/PUT/DELETE /api/v1/foods/{id}/image` | A food's photo (`?size=thumbnail`; `?v=<imageVersion>` for permanent caching). PUT takes base64 JSON |
 | `PUT /api/v1/nutrients/order` | Display order |
-| `/api/v1/tags` | Tags, per user like foods: list `?includeArchived`, create, `GET /{id}` (with its foods), `PUT /{id}`, `POST /{id}/archive`, `/unarchive`, `PUT /{id}/metadata` (admins: the dates), `DELETE /{id}` (409 `REFERENCED` if a food has it). Foods take `tagIds` |
+| `/api/v1/tags` | Tags, per user like foods, made from a food (below): list `?includeArchived`, `GET /{id}` (with its foods), `PUT /{id}`, `PUT /{id}/color` (`red`, `orange`, `yellow`, `green`, `teal`, `blue`, `indigo`, `purple`, `pink`, `brown` or null), `POST /{id}/archive`, `/unarchive`, `PUT /{id}/metadata` (admins: the dates), `DELETE /{id}` (removes it from its foods). `PUT /api/v1/foods/{id}/tags` sets a food's tags and `POST /api/v1/foods/{id}/tags` gives it a tag by name, made if new; a tag no food has any more is deleted |
 | `PUT /api/v1/units/order`, `DELETE /units/order` | Display order of the units; DELETE puts them back in alphabetical order |
 | `GET /api/v1/days/{date}` | Day view: entries with calculated nutrients, totals, target status |
 | `POST /api/v1/entries`, `POST /entries/preview`, `GET/PUT/DELETE /entries/{id}` | Entries. Logging a composite food creates one entry per ingredient and returns the first |
