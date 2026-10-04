@@ -1,14 +1,13 @@
 package com.caloriecompanion.shared.service
 
 import com.caloriecompanion.db.CalorieCompanionDatabase
-import com.caloriecompanion.shared.api.ErrorCodes
 import com.caloriecompanion.shared.api.FoodRef
 import com.caloriecompanion.shared.api.NameTranslation
 import com.caloriecompanion.shared.api.TagDetail
 import com.caloriecompanion.shared.api.TagDto
 import com.caloriecompanion.shared.api.TagInput
 import com.caloriecompanion.shared.api.TagMetadataInput
-import com.caloriecompanion.shared.domain.AppException
+import com.caloriecompanion.shared.domain.TagColors
 import com.caloriecompanion.shared.domain.TagDef
 import com.caloriecompanion.shared.domain.cleanName
 import com.caloriecompanion.shared.domain.inLanguageOrder
@@ -20,7 +19,8 @@ import java.util.Locale
 
 /**
  * Tags for grouping foods (F-16). Like foods they belong to one user, with the same name rules (F-2,
- * L-5): archived instead of deleted while foods use them. [language]: the reader's language (L-5).
+ * L-5). A tag exists only while a food has it: it's made from a food ([FoodService.addTag]) and goes
+ * when its last food loses it. [language]: the reader's language (L-5).
  */
 class TagService(
     private val db: CalorieCompanionDatabase,
@@ -51,8 +51,11 @@ class TagService(
         return TagDetail(tag, foods)
     }
 
-    /** [createdAt] and [updatedAt]: as in an imported file; by default it's made now and never changed. */
-    fun create(input: TagInput, archived: Boolean = false, createdAt: Long? = null, updatedAt: Long? = null): TagDto = db.transactionWithResult {
+    /**
+     * Makes a tag without foods; callers give it one, or [pruneTags] removes it. [createdAt] and
+     * [updatedAt]: as in an imported file; by default it's made now and never changed.
+     */
+    internal fun create(input: TagInput, archived: Boolean = false, createdAt: Long? = null, updatedAt: Long? = null): TagDto = db.transactionWithResult {
         val name = cleanName(input.name)
         val translations = NameRules.cleanTranslations(input.translations.orEmpty(), withPlural = false)
         NameRules.ensureFree(listOf(name) + translations.map { it.name }, null, all(), "tag")
@@ -84,17 +87,25 @@ class TagService(
         get(id)
     }
 
+    /** Sets the tag's [color], one of [TagColors.ALL], or null for gray. */
+    fun setColor(id: Long, color: String?): TagDto {
+        find(id)
+        if (color != null && color !in TagColors.ALL) validation("Unknown color '$color'")
+        queries.setTagColor(color, id, userId)
+        return get(id)
+    }
+
     fun setArchived(id: Long, archived: Boolean): TagDto {
         find(id)
         queries.setTagArchived(archived, id, userId)
         return get(id)
     }
 
-    /** Deletes a tag no food has; otherwise fails with REFERENCED. */
+    /** Removes the tag from all its foods, and so deletes it. */
     fun delete(id: Long) = db.transaction {
         find(id)
-        val foods = queries.countTagFoodRefs(id).executeAsOne()
-        if (foods > 0) throw AppException(ErrorCodes.REFERENCED, "Tag is in use; archive it instead", 409, mapOf("foods" to foods))
+        queries.deleteTagFoods(id)
+        queries.deleteTagTranslations(id)
         queries.deleteTag(id, userId)
     }
 
@@ -120,5 +131,12 @@ class TagService(
         createdAt = createdAt,
         createdBy = db.appUserQueries.selectById(userId).executeAsOneOrNull()?.username.orEmpty(),
         updatedAt = updatedAt,
+        color = color,
     )
+}
+
+/** Deletes the user's tags no food has any more. */
+internal fun pruneTags(db: CalorieCompanionDatabase, userId: Long) {
+    db.tagQueries.deleteUnusedTagTranslations(userId)
+    db.tagQueries.deleteUnusedTags(userId)
 }

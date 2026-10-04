@@ -14,6 +14,7 @@ import com.caloriecompanion.shared.api.FoodImageData
 import com.caloriecompanion.shared.api.FoodInput
 import com.caloriecompanion.shared.api.FoodNutrientValue
 import com.caloriecompanion.shared.api.FoodSummary
+import com.caloriecompanion.shared.api.FoodTagsInput
 import com.caloriecompanion.shared.api.FoodUnitLink
 import com.caloriecompanion.shared.api.HistoryView
 import com.caloriecompanion.shared.api.ImportResult
@@ -23,6 +24,10 @@ import com.caloriecompanion.shared.api.NutrientDto
 import com.caloriecompanion.shared.api.PasswordChangeInput
 import com.caloriecompanion.shared.api.SetupInput
 import com.caloriecompanion.shared.api.SetupStatus
+import com.caloriecompanion.shared.api.TagColorInput
+import com.caloriecompanion.shared.api.TagDetail
+import com.caloriecompanion.shared.api.TagDto
+import com.caloriecompanion.shared.api.TagInput
 import com.caloriecompanion.shared.api.TargetInput
 import com.caloriecompanion.shared.api.TargetStatus
 import com.caloriecompanion.shared.api.NutrientInput
@@ -120,6 +125,26 @@ class ApiTest {
 
         assertEquals(null, client.delete("/api/v1/foods/${food.id}/image") { bearerAuth(token) }.body<FoodDto>().imageVersion)
         assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/foods/${food.id}/image") { bearerAuth(token) }.status)
+    }
+
+    @Test
+    fun `tags are made from a food, saved at once, and go with their last food`() = testApplication {
+        val client = jsonClient()
+        val token = client.setup()
+        val food: FoodDto = client.post("/api/v1/foods") { bearerAuth(token); json(FoodInput("Apple")) }.body()
+        val tagged: FoodDto = client.post("/api/v1/foods/${food.id}/tags") { bearerAuth(token); json(TagInput("Fruit")) }.body()
+        val fruit = client.get("/api/v1/tags") { bearerAuth(token) }.body<List<TagDto>>().single()
+        assertEquals(listOf(fruit.id), tagged.tagIds)
+        assertEquals(listOf("Apple"), client.get("/api/v1/tags/${fruit.id}") { bearerAuth(token) }.body<TagDetail>().foods.map { it.name })
+        // Tags aren't made on their own.
+        assertEquals(HttpStatusCode.NotFound, client.post("/api/v1/tags") { bearerAuth(token); json(TagInput("Snack")) }.status)
+
+        assertEquals("pink", client.put("/api/v1/tags/${fruit.id}/color") { bearerAuth(token); json(TagColorInput("pink")) }.body<TagDto>().color)
+        assertEquals(HttpStatusCode.BadRequest, client.put("/api/v1/tags/${fruit.id}/color") { bearerAuth(token); json(TagColorInput("chartreuse")) }.status)
+
+        val untagged: FoodDto = client.put("/api/v1/foods/${food.id}/tags") { bearerAuth(token); json(FoodTagsInput(emptyList())) }.body()
+        assertEquals(emptyList(), untagged.tagIds)
+        assertEquals(emptyList(), client.get("/api/v1/tags?includeArchived=true") { bearerAuth(token) }.body<List<TagDto>>())
     }
 
     @Test

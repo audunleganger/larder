@@ -1,0 +1,5 @@
+-- v11 -> v12: tag colors, and tags exist only while a food has them (F-16).
+ALTER TABLE tag ADD COLUMN color TEXT;
+
+DELETE FROM tag_translation WHERE tag_id NOT IN (SELECT tag_id FROM food_tag);
+DELETE FROM tag WHERE id NOT IN (SELECT tag_id FROM food_tag);

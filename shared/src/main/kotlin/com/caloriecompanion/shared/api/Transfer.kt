@@ -36,8 +36,9 @@ data class ExportFile(
          * 5: "ingredient only" foods (`ingredientOnly`, F-15).
          * 6: tags (`tags`, and `tags` on foods by name, F-16).
          * 7: full plural forms of units (`plural`) instead of a plural ending (`pluralSuffix`, U-8).
+         * 8: tag colors (`color`); only tags that foods have.
          */
-        const val VERSION = 7
+        const val VERSION = 8
     }
 }
 
@@ -129,6 +130,8 @@ data class ExportTag(
     /** ISO-8601 instants; kept when imported as a new tag. */
     val createdAt: String? = null,
     val updatedAt: String? = null,
+    /** A palette color name; null: gray. Absent before version 8. */
+    val color: String? = null,
 )
 
 @Serializable

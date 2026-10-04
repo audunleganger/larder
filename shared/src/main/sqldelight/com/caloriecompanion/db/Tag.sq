@@ -1,6 +1,6 @@
 import kotlin.Boolean;
 
--- Tags group a user's foods (F-16). Like foods, they're per user.
+-- Tags group a user's foods (F-16). Like foods, they're per user. A tag exists only while a food has it.
 CREATE TABLE tag (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
@@ -10,6 +10,8 @@ CREATE TABLE tag (
     -- When it was made and last changed (ms since 1970; null: never changed). Admins can correct both.
     created_at INTEGER NOT NULL,
     updated_at INTEGER,
+    -- A palette color (TagColors); null: gray.
+    color TEXT,
     UNIQUE (user_id, name_norm)
 );
 
@@ -46,6 +48,9 @@ UPDATE tag SET name = ?, name_norm = ?, updated_at = ? WHERE id = ? AND user_id 
 setTagMetadata:
 UPDATE tag SET created_at = ?, updated_at = ? WHERE id = ? AND user_id = ?;
 
+setTagColor:
+UPDATE tag SET color = ? WHERE id = ? AND user_id = ?;
+
 setTagArchived:
 UPDATE tag SET archived = ? WHERE id = ? AND user_id = ?;
 
@@ -67,5 +72,12 @@ INSERT OR IGNORE INTO food_tag(food_id, tag_id) VALUES (?, ?);
 deleteFoodTags:
 DELETE FROM food_tag WHERE food_id = ?;
 
-countTagFoodRefs:
-SELECT count(*) FROM food_tag WHERE tag_id = ?;
+deleteTagFoods:
+DELETE FROM food_tag WHERE tag_id = ?;
+
+-- Tags no food has any more; their translations first, in case foreign keys are off.
+deleteUnusedTagTranslations:
+DELETE FROM tag_translation WHERE tag_id IN (SELECT id FROM tag WHERE user_id = ? AND id NOT IN (SELECT tag_id FROM food_tag));
+
+deleteUnusedTags:
+DELETE FROM tag WHERE user_id = ? AND id NOT IN (SELECT tag_id FROM food_tag);

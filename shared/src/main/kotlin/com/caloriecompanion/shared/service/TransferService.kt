@@ -115,7 +115,7 @@ class TransferService(
             tags = tags.map {
                 ExportTag(
                     it.name, it.archived, it.translations.inLanguageOrder(),
-                    MetadataRules.formatTime(it.createdAt), MetadataRules.formatTime(it.updatedAt),
+                    MetadataRules.formatTime(it.createdAt), MetadataRules.formatTime(it.updatedAt), it.color,
                 )
             },
         )
@@ -144,7 +144,8 @@ class TransferService(
         val overwrite = strategy == ConflictStrategy.OVERWRITE
         val unitService = UnitService(db, userId)
         val nutrientService = NutrientService(db, userId)
-        val foodService = FoodService(db, userId)
+        // Tags are made before the foods that have them; unused ones are removed at the end.
+        val foodService = FoodService(db, userId, keepUnusedTags = true)
 
         // Units. One matched by its name in another language keeps its own names when overwritten.
         var unitCounts = ImportCounts()
@@ -224,25 +225,28 @@ class TransferService(
         }
 
         // Tags (version 6), matched by any of their names. One matched by a name in another language keeps
-        // its own names when overwritten.
+        // its own names when overwritten. Tags no food in the file has are left out.
         var tagCounts = ImportCounts()
         val tagService = TagService(db, userId)
         val tagIds = HashMap<String, Long>()
         fun indexTag(id: Long, names: List<String>) = names.forEach { tagIds[normalizeName(it)] = id }
         loadTags(db, userId).forEach { tag -> indexTag(tag.id, listOf(tag.name) + tag.translations.values.map { it.name }) }
-        for (tag in file.tags) {
+        val usedTags = file.foods.flatMapTo(HashSet()) { food -> food.tags.map(::normalizeName) }
+        for (tag in file.tags.filter { normalizeName(it.name) in usedTags }) {
             val names = listOf(tag.name) + tag.translations.map { it.name }
             val existing = names.firstNotNullOfOrNull { tagIds[normalizeName(it)] }
             val translations = freeTranslations(tag.translations, existing, tag.name, withPlural = false) { loadTags(db, userId) }
             tagCounts = when {
                 existing == null -> {
                     val created = tagService.create(TagInput(tag.name, translations), tag.archived, MetadataRules.parseTime(tag.createdAt), MetadataRules.parseTime(tag.updatedAt))
+                    if (tag.color != null) tagService.setColor(created.id, tag.color)
                     indexTag(created.id, names)
                     tagCounts.copy(created = tagCounts.created + 1)
                 }
                 overwrite -> {
                     if (tagIds[normalizeName(tag.name)] == existing) tagService.update(existing, TagInput(tag.name, translations))
                     tagService.setArchived(existing, tag.archived)
+                    if (file.version >= 8) tagService.setColor(existing, tag.color)
                     indexTag(existing, names)
                     tagCounts.copy(updated = tagCounts.updated + 1)
                 }
@@ -350,6 +354,7 @@ class TransferService(
             else targetCounts.copy(created = targetCounts.created + 1)
         }
 
+        pruneTags(db, userId)
         return ImportResult(unitCounts, nutrientCounts, foodCounts, entryCounts, targetCounts, tagCounts)
     }
 

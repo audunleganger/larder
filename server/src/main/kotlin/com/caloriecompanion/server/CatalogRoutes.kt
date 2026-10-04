@@ -6,6 +6,8 @@ import com.caloriecompanion.shared.api.FoodMetadataInput
 import com.caloriecompanion.shared.api.MetadataInput
 import com.caloriecompanion.shared.api.NutrientInput
 import com.caloriecompanion.shared.api.NutrientOrderInput
+import com.caloriecompanion.shared.api.FoodTagsInput
+import com.caloriecompanion.shared.api.TagColorInput
 import com.caloriecompanion.shared.api.TagInput
 import com.caloriecompanion.shared.api.TagMetadataInput
 import com.caloriecompanion.shared.api.UnitOrderInput
@@ -143,6 +145,17 @@ fun Route.catalogRoutes(database: Database, auth: Auth) {
             val input = call.receive<FoodInput>()
             call.respond(call.withUserLanguage(database, auth) { db, user, language -> FoodService(db, user, language).update(id, input) })
         }
+        // Tags (F-16), saved at once: set them, or add one by name, made if new.
+        put("/{id}/tags") {
+            val id = call.idParam()
+            val input = call.receive<FoodTagsInput>()
+            call.respond(call.withUserLanguage(database, auth) { db, user, language -> FoodService(db, user, language).setTags(id, input.tagIds) })
+        }
+        post("/{id}/tags") {
+            val id = call.idParam()
+            val input = call.receive<TagInput>()
+            call.respond(call.withUserLanguage(database, auth) { db, user, language -> FoodService(db, user, language).addTag(id, input) })
+        }
         // Photos (F-13). With ?v=<imageVersion> the response never changes, so browsers may cache it for good.
         get("/{id}/image") {
             val id = call.idParam()
@@ -182,15 +195,11 @@ fun Route.catalogRoutes(database: Database, auth: Auth) {
         }
     }
 
-    // Tags (F-16): per user, like foods.
+    // Tags (F-16): per user, like foods. They're made from a food (POST /foods/{id}/tags).
     route("/tags") {
         get {
             val all = call.flag("includeArchived")
             call.respond(call.withUserLanguage(database, auth) { db, user, language -> TagService(db, user, language).list(all) })
-        }
-        post {
-            val input = call.receive<TagInput>()
-            call.respond(HttpStatusCode.Created, call.withUserLanguage(database, auth) { db, user, language -> TagService(db, user, language).create(input) })
         }
         get("/{id}") {
             val id = call.idParam()
@@ -206,6 +215,11 @@ fun Route.catalogRoutes(database: Database, auth: Auth) {
             val id = call.idParam()
             val input = call.receive<TagMetadataInput>()
             call.respond(call.withUserLanguage(database, auth) { db, user, language -> TagService(db, user, language).setMetadata(id, input) })
+        }
+        put("/{id}/color") {
+            val id = call.idParam()
+            val input = call.receive<TagColorInput>()
+            call.respond(call.withUserLanguage(database, auth) { db, user, language -> TagService(db, user, language).setColor(id, input.color) })
         }
         post("/{id}/archive") {
             val id = call.idParam()
