@@ -441,6 +441,46 @@ await step('tags', async () => {
   await page.getByText(/still used by 1 food/).waitFor()
 })
 
+await step('food list filters and table', async () => {
+  await page.getByRole('link', { name: 'Foods', exact: true }).click()
+  const table = page.locator('.food-table')
+  const rows = table.locator('tbody tr')
+  // The link holds the photo (or its initial) and the name; the name is the last line.
+  const names = async () => (await rows.locator('td:first-child a').allInnerTexts()).map((n) => n.trim().split('\n').pop().trim())
+  // A column per nutrient, values per reference amount, and a red dash where a value is missing.
+  await table.getByRole('columnheader', { name: /Energy/ }).waitFor()
+  await rows.filter({ hasText: 'Rye bread' }).getByRole('cell', { name: '250', exact: true }).waitFor()
+  await rows.filter({ hasText: 'Orange juice' }).locator('.missing-value').first().waitFor()
+  await shot('21-food-table')
+
+  await page.getByLabel('Tag', { exact: true }).selectOption({ label: 'Breakfast' })
+  await page.getByText(/Showing 1 of \d+ foods/).waitFor()
+  if ((await names()).join() !== 'Rye bread') throw new Error(`tag filter showed: ${await names()}`)
+  await page.getByRole('button', { name: 'Clear filters' }).click()
+  await page.getByLabel('Composite', { exact: true }).check()
+  await page.getByText(/Showing 1 of/).waitFor()
+  if ((await names()).join() !== 'Juice breakfast') throw new Error(`composite filter showed: ${await names()}`)
+  await page.getByRole('button', { name: 'Clear filters' }).click()
+  await page.getByLabel('Nutrient', { exact: true }).selectOption({ label: 'Energy' })
+  await page.getByLabel('Has or lacks a value').selectOption({ label: 'lacks a value' })
+  await page.getByText(/Showing \d+ of/).waitFor()
+  const lacking = await names()
+  if (!lacking.includes('Orange juice') || lacking.includes('Rye bread')) throw new Error(`lacks filter showed: ${lacking}`)
+  // The filters are in the address, so they survive going to a food and back.
+  await page.getByRole('link', { name: 'Orange juice' }).click()
+  await page.getByRole('heading', { name: 'Orange juice' }).waitFor()
+  await page.goBack()
+  await page.getByText(/Showing \d+ of/).waitFor()
+  await page.getByRole('button', { name: 'Clear filters' }).click()
+
+  // Column toggles are remembered in this browser.
+  await page.getByRole('button', { name: 'Energy', exact: true, pressed: true }).click()
+  await table.getByRole('columnheader', { name: /Energy/ }).waitFor({ state: 'detached' })
+  await page.reload()
+  await page.getByRole('button', { name: 'Energy', exact: true, pressed: false }).click()
+  await table.getByRole('columnheader', { name: /Energy/ }).waitFor()
+})
+
 await step('export and import', async () => {
   await page.getByRole('link', { name: 'Settings' }).click()
   await page.getByRole('heading', { name: 'Settings' }).waitFor()
