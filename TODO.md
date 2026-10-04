@@ -38,12 +38,31 @@ Changes to stored data also need a schema migration, a new export format version
   scrolls sideways.
 - **Filters for the food list:** by tag, composite only, ingredient only, and has or lacks a value for a given
   nutrient. They combine with the search.
-- **Metadata on catalog items:** created date and user, last updated date and user, on foods, units, nutrients
-  and tags. Read-only for normal users, editable by admins. This is groundwork for shared catalogs (REQUIREMENTS.md
-  §8); until those exist, the user is always the catalog's owner. An import keeps the dates from the file.
+- **Metadata on catalog items:** created date and user, and last updated date and user, on units, nutrients and
+  tags; created date and user on foods. Read-only for normal users, editable by admins. An import keeps the dates
+  from the file.
 
 ## Changes
 
+- **Units and nutrients shared across the server**, instead of a copy per user. Foods and tags stay per user.
+  - Each user sees the standard units and the seeded nutrients, plus the ones they have chosen to show. The rest
+    are hidden, and a "Hidden" menu on the units and nutrients pages lists them so they can be shown again. Users
+    can hide the standard ones too.
+  - Hiding only makes the lists and pickers less cluttered. A hidden unit or nutrient that a food already uses keeps
+    working for that food: it's still offered when logging it and shows in its entries and on its page.
+  - A new unit or nutrient is shown for the user who made it and hidden for everyone else. Names are unique across
+    the server, and creating one that already exists offers to show the existing one instead.
+  - Only the user who made a unit or nutrient, and admins, can edit, archive or delete it. Everyone else can hide
+    or show it. The standard units and seeded nutrients belong to the admins. Deleting stays refused while any
+    user's food or entry uses it.
+  - Per user: which ones are shown, and for nutrients the display order and the targets. New users are no longer
+    seeded with their own copies.
+  - Migration: units and nutrients with the same name are merged into one, and foods, entries and targets point to
+    it. The ones each user had before are shown for them. If merged ones differ, one is kept and the others are
+    discarded.
+  - An export includes the units and nutrients its foods and entries use, whoever made them. An import matches them
+    by name and creates the missing ones as the importing user's.
+  - Android local mode has one user, so its catalog stays as it is.
 - **Full plural forms instead of a suffix**, so irregular plurals work (goose → geese). Each name and each
   translation gets its own plural form. Existing units migrate to name + suffix. The rule lives in `unitLabel`,
   in `web/src/lib/names.ts` and in `Names.kt` in the shared module, and new units get their default ending from
@@ -68,6 +87,9 @@ own size. Wait with the implementation until a design is settled. Questions to a
 
 ## On hold
 
+- **Sharing foods between users**, with private foods as the exception. Shelved for now as too large for the
+  gain: it raises questions about who may edit a shared food, edits changing other users' history, composite
+  foods with private ingredients, and telling apart foods with the same name.
 - **The logged amount in breakdown lists.** Each row in a total's list of foods (day view and history) could show
   the amount logged, such as "2 slices", next to the nutrient amount. For now the rows keep showing only the
   nutrient amount.
