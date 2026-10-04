@@ -33,11 +33,11 @@ can log a food before you know its nutrition. Fill in the numbers later, and eve
 
 ### Docker
 
+Each release is published as `ghcr.io/audunleganger/larder:<version>`, such as `0.10.0`, and `latest` points at the
+newest release. See the [releases](https://github.com/audunleganger/larder/releases) for the versions.
+
 ```sh
-git clone https://github.com/audunleganger/larder.git
-cd larder
-docker build -t calorie-companion .
-docker run -d --name calorie-companion -p 8080:8080 -v calorie-companion-data:/data calorie-companion
+docker run -d --name larder -p 8080:8080 -v larder-data:/data ghcr.io/audunleganger/larder:0.10.0
 ```
 
 Open http://localhost:8080. The first visit shows a setup screen that creates the administrator account. The
@@ -48,9 +48,8 @@ With Docker Compose:
 
 ```yaml
 services:
-  calorie-companion:
-    build: https://github.com/audunleganger/larder.git#main
-    image: calorie-companion
+  larder:
+    image: ghcr.io/audunleganger/larder:0.10.0
     ports:
       - "8080:8080"
     volumes:
@@ -60,6 +59,9 @@ services:
 volumes:
   data:
 ```
+
+Each push to `main` is also published as `main` (the newest) and `sha-<commit>`, for trying out changes before a
+release. To build the image yourself instead, run `docker build -t larder .` in a checkout.
 
 The image runs as a non-root user. To use a host directory instead of a named volume (`./data:/data`), add
 `user: "<uid>:<gid>"` with the owner of that directory.
@@ -85,6 +87,7 @@ The server reads these environment variables:
 | `CC_DATA_DIR` | `data` (`/data` in the Docker image) | Directory for the SQLite database and `backups/` |
 | `CC_WEB_DIR` | *(unset; set in the Docker image)* | Directory with the built web GUI. Unset means API only |
 | `CC_TOKEN_LIFETIME_DAYS` | `30` | How long a login lasts without use |
+| `CC_VERSION` | *(set in published images)* | The version `/api/health` and Settings show. Unset means the version in the source |
 
 ### Backups
 
@@ -97,7 +100,8 @@ in the Android app.
 
 ### Upgrading
 
-Build the new version and restart. A newer server upgrades the database on start: it first saves a copy as
+Change the image tag to the new version, then `docker compose pull && docker compose up -d` (or build the new
+version and restart). A newer server upgrades the database on start: it first saves a copy as
 `$CC_DATA_DIR/backups/pre-migration-v<N>-<time>.db`, then migrates in one transaction, so a failed upgrade
 changes nothing. An older server refuses to open a newer database, so going back to an older version means
 restoring that copy.
@@ -172,8 +176,24 @@ npm run e2e                        # browser walkthrough against a fresh server 
 
 ### Continuous integration
 
-`.github/workflows/ci.yml` runs on every pull request and every push to `main`: `./gradlew build` (with the
-Android app), the web lint, tests and build, and the browser walkthrough. The results show on the pull request.
+`.github/workflows/ci.yml` runs on every pull request, every push to `main` and every version tag: `./gradlew build`
+(with the Android app), the web lint, tests and build, and the browser walkthrough. The results show on the pull
+request. For a push to `main` or a version tag, once everything passes, it also publishes the Docker image to
+ghcr.io (see [Docker](#docker)).
+
+### Releases
+
+A release is a version tag on `main`, which CI publishes as an image tagged with that version and `latest`:
+
+```sh
+git checkout main && git pull
+git tag v0.11.0
+git push origin v0.11.0
+```
+
+Or create it on GitHub under **Releases → Draft a new release**, with a new tag on `main`, which also gives the
+release a page with notes. Bump `AppInfo.VERSION` to the next version in a pull request after each release, so builds
+from source don't report an old version.
 
 ### API types
 

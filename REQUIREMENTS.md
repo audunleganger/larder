@@ -205,7 +205,7 @@ The Norwegian terms are a first guess and may be changed; they live only in the 
 
 ### 5.1 Deployment
 
-- **DEP-1 (MUST)** A single **Docker image** serving both the API and the built web GUI (static files) on one port.
+- **DEP-1 (MUST)** A single **Docker image** serving both the API and the built web GUI (static files) on one port. CI publishes it to ghcr.io for each version tag (as that version and `latest`) and each push to `main`.
 - **DEP-2 (MUST)** The SQLite database lives on a mounted volume. Configuration comes from env vars (port, data dir, token lifetime).
 - **DEP-3 (MUST)** Also runnable without Docker as a plain JAR for "local backend on my PC".
 - **DEP-4 (SHOULD)** A built-in consistent backup (SQLite `VACUUM INTO` / online backup), triggerable by an admin endpoint or on a schedule.
