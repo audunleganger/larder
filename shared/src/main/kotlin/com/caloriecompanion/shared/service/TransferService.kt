@@ -125,7 +125,7 @@ class TransferService(
         val nutrientService = NutrientService(db, userId)
         val foodService = FoodService(db, userId)
 
-        // Units
+        // Units. One matched by its name in another language keeps its own names when overwritten.
         var unitCounts = ImportCounts()
         val units = unitService.list(includeHidden = true)
         val editableUnits = units.filter { it.canEdit }.mapTo(HashSet()) { it.id }
@@ -147,7 +147,8 @@ class TransferService(
                 overwrite -> {
                     unitService.setHidden(existing, hidden)
                     if (existing in editableUnits) {
-                        unitService.update(existing, input.copy(name = unitService.get(existing).name.takeIf { normalizeName(it) != key } ?: input.name))
+                        val current = unitService.get(existing)
+                        unitService.update(existing, if (normalizeName(current.name) == key) input else input.copy(name = current.name, translations = null))
                         unitCounts.copy(updated = unitCounts.updated + 1)
                     } else {
                         unitCounts.copy(skipped = unitCounts.skipped + 1)
@@ -158,7 +159,7 @@ class TransferService(
         }
         fun unitId(name: String) = unitIds[normalizeName(name)] ?: invalid("Unknown unit '$name'")
 
-        // Nutrients: create/update without parents first, then link parents.
+        // Nutrients: create/update without parents first, then link parents. Matched like units.
         var nutrientCounts = ImportCounts()
         val nutrients = nutrientService.list(includeHidden = true)
         val editableNutrients = nutrients.filter { it.canEdit }.mapTo(HashSet()) { it.id }
@@ -181,7 +182,8 @@ class TransferService(
                     nutrientService.setHidden(existing, hidden)
                     if (existing in editableNutrients) {
                         val current = nutrientService.get(existing)
-                        nutrientService.update(existing, input.copy(name = current.name.takeIf { normalizeName(it) != key } ?: input.name, parentId = current.parentId))
+                        val kept = input.copy(parentId = current.parentId)
+                        nutrientService.update(existing, if (normalizeName(current.name) == key) kept else kept.copy(name = current.name, translations = null))
                         touched += nutrient
                         nutrientCounts.copy(updated = nutrientCounts.updated + 1)
                     } else {
