@@ -7,6 +7,7 @@ Changes to stored data also need a schema migration, a new export format version
 
 - **Tags for foods.** A tag has a main name and a name per language, like foods, units and nutrients (L-5), with
   the same uniqueness and archive/delete rules. A food can have several tags. Used by the food list filters below.
+  Tags record who made them and when, and who changed them last, like units and nutrients (U-9).
 - **Photo from a URL**, besides file upload and the camera. The server downloads the image once and stores it like
   an upload (shrunk, with a thumbnail), so backups and exports include it and it survives the link breaking. It
   must refuse addresses on the local network (loopback, private and link-local, checked again after each
@@ -48,9 +49,6 @@ Changes to stored data also need a schema migration, a new export format version
   scrolls sideways.
 - **Filters for the food list:** by tag, composite only, ingredient only, and has or lacks a value for a given
   nutrient. They combine with the search.
-- **Metadata on catalog items:** created date and user, and last updated date and user, on units, nutrients and
-  tags; created date and user on foods. Read-only for normal users, editable by admins. An import keeps the dates
-  from the file. Units and nutrients already record who made them (`user_id`, shown as "Made by").
 
 ## Changes
 

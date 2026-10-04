@@ -1,6 +1,8 @@
 # Calorie Companion — Requirement Specification
 
-Version 0.5 · 2026-10-04 · Supersedes `requirements.txt`
+Version 0.6 · 2026-10-04 · Supersedes `requirements.txt`
+
+*0.6: units, nutrients and foods record who made them and when; units and nutrients also when and by whom they were last changed (U-9, F-14).*
 
 *0.5: units and nutrients are shared by all users of a server (U-9). Each user hides the ones they don't want instead of archiving them; foods, entries and targets stay per user.*
 
@@ -64,6 +66,7 @@ The Norwegian terms are a first guess and may be changed; they live only in the 
   - No manual override of the derived values (FUTURE).
 - **F-12 (MUST)** A new food stuff's reference amount (F-3) is **prefilled with the one last set** on a food (initially 100 g), remembered per user. Imports don't change it.
 - **F-11 (FUTURE)** Mass↔volume conversion via optional per-food density.
+- **F-14 (MUST)** A food stuff records **when it was made and by whom** (its owner), shown on its page. Admins can correct the date of their own foods (foods are private). An import keeps the date from the file for new foods; existing foods count as made when this was introduced (schema 7).
 - **F-13 (MUST)** A food stuff can have **one photo**, uploaded from a file or the camera. Clients shrink it before upload (max ~1280 px plus a square thumbnail); the server checks type (JPEG/PNG/WebP) and size and stores it in the database, so backups and export/import include it. The thumbnail is shown in the food picker, food list, entries and ingredients; the photo large on the food page.
 
 ### 3.2 Units
@@ -85,6 +88,7 @@ The Norwegian terms are a first guess and may be changed; they live only in the 
   - Hiding only declutters lists and pickers. A hidden unit that a food uses stays usable for that food (offered when logging it, shown in its entries); a hidden nutrient keeps its values in foods but leaves the user's totals and history.
   - Only the user who made one, and admins, can change or delete it; only admins the built-in ones (U-3, N-2).
   - Per user: which ones are shown, the nutrient display order (N-3) and targets.
+  - Each records **who made it and when**, and **when and by whom it was last changed**. Only edits count as changes: hiding, showing and reordering don't. Shown on its page. Admins can correct all four; the new maker becomes the owner. An import keeps the file's dates for new ones (who changed it last is then unknown). Existing ones count as made when this was introduced (schema 7), and never changed.
 
 ### 3.3 Nutrients
 
@@ -215,12 +219,12 @@ Tables of per-user data carry `user_id`; on units and nutrients it is the user w
 | Entity | Fields |
 |---|---|
 | user | id, username, password_hash, is_admin, is_disabled, locale, created_at, food_ref_amount, food_ref_unit_id (F-12) |
-| quantity_unit | id, user_id (maker), name, name_norm, kind (mass/volume/custom), base_factor (nullable; for mass/volume), plural_suffix, built_in (U-3) |
+| quantity_unit | id, user_id (maker), name, name_norm, kind (mass/volume/custom), base_factor (nullable; for mass/volume), plural_suffix, built_in (U-3), created_at, updated_at, updated_by (U-9) |
 | shown_unit | user_id, unit_id — the units a user shows (U-9) |
 | unit_translation / nutrient_translation / food_translation | item id, locale, name, name_norm (+ plural_suffix for units) (L-5) |
-| nutrient | id, user_id (maker), name, name_norm, measure_unit, display_precision, sort_order (default), parent_id (nullable), built_in (N-2) |
+| nutrient | id, user_id (maker), name, name_norm, measure_unit, display_precision, sort_order (default), parent_id (nullable), built_in (N-2), created_at, updated_at, updated_by (U-9) |
 | shown_nutrient | user_id, nutrient_id, sort_order — the nutrients a user shows, in their order (U-9, N-3) |
-| food | id, user_id, name, name_norm, ref_amount (nullable), ref_unit_id (nullable), notes, archived, yield_amount, yield_unit_id, log_as_whole (F-10) |
+| food | id, user_id, name, name_norm, ref_amount (nullable), ref_unit_id (nullable), notes, archived, yield_amount, yield_unit_id, log_as_whole (F-10), created_at (F-14) |
 | food_ingredient | food_id, position, ingredient_id, unit_id, quantity (F-10) |
 | food_image | food_id, content_type, image, thumbnail, updated_at (F-13) |
 | food_unit | food_id, unit_id, equals_amount (nullable), equals_unit_id (nullable) — "1 unit = equals_amount equals_unit" |
@@ -312,4 +316,5 @@ These replace the "fully separate catalogs" and "archive instead" decisions abov
 | Built-ins | Created once per server with English and Norwegian names, owned by the first admin |
 | Merging existing data | Same name (or a name that is another's translation) = the same unit or nutrient; the oldest one is kept |
 | Export | Units and nutrients the data uses or the user shows, with whether they are hidden (format version 3) |
+| Metadata | Units and nutrients: made by/at, last changed by/at (edits only, not hiding or order). Foods: made by/at. Admins correct it; tags get the same when they're added. Existing items: made at the upgrade. Export version 4 carries the dates; an import keeps them for new items |
 

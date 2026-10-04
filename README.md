@@ -211,6 +211,7 @@ All endpoints except health, setup and login need `Authorization: Bearer <token>
 | `/api/v1/units`, `/nutrients`, `/foods` | List, create, `GET /{id}` (with links), `PUT /{id}`, `DELETE /{id}` (409 `REFERENCED` if in use). Names come in the language of `Accept-Language`, else the user's saved language |
 | | Units and nutrients are shared by all users: list `?includeHidden`, `POST /{id}/hide`, `/show`; only the maker or an admin may change one (403 `FORBIDDEN`); a taken name gives 409 `NAME_TAKEN` with the existing one's `id` |
 | | Foods are per user: list `?includeArchived`, `?q=`, `POST /{id}/archive`, `/unarchive` |
+| | `PUT /{id}/metadata` (admins): correct who made it and when, and for units and nutrients when and by whom it was last changed. For foods only the date, on the admin's own foods |
 | `GET /api/v1/foods/ref-default` | The reference amount a new food starts with |
 | `GET/PUT/DELETE /api/v1/foods/{id}/image` | A food's photo (`?size=thumbnail`; `?v=<imageVersion>` for permanent caching). PUT takes base64 JSON |
 | `PUT /api/v1/nutrients/order` | Display order |
