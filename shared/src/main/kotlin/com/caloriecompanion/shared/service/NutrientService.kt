@@ -2,6 +2,7 @@ package com.caloriecompanion.shared.service
 
 import com.caloriecompanion.db.CalorieCompanionDatabase
 import com.caloriecompanion.shared.api.ErrorCodes
+import com.caloriecompanion.shared.api.MetadataInput
 import com.caloriecompanion.shared.api.NameTranslation
 import com.caloriecompanion.shared.api.NutrientDetail
 import com.caloriecompanion.shared.api.NutrientDto
@@ -22,7 +23,12 @@ import com.caloriecompanion.shared.normalizeName
  * nutrients they show and in which order; only a nutrient's maker and admins can change it.
  * [language]: the reader's language, for display names (L-5).
  */
-class NutrientService(private val db: CalorieCompanionDatabase, private val userId: Long, private val language: String? = null) {
+class NutrientService(
+    private val db: CalorieCompanionDatabase,
+    private val userId: Long,
+    private val language: String? = null,
+    private val now: () -> Long = System::currentTimeMillis,
+) {
     private val queries = db.nutrientQueries
     private val reader by lazy { Reader.of(db, userId, language) }
 
@@ -73,16 +79,20 @@ class NutrientService(private val db: CalorieCompanionDatabase, private val user
     /**
      * Creates a nutrient owned by the user and shows it for them, last. Names are unique across the
      * server: a taken name fails with NAME_TAKEN and the existing nutrient's id, so it can be shown instead.
+     * [createdAt] and [updatedAt]: as in an imported file; by default it's made now and never changed.
      */
-    fun create(input: NutrientInput, hidden: Boolean = false): NutrientDto = db.transactionWithResult {
+    fun create(input: NutrientInput, hidden: Boolean = false, createdAt: Long? = null, updatedAt: Long? = null): NutrientDto = db.transactionWithResult {
         val clean = validate(input, selfId = null)
-        val id = insert(clean, builtIn = false)
+        val id = insert(clean, builtIn = false, createdAt ?: now(), updatedAt)
         if (!hidden) show(id)
         find(id).toDto(reader)
     }
 
     /** A null translation list in [input] leaves the translations unchanged. */
-    fun update(id: Long, input: NutrientInput): NutrientDto = db.transactionWithResult {
+    fun update(id: Long, input: NutrientInput): NutrientDto = update(id, input, touch = true)
+
+    /** [touch]: whether this counts as a change (the import linking a new nutrient to its group doesn't). */
+    internal fun update(id: Long, input: NutrientInput, touch: Boolean): NutrientDto = db.transactionWithResult {
         editable(id)
         val clean = validate(input, selfId = id)
         queries.updateNutrient(
@@ -90,8 +100,18 @@ class NutrientService(private val db: CalorieCompanionDatabase, private val user
             clean.displayPrecision.toLong(), clean.parentId, id,
         )
         clean.translations?.let { writeTranslations(id, it) }
+        if (touch) queries.touchNutrient(now(), userId, id)
         // A changed parent moves the nutrient into (or out of) a group; store the grouped order.
         storeOrder(all())
+        find(id).toDto(reader)
+    }
+
+    /** Corrects who made the nutrient and when, and when and by whom it was last changed; admins only. */
+    fun setMetadata(id: Long, input: MetadataInput): NutrientDto = db.transactionWithResult {
+        MetadataRules.requireAdmin(reader)
+        find(id)
+        val metadata = MetadataRules.resolve(db, input)
+        queries.setNutrientMetadata(metadata.ownerId, metadata.createdAt, metadata.updatedAt, metadata.updatedBy, id)
         find(id).toDto(reader)
     }
 
@@ -144,11 +164,11 @@ class NutrientService(private val db: CalorieCompanionDatabase, private val user
     }
 
     /** Inserts a validated nutrient owned by the user, last in the default order; for [create] and the built-in nutrients. */
-    internal fun insert(clean: NutrientInput, builtIn: Boolean): Long {
+    internal fun insert(clean: NutrientInput, builtIn: Boolean, createdAt: Long = now(), updatedAt: Long? = null): Long {
         val sortOrder = (queries.maxNutrientSortOrder().executeAsOne().max ?: -1) + 1
         queries.insertNutrient(
             userId, clean.name, normalizeName(clean.name), clean.measureUnit,
-            clean.displayPrecision.toLong(), sortOrder, clean.parentId, builtIn,
+            clean.displayPrecision.toLong(), sortOrder, clean.parentId, builtIn, createdAt, updatedAt,
         )
         val id = db.appUserQueries.lastInsertRowId().executeAsOne()
         writeTranslations(id, clean.translations.orEmpty())

@@ -147,6 +147,7 @@ export interface ExportFood {
   yieldAmount?: number | null
   yieldUnit?: string | null
   logAsWhole?: boolean
+  createdAt?: string | null
 }
 
 export interface ExportFoodUnit {
@@ -169,6 +170,8 @@ export interface ExportNutrient {
   hidden?: boolean
   translations?: NameTranslation[]
   archived?: boolean
+  createdAt?: string | null
+  updatedAt?: string | null
 }
 
 export interface ExportTarget {
@@ -186,6 +189,8 @@ export interface ExportUnit {
   pluralSuffix?: string
   translations?: NameTranslation[]
   archived?: boolean
+  createdAt?: string | null
+  updatedAt?: string | null
 }
 
 export interface FoodDetail {
@@ -210,6 +215,8 @@ export interface FoodDto {
   displayName: string
   imageVersion: number | null
   composite: CompositeInput | null
+  createdAt: number
+  createdBy: string
 }
 
 export interface FoodEntryRef {
@@ -370,6 +377,9 @@ export interface NutrientDto {
   hidden: boolean
   builtIn: boolean
   createdBy: string
+  createdAt: number
+  updatedAt: number | null
+  updatedBy: string | null
   canEdit: boolean
   translations: NameTranslation[]
   displayName: string
@@ -485,6 +495,9 @@ export interface UnitDto {
   hidden: boolean
   builtIn: boolean
   createdBy: string
+  createdAt: number
+  updatedAt: number | null
+  updatedBy: string | null
   canEdit: boolean
   pluralSuffix: string
   translations: NameTranslation[]

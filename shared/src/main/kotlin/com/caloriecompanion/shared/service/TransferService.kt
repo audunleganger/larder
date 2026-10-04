@@ -62,10 +62,16 @@ class TransferService(
         return ExportFile(
             exportedAt = Instant.ofEpochMilli(now()).toString(),
             units = catalog.units.values.filter { !it.hidden || it.id in usedUnits }.sortedBy { it.id }.map {
-                ExportUnit(it.name, it.kind, it.baseFactor, it.hidden, it.pluralSuffix, it.translations.inLanguageOrder())
+                ExportUnit(
+                    it.name, it.kind, it.baseFactor, it.hidden, it.pluralSuffix, it.translations.inLanguageOrder(),
+                    createdAt = MetadataRules.formatTime(it.createdAt), updatedAt = MetadataRules.formatTime(it.updatedAt),
+                )
             },
             nutrients = catalog.nutrients.filter { it in nutrients || it.id in parents }.map {
-                ExportNutrient(it.name, it.measureUnit, it.displayPrecision, it.parentId?.let(nutrientName), it.hidden, it.translations.inLanguageOrder())
+                ExportNutrient(
+                    it.name, it.measureUnit, it.displayPrecision, it.parentId?.let(nutrientName), it.hidden, it.translations.inLanguageOrder(),
+                    createdAt = MetadataRules.formatTime(it.createdAt), updatedAt = MetadataRules.formatTime(it.updatedAt),
+                )
             },
             foods = catalog.foods.values.sortedBy { it.id }.map { food ->
                 // A composite food's own values are the ones entered by hand; the rest is recalculated on import.
@@ -88,6 +94,7 @@ class TransferService(
                     yieldAmount = composite?.yieldAmount,
                     yieldUnit = composite?.yieldUnitId?.let(unitName),
                     logAsWhole = composite?.logAsWhole ?: false,
+                    createdAt = MetadataRules.formatTime(food.createdAt),
                 )
             },
             entries = entryRows.map {
@@ -106,7 +113,7 @@ class TransferService(
      * existing one are skipped, so importing the same file twice is harmless. All or nothing.
      *
      * Units and nutrients are shared: they match the server's by any of their names, and new ones become
-     * the user's. Others' units and nutrients are never overwritten, but whether the user shows them is.
+     * the user's. New items keep the file's dates (version 4); who changed them last isn't known here. Others' units and nutrients are never overwritten, but whether the user shows them is.
      */
     fun import(file: ExportFile, strategy: ConflictStrategy): ImportResult {
         if (file.format !in ExportFile.ACCEPTED_FORMATS) invalid("Not an export file from this app")
@@ -141,7 +148,7 @@ class TransferService(
             val input = UnitInput(unit.name, unit.kind, unit.baseFactor, suffix, translations)
             unitCounts = when {
                 existing == null -> {
-                    unitIds[key] = unitService.create(input, hidden).id
+                    unitIds[key] = unitService.create(input, hidden, MetadataRules.parseTime(unit.createdAt), MetadataRules.parseTime(unit.updatedAt)).id
                     unitCounts.copy(created = unitCounts.created + 1)
                 }
                 overwrite -> {
@@ -174,7 +181,7 @@ class TransferService(
             val input = NutrientInput(nutrient.name, nutrient.measureUnit, nutrient.displayPrecision, translations = translations)
             nutrientCounts = when {
                 existing == null -> {
-                    nutrientIds[key] = nutrientService.create(input, hidden).id
+                    nutrientIds[key] = nutrientService.create(input, hidden, MetadataRules.parseTime(nutrient.createdAt), MetadataRules.parseTime(nutrient.updatedAt)).id
                     touched += nutrient
                     nutrientCounts.copy(created = nutrientCounts.created + 1)
                 }
@@ -198,7 +205,7 @@ class TransferService(
             val parent = nutrient.parent ?: continue
             val id = nutrientId(nutrient.name)
             // Translations were written above; null leaves them as they are.
-            nutrientService.update(id, NutrientInput(nutrientService.get(id).name, nutrient.measureUnit, nutrient.displayPrecision, nutrientId(parent)))
+            nutrientService.update(id, NutrientInput(nutrientService.get(id).name, nutrient.measureUnit, nutrient.displayPrecision, nutrientId(parent)), touch = false)
         }
 
         // Foods
@@ -224,7 +231,7 @@ class TransferService(
             if (existing == null || overwrite) touchedFoods += key
             foodCounts = when {
                 existing == null -> {
-                    val created = foodService.create(input, food.archived, rememberRef = false).id
+                    val created = foodService.create(input, food.archived, rememberRef = false, MetadataRules.parseTime(food.createdAt)).id
                     foodIds[key] = created
                     food.image?.let { foodService.setImage(created, it) }
                     foodCounts.copy(created = foodCounts.created + 1)

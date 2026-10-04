@@ -30,8 +30,9 @@ data class ExportFile(
         /**
          * 2: names per language and plural endings (L-5, U-8), food photos (F-13), composite foods (F-10).
          * 3: units and nutrients are shared by a server's users; `hidden` replaces `archived` for them.
+         * 4: when units, nutrients and foods were made and last changed (`createdAt`, `updatedAt`).
          */
-        const val VERSION = 3
+        const val VERSION = 4
     }
 }
 
@@ -47,6 +48,9 @@ data class ExportUnit(
     val translations: List<NameTranslation> = emptyList(),
     /** Version 2 files: archived, read as [hidden]. */
     @EncodeDefault(EncodeDefault.Mode.NEVER) val archived: Boolean = false,
+    /** ISO-8601 instant; kept when imported as a new item. Absent before version 4. */
+    val createdAt: String? = null,
+    val updatedAt: String? = null,
 )
 
 @OptIn(ExperimentalSerializationApi::class)
@@ -61,6 +65,9 @@ data class ExportNutrient(
     val translations: List<NameTranslation> = emptyList(),
     /** Version 2 files: archived, read as [hidden]. */
     @EncodeDefault(EncodeDefault.Mode.NEVER) val archived: Boolean = false,
+    /** ISO-8601 instant; kept when imported as a new item. Absent before version 4. */
+    val createdAt: String? = null,
+    val updatedAt: String? = null,
 )
 
 @Serializable
@@ -87,6 +94,8 @@ data class ExportFood(
     val yieldAmount: Double? = null,
     val yieldUnit: String? = null,
     val logAsWhole: Boolean = false,
+    /** ISO-8601 instant; kept when imported as a new food. Absent before version 4. */
+    val createdAt: String? = null,
 )
 
 @Serializable

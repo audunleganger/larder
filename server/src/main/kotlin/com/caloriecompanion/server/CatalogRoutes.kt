@@ -2,6 +2,8 @@ package com.caloriecompanion.server
 
 import com.caloriecompanion.shared.api.FoodImageData
 import com.caloriecompanion.shared.api.FoodInput
+import com.caloriecompanion.shared.api.FoodMetadataInput
+import com.caloriecompanion.shared.api.MetadataInput
 import com.caloriecompanion.shared.api.NutrientInput
 import com.caloriecompanion.shared.api.NutrientOrderInput
 import com.caloriecompanion.shared.api.UnitInput
@@ -43,6 +45,12 @@ fun Route.catalogRoutes(database: Database, auth: Auth) {
             val input = call.receive<UnitInput>()
             call.respond(call.withUserLanguage(database, auth) { db, user, language -> UnitService(db, user, language).update(id, input) })
         }
+        // Admins only.
+        put("/{id}/metadata") {
+            val id = call.idParam()
+            val input = call.receive<MetadataInput>()
+            call.respond(call.withUserLanguage(database, auth) { db, user, language -> UnitService(db, user, language).setMetadata(id, input) })
+        }
         post("/{id}/hide") {
             val id = call.idParam()
             call.respond(call.withUserLanguage(database, auth) { db, user, language -> UnitService(db, user, language).setHidden(id, true) })
@@ -79,6 +87,12 @@ fun Route.catalogRoutes(database: Database, auth: Auth) {
             val id = call.idParam()
             val input = call.receive<NutrientInput>()
             call.respond(call.withUserLanguage(database, auth) { db, user, language -> NutrientService(db, user, language).update(id, input) })
+        }
+        // Admins only.
+        put("/{id}/metadata") {
+            val id = call.idParam()
+            val input = call.receive<MetadataInput>()
+            call.respond(call.withUserLanguage(database, auth) { db, user, language -> NutrientService(db, user, language).setMetadata(id, input) })
         }
         post("/{id}/hide") {
             val id = call.idParam()
@@ -134,6 +148,12 @@ fun Route.catalogRoutes(database: Database, auth: Auth) {
         delete("/{id}/image") {
             val id = call.idParam()
             call.respond(call.withUserLanguage(database, auth) { db, user, language -> FoodService(db, user, language).deleteImage(id) })
+        }
+        // Admins only, for their own foods.
+        put("/{id}/metadata") {
+            val id = call.idParam()
+            val input = call.receive<FoodMetadataInput>()
+            call.respond(call.withUserLanguage(database, auth) { db, user, language -> FoodService(db, user, language).setMetadata(id, input) })
         }
         post("/{id}/archive") {
             val id = call.idParam()

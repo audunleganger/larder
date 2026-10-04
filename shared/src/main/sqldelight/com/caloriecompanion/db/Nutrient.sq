@@ -17,6 +17,11 @@ CREATE TABLE nutrient (
     archived INTEGER AS Boolean NOT NULL DEFAULT 0,
     -- One of the nutrients every user starts with (N-2); only admins can change these.
     built_in INTEGER AS Boolean NOT NULL DEFAULT 0,
+    -- When it was made (ms since 1970), and when and by whom it was last changed (null: never).
+    -- Who made it is user_id. Admins can correct all four.
+    created_at INTEGER NOT NULL DEFAULT 0,
+    updated_at INTEGER,
+    updated_by INTEGER REFERENCES app_user(id) ON DELETE SET NULL,
     UNIQUE (user_id, name_norm)
 );
 
@@ -41,7 +46,10 @@ CREATE TABLE shown_nutrient (
 );
 
 selectNutrients:
-SELECT n.*, a.username AS owner_name FROM nutrient n JOIN app_user a ON a.id = n.user_id ORDER BY n.sort_order, n.id;
+SELECT n.*, a.username AS owner_name, b.username AS updated_by_name FROM nutrient n
+JOIN app_user a ON a.id = n.user_id
+LEFT JOIN app_user b ON b.id = n.updated_by
+ORDER BY n.sort_order, n.id;
 
 selectShownNutrients:
 SELECT nutrient_id, sort_order FROM shown_nutrient WHERE user_id = ?;
@@ -59,12 +67,18 @@ deleteNutrientTranslations:
 DELETE FROM nutrient_translation WHERE nutrient_id = ?;
 
 insertNutrient:
-INSERT INTO nutrient(user_id, name, name_norm, measure_unit, display_precision, sort_order, parent_id, built_in)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+INSERT INTO nutrient(user_id, name, name_norm, measure_unit, display_precision, sort_order, parent_id, built_in, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 updateNutrient:
 UPDATE nutrient SET name = ?, name_norm = ?, measure_unit = ?, display_precision = ?, parent_id = ?
 WHERE id = ?;
+
+touchNutrient:
+UPDATE nutrient SET updated_at = ?, updated_by = ? WHERE id = ?;
+
+setNutrientMetadata:
+UPDATE nutrient SET user_id = ?, created_at = ?, updated_at = ?, updated_by = ? WHERE id = ?;
 
 maxNutrientSortOrder:
 SELECT max(sort_order) FROM nutrient;

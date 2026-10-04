@@ -16,6 +16,11 @@ CREATE TABLE quantity_unit (
     plural_suffix TEXT NOT NULL DEFAULT '',
     -- One of the standard units every user starts with (U-3); only admins can change these.
     built_in INTEGER AS Boolean NOT NULL DEFAULT 0,
+    -- When it was made (ms since 1970), and when and by whom it was last changed (null: never).
+    -- Who made it is user_id. Admins can correct all four.
+    created_at INTEGER NOT NULL DEFAULT 0,
+    updated_at INTEGER,
+    updated_by INTEGER REFERENCES app_user(id) ON DELETE SET NULL,
     UNIQUE (user_id, name_norm)
 );
 
@@ -40,7 +45,10 @@ CREATE TABLE shown_unit (
 );
 
 selectUnits:
-SELECT u.*, a.username AS owner_name FROM quantity_unit u JOIN app_user a ON a.id = u.user_id ORDER BY u.name_norm;
+SELECT u.*, a.username AS owner_name, b.username AS updated_by_name FROM quantity_unit u
+JOIN app_user a ON a.id = u.user_id
+LEFT JOIN app_user b ON b.id = u.updated_by
+ORDER BY u.name_norm;
 
 selectShownUnitIds:
 SELECT unit_id FROM shown_unit WHERE user_id = ?;
@@ -49,10 +57,17 @@ selectBuiltInUnitIds:
 SELECT id FROM quantity_unit WHERE built_in = 1;
 
 insertUnit:
-INSERT INTO quantity_unit(user_id, name, name_norm, kind, base_factor, plural_suffix, built_in) VALUES (?, ?, ?, ?, ?, ?, ?);
+INSERT INTO quantity_unit(user_id, name, name_norm, kind, base_factor, plural_suffix, built_in, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 updateUnit:
 UPDATE quantity_unit SET name = ?, name_norm = ?, kind = ?, base_factor = ?, plural_suffix = ? WHERE id = ?;
+
+touchUnit:
+UPDATE quantity_unit SET updated_at = ?, updated_by = ? WHERE id = ?;
+
+setUnitMetadata:
+UPDATE quantity_unit SET user_id = ?, created_at = ?, updated_at = ?, updated_by = ? WHERE id = ?;
 
 selectUnitTranslations:
 SELECT * FROM unit_translation;
