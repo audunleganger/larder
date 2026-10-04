@@ -518,6 +518,7 @@ export interface UnitDto {
   translations: NameTranslation[]
   displayName: string
   displayPluralSuffix: string
+  sortOrder: number | null
 }
 
 export interface UnitInput {
@@ -529,6 +530,10 @@ export interface UnitInput {
 }
 
 export type UnitKind = 'mass' | 'volume' | 'custom'
+
+export interface UnitOrderInput {
+  ids: number[]
+}
 
 export interface UsableUnit {
   unitId: number

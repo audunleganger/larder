@@ -6,6 +6,7 @@ import com.caloriecompanion.shared.api.FoodMetadataInput
 import com.caloriecompanion.shared.api.MetadataInput
 import com.caloriecompanion.shared.api.NutrientInput
 import com.caloriecompanion.shared.api.NutrientOrderInput
+import com.caloriecompanion.shared.api.UnitOrderInput
 import com.caloriecompanion.shared.api.UnitInput
 import com.caloriecompanion.shared.domain.notFound
 import com.caloriecompanion.shared.service.FoodService
@@ -35,6 +36,14 @@ fun Route.catalogRoutes(database: Database, auth: Auth) {
         post {
             val input = call.receive<UnitInput>()
             call.respond(HttpStatusCode.Created, call.withUserLanguage(database, auth) { db, user, language -> UnitService(db, user, language).create(input) })
+        }
+        put("/order") {
+            val input = call.receive<UnitOrderInput>()
+            call.respond(call.withUserLanguage(database, auth) { db, user, language -> UnitService(db, user, language).reorder(input.ids) })
+        }
+        // Back to alphabetical order.
+        delete("/order") {
+            call.respond(call.withUserLanguage(database, auth) { db, user, language -> UnitService(db, user, language).resetOrder() })
         }
         get("/{id}") {
             val id = call.idParam()

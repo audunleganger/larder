@@ -142,6 +142,21 @@ await step('units pages', async () => {
   await page.getByText(/still used by/).waitFor()
 })
 
+await step('unit order', async () => {
+  await page.getByRole('link', { name: 'Units', exact: true }).click()
+  const rows = page.locator('table').first().locator('tbody tr td:first-child')
+  await rows.first().waitFor()
+  const before = await rows.allInnerTexts()
+  if (before.join() !== [...before].sort((a, b) => a.localeCompare(b, 'en')).join()) throw new Error(`not alphabetical: ${before}`)
+  await page.getByRole('button', { name: `Move ${before[1]} up` }).click()
+  await page.getByRole('button', { name: 'Reset to alphabetical' }).waitFor()
+  await page.waitForFunction(([first]) => document.querySelector('table tbody tr td')?.textContent === first, [before[1]])
+  await shot('08b-unit-order')
+  await page.getByRole('button', { name: 'Reset to alphabetical' }).click()
+  await page.getByRole('button', { name: 'Reset to alphabetical' }).waitFor({ state: 'detached' })
+  if ((await rows.allInnerTexts()).join() !== before.join()) throw new Error('reset did not restore alphabetical order')
+})
+
 await step('nutrients pages', async () => {
   await page.getByRole('link', { name: 'Nutrients' }).click()
   await page.getByRole('button', { name: 'Move Protein up' }).click()

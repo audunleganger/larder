@@ -1,6 +1,8 @@
 # Calorie Companion — Requirement Specification
 
-Version 0.7 · 2026-10-04 · Supersedes `requirements.txt`
+Version 0.8 · 2026-10-04 · Supersedes `requirements.txt`
+
+*0.8: each user's own order of their units (U-10).*
 
 *0.7: "ingredient only" foods (F-15).*
 
@@ -90,8 +92,10 @@ The Norwegian terms are a first guess and may be changed; they live only in the 
   - Each user chooses which ones they **show**; the rest are **hidden** for them and listed in a "Hidden" section on the units and nutrients pages. A new unit or nutrient is shown for its maker and hidden for everyone else.
   - Hiding only declutters lists and pickers. A hidden unit that a food uses stays usable for that food (offered when logging it, shown in its entries); a hidden nutrient keeps its values in foods but leaves the user's totals and history.
   - Only the user who made one, and admins, can change or delete it; only admins the built-in ones (U-3, N-2).
-  - Per user: which ones are shown, the nutrient display order (N-3) and targets.
+  - Per user: which ones are shown, the unit and nutrient display orders (U-10, N-3) and targets.
   - Each records **who made it and when**, and **when and by whom it was last changed**. Only edits count as changes: hiding, showing and reordering don't. Shown on its page. Admins can correct all four; the new maker becomes the owner. An import keeps the file's dates for new ones (who changed it last is then unknown). Existing ones count as made when this was introduced (schema 7), and never changed.
+
+- **U-10 (MUST)** Each user's own **order of the units they show**, set with move up and down controls on the units page, like nutrients (N-3). Units start in **alphabetical order** (by their name in the user's language), and a **reset** puts them back in it. A unit that is created or shown again goes last, unless the user hasn't set an order. The order applies on the units page and in the unit pickers (logging, a food's units, ingredients); in a picker for a food, the food's own units come first, each group in the user's order. Not exported.
 
 ### 3.3 Nutrients
 
@@ -223,7 +227,7 @@ Tables of per-user data carry `user_id`; on units and nutrients it is the user w
 |---|---|
 | user | id, username, password_hash, is_admin, is_disabled, locale, created_at, food_ref_amount, food_ref_unit_id (F-12) |
 | quantity_unit | id, user_id (maker), name, name_norm, kind (mass/volume/custom), base_factor (nullable; for mass/volume), plural_suffix, built_in (U-3), created_at, updated_at, updated_by (U-9) |
-| shown_unit | user_id, unit_id — the units a user shows (U-9) |
+| shown_unit | user_id, unit_id, sort_order (nullable: alphabetical) — the units a user shows, in their order (U-9, U-10) |
 | unit_translation / nutrient_translation / food_translation | item id, locale, name, name_norm (+ plural_suffix for units) (L-5) |
 | nutrient | id, user_id (maker), name, name_norm, measure_unit, display_precision, sort_order (default), parent_id (nullable), built_in (N-2), created_at, updated_at, updated_by (U-9) |
 | shown_nutrient | user_id, nutrient_id, sort_order — the nutrients a user shows, in their order (U-9, N-3) |

@@ -33,6 +33,7 @@ import com.caloriecompanion.shared.api.TargetDto
 import com.caloriecompanion.shared.api.TargetInput
 import com.caloriecompanion.shared.api.UnitDetail
 import com.caloriecompanion.shared.api.UnitInput
+import com.caloriecompanion.shared.api.UnitOrderInput
 import com.caloriecompanion.shared.api.ConflictStrategy
 import com.caloriecompanion.shared.api.UserDto
 import kotlinx.serialization.descriptors.PolymorphicKind
@@ -56,7 +57,7 @@ class TypeScriptTypesTest {
         serializer<SetupStatus>(), serializer<SetupInput>(), serializer<LoginInput>(), serializer<LoginResult>(),
         serializer<UserDto>(), serializer<PasswordChangeInput>(), serializer<LocaleInput>(),
         serializer<AdminUserCreate>(), serializer<AdminUserUpdate>(), serializer<BackupResult>(),
-        serializer<UnitInput>(), serializer<UnitDetail>(),
+        serializer<UnitInput>(), serializer<UnitOrderInput>(), serializer<UnitDetail>(),
         serializer<NutrientInput>(), serializer<NutrientOrderInput>(), serializer<NutrientDetail>(),
         serializer<FoodSummary>(), serializer<FoodInput>(), serializer<FoodDetail>(), serializer<FoodRefDefault>(),
         serializer<MetadataInput>(), serializer<FoodMetadataInput>(),

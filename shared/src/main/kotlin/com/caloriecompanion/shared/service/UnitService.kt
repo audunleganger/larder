@@ -15,6 +15,7 @@ import com.caloriecompanion.shared.domain.UnitResolver
 import com.caloriecompanion.shared.domain.cleanName
 import com.caloriecompanion.shared.domain.defaultPluralSuffix
 import com.caloriecompanion.shared.domain.notFound
+import com.caloriecompanion.shared.domain.unitOrder
 import com.caloriecompanion.shared.domain.validation
 import com.caloriecompanion.shared.normalizeName
 
@@ -32,9 +33,9 @@ class UnitService(
     private val queries = db.quantityUnitQueries
     private val reader by lazy { Reader.of(db, userId, language) }
 
-    /** The units the user shows, or [includeHidden] all of them. */
+    /** The units the user shows, or [includeHidden] all of them, in the user's order (U-10; see [unitOrder]). */
     fun list(includeHidden: Boolean = false): List<UnitDto> =
-        all().filter { includeHidden || !it.hidden }.map { it.toDto(reader) }
+        all().filter { includeHidden || !it.hidden }.sortedWith(unitOrder(language)).map { it.toDto(reader) }
 
     fun get(id: Long): UnitDto = find(id).toDto(reader)
 
@@ -70,7 +71,7 @@ class UnitService(
         NameRules.ensureFree(listOf(name) + translations.map { it.name }, null, all(), "unit")
         val suffix = input.pluralSuffix?.let(NameRules::cleanSuffix) ?: defaultPluralSuffix(name, input.kind, language)
         val id = insert(name, input.kind, factor, suffix, translations, builtIn = false, createdAt ?: now(), updatedAt)
-        if (!hidden) queries.showUnit(userId, id)
+        if (!hidden) show(id)
         find(id).toDto(reader)
     }
 
@@ -97,11 +98,41 @@ class UnitService(
         find(id).toDto(reader)
     }
 
-    /** Hides the unit from the user's lists and pickers, or shows it again. Anyone can, for any unit. */
-    fun setHidden(id: Long, hidden: Boolean): UnitDto {
+    /**
+     * Hides the unit from the user's lists and pickers, or shows it again: last, if they have set an
+     * order. Anyone can, for any unit.
+     */
+    fun setHidden(id: Long, hidden: Boolean): UnitDto = db.transactionWithResult {
         find(id)
-        if (hidden) queries.hideUnit(userId, id) else queries.showUnit(userId, id)
-        return find(id).toDto(reader)
+        if (hidden) queries.hideUnit(userId, id) else show(id)
+        find(id).toDto(reader)
+    }
+
+    private fun show(id: Long) {
+        // Without an order of their own, the units stay alphabetical.
+        val last = queries.maxShownUnitOrder(userId).executeAsOne().max
+        queries.showUnit(userId, id, last?.plus(1))
+    }
+
+    /**
+     * Sets the user's order of the units they show (U-10). Shown units not listed keep their relative
+     * order after the listed ones; hidden ones are ignored.
+     */
+    fun reorder(ids: List<Long>): List<UnitDto> = db.transactionWithResult {
+        val existing = all()
+        val known = existing.map { it.id }.toSet()
+        if (ids.any { it !in known }) notFound("Unit")
+        if (ids.toSet().size != ids.size) validation("Duplicate unit in order")
+        val shown = existing.filter { !it.hidden }.sortedWith(unitOrder(language)).map { it.id }
+        val order = ids.filter { it in shown } + shown.filter { it !in ids }
+        order.forEachIndexed { index, id -> queries.setShownUnitOrder(index.toLong(), userId, id) }
+        list(includeHidden = true)
+    }
+
+    /** Puts the user's units back in alphabetical order (U-10). */
+    fun resetOrder(): List<UnitDto> = db.transactionWithResult {
+        queries.resetShownUnitOrder(userId)
+        list(includeHidden = true)
     }
 
     /** Deletes a unit no one uses (U-7); otherwise fails with REFERENCED. */

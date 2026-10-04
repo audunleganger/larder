@@ -269,6 +269,12 @@ a:hover {
   max-width: 26rem;
 }
 
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .card-header {
   display: flex;
   justify-content: space-between;
@@ -1437,6 +1443,10 @@ form > .card + .card {
 .order-buttons {
   display: flex;
   gap: 0.25rem;
+}
+
+.num .order-buttons {
+  justify-content: flex-end;
 }
 
 .targets-table th {

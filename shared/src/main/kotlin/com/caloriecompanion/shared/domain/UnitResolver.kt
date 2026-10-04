@@ -60,8 +60,11 @@ class UnitResolver(private val catalog: Catalog) {
             .map { it.id }
 
         return (explicitIds.map { it to true } + implicitIds.map { it to false })
-            .mapNotNull { (id, explicit) ->
-                val unit = catalog.units[id] ?: return@mapNotNull null
+            .mapNotNull { (id, explicit) -> catalog.units[id]?.let { it to explicit } }
+            // The food's own units first, each group in the reader's order (U-10).
+            .sortedWith(compareBy<Pair<UnitDef, Boolean>> { !it.second }.thenBy(unitOrder(language)) { it.first })
+            .map { (unit, explicit) ->
+                val id = unit.id
                 UsableUnit(
                     unitId = id,
                     name = unit.displayName(language),
@@ -71,7 +74,6 @@ class UnitResolver(private val catalog: Catalog) {
                     pluralSuffix = unit.displayPluralSuffix(language),
                 )
             }
-            .sortedWith(compareBy({ !it.explicit }, { it.name.lowercase() }))
     }
 
     fun isUsable(food: FoodDef, unitId: Long): Boolean = usableUnits(food).any { it.unitId == unitId }

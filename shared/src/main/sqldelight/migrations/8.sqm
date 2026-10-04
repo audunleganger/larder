@@ -1,0 +1,3 @@
+-- v8 -> v9: each user's own order of the units they show. NULL until they set one: alphabetical.
+
+ALTER TABLE shown_unit ADD COLUMN sort_order INTEGER;

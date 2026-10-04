@@ -62,6 +62,8 @@ export const listUnits = (includeHidden = false) => api<UnitDto[]>('/units', { q
 export const unitDetail = (id: number) => api<UnitDetail>(`/units/${id}`)
 export const createUnit = (input: UnitInput) => api<UnitDto>('/units', { method: 'POST', body: input })
 export const updateUnit = (id: number, input: UnitInput) => api<UnitDto>(`/units/${id}`, { method: 'PUT', body: input })
+export const reorderUnits = (ids: number[]) => api<UnitDto[]>('/units/order', { method: 'PUT', body: { ids } })
+export const resetUnitOrder = () => api<UnitDto[]>('/units/order', { method: 'DELETE' })
 export const hideUnit = (id: number, hidden: boolean) => api<UnitDto>(`/units/${id}/${hidden ? 'hide' : 'show'}`, { method: 'POST' })
 export const setUnitMetadata = (id: number, input: MetadataInput) => api<UnitDto>(`/units/${id}/metadata`, { method: 'PUT', body: input })
 export const deleteUnit = (id: number) => api<void>(`/units/${id}`, { method: 'DELETE' })

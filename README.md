@@ -216,6 +216,7 @@ All endpoints except health, setup and login need `Authorization: Bearer <token>
 | `GET /api/v1/foods/ref-default` | The reference amount a new food starts with |
 | `GET/PUT/DELETE /api/v1/foods/{id}/image` | A food's photo (`?size=thumbnail`; `?v=<imageVersion>` for permanent caching). PUT takes base64 JSON |
 | `PUT /api/v1/nutrients/order` | Display order |
+| `PUT /api/v1/units/order`, `DELETE /units/order` | Display order of the units; DELETE puts them back in alphabetical order |
 | `GET /api/v1/days/{date}` | Day view: entries with calculated nutrients, totals, target status |
 | `POST /api/v1/entries`, `POST /entries/preview`, `GET/PUT/DELETE /entries/{id}` | Entries. Logging a composite food creates one entry per ingredient and returns the first |
 | `GET/POST /api/v1/targets`, `DELETE /targets/{id}` | Daily targets, each valid from a date |

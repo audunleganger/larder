@@ -1,6 +1,7 @@
 import kotlin.Boolean;
 
--- Units are shared by all users of a server; each user picks which ones they see (shown_unit).
+-- Units are shared by all users of a server; each user picks which ones they see, and in which order
+-- (shown_unit).
 -- kind: 'mass' / 'volume' have a global base_factor (to g / ml); 'custom' is sized per food (U-2).
 CREATE TABLE quantity_unit (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -41,6 +42,8 @@ CREATE TABLE unit_translation (
 CREATE TABLE shown_unit (
     user_id INTEGER NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
     unit_id INTEGER NOT NULL REFERENCES quantity_unit(id) ON DELETE CASCADE,
+    -- The user's order; NULL until they set one, and then the units are in alphabetical order.
+    sort_order INTEGER,
     PRIMARY KEY (user_id, unit_id)
 );
 
@@ -50,8 +53,8 @@ JOIN app_user a ON a.id = u.user_id
 LEFT JOIN app_user b ON b.id = u.updated_by
 ORDER BY u.name_norm;
 
-selectShownUnitIds:
-SELECT unit_id FROM shown_unit WHERE user_id = ?;
+selectShownUnits:
+SELECT unit_id, sort_order FROM shown_unit WHERE user_id = ?;
 
 selectBuiltInUnitIds:
 SELECT id FROM quantity_unit WHERE built_in = 1;
@@ -79,7 +82,16 @@ deleteUnitTranslations:
 DELETE FROM unit_translation WHERE unit_id = ?;
 
 showUnit:
-INSERT OR IGNORE INTO shown_unit(user_id, unit_id) VALUES (?, ?);
+INSERT OR IGNORE INTO shown_unit(user_id, unit_id, sort_order) VALUES (?, ?, ?);
+
+setShownUnitOrder:
+UPDATE shown_unit SET sort_order = ? WHERE user_id = ? AND unit_id = ?;
+
+resetShownUnitOrder:
+UPDATE shown_unit SET sort_order = NULL WHERE user_id = ?;
+
+maxShownUnitOrder:
+SELECT max(sort_order) FROM shown_unit WHERE user_id = ?;
 
 hideUnit:
 DELETE FROM shown_unit WHERE user_id = ? AND unit_id = ?;

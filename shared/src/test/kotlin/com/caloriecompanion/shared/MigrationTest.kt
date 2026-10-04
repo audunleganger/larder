@@ -61,6 +61,8 @@ class MigrationTest {
         assertTrue(FoodService(db, 1).list().all { FoodService(db, 1).get(it.id).createdAt in upgradedAt - 60_000..upgradedAt })
         // v8: no food is ingredient only.
         assertTrue(FoodService(db, 1).list().none { it.ingredientOnly })
+        // v9: no unit order of their own yet, so the units are alphabetical.
+        assertTrue(units.all { it.sortOrder == null })
     }
 
     @Test
