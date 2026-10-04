@@ -5,10 +5,6 @@ Changes to stored data also need a schema migration, a new export format version
 
 ## Features
 
-- **Photo from a URL**, besides file upload and the camera. The server downloads the image once and stores it like
-  an upload (shrunk, with a thumbnail), so backups and exports include it and it survives the link breaking. It
-  must refuse addresses on the local network (loopback, private and link-local, checked again after each
-  redirect), limit size and download time, and accept only JPEG, PNG and WebP.
 - **Scan a nutrition label** when editing a food: take or upload a photo of the label and fill in the nutrient
   values from it. It must be free and work offline, so the text is read in the browser (for example with
   Tesseract.js), not by an online service. It only fills nutrients whose name (or a translation) matches a line on
@@ -39,11 +35,6 @@ Changes to stored data also need a schema migration, a new export format version
 
 ## Changes
 
-- **Reorder units on the units page**, like nutrients (N-3): each user's own order of the units they show, with
-  the same move up and down controls. A unit that's shown again goes last. Units start in alphabetical order, as
-  now, and a **reset** button puts them back in alphabetical order. Needs a schema change (a `sort_order` on
-  `shown_unit`). The order also applies in the unit pickers (logging, a food's units, ingredients); in a picker
-  for a food, the food's own units still come first, each group in the user's order.
 - **Only a name when adding a food.** The "new food" form on the foods page asks just for the name; the reference
   amount and unit are set on the food's page, which opens right after. The new food still starts with the
   remembered reference amount (F-12): the form sends it without showing it, or the food's page prefills it. Same
