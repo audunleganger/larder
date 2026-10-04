@@ -27,8 +27,8 @@ class CompositeTest {
     private val units = UnitService(t.db, t.userId)
     private val foods = FoodService(t.db, t.userId)
     private val entries = EntryService(t.db, t.userId)
-    private fun unit(name: String) = units.list(includeArchived = true).first { it.name == name }.id
-    private fun nutrient(name: String) = NutrientService(t.db, t.userId).list(includeArchived = true).first { it.name == name }.id
+    private fun unit(name: String) = units.list(includeHidden = true).first { it.name == name }.id
+    private fun nutrient(name: String) = NutrientService(t.db, t.userId).list(includeHidden = true).first { it.name == name }.id
     private val energy get() = nutrient("Energy")
     private val slice by lazy { units.create(UnitInput("slice", UnitKind.CUSTOM)).id }
 

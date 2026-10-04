@@ -41,8 +41,8 @@ class UnitResolver(private val catalog: Catalog) {
 
     /**
      * Units usable for [food] (E-1): explicitly linked units and the reference unit, plus all standard
-     * units in any dimension the food already has a standard unit in (U-4). Archived units are only
-     * included when explicitly linked.
+     * units in any dimension the food already has a standard unit in (U-4). Units the reader has hidden
+     * are only included when explicitly linked.
      */
     fun usableUnits(food: FoodDef, language: String? = null): List<UsableUnit> {
         val explicitIds = LinkedHashSet<Long>()
@@ -56,7 +56,7 @@ class UnitResolver(private val catalog: Catalog) {
             if (unit.kind.isStandard) dimensions.add(unit.kind)
         }
         val implicitIds = catalog.units.values
-            .filter { it.kind in dimensions && !it.archived && it.baseFactor != null && it.id !in explicitIds }
+            .filter { it.kind in dimensions && !it.hidden && it.baseFactor != null && it.id !in explicitIds }
             .map { it.id }
 
         return (explicitIds.map { it to true } + implicitIds.map { it to false })

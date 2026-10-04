@@ -6,10 +6,11 @@ import com.caloriecompanion.shared.api.NutrientInput
 import com.caloriecompanion.shared.api.UnitInput
 import com.caloriecompanion.shared.api.UnitKind
 import com.caloriecompanion.shared.domain.Languages
+import com.caloriecompanion.shared.normalizeName
 
 /**
- * Default units (U-3) and nutrients (N-2) for a new catalog. The main name is in the user's language
- * (L-4), and the other language's name is added as a translation (L-5).
+ * The units (U-3) and nutrients (N-2) every user starts with. They are created once per server, with
+ * English main names and Norwegian translations (L-5), and owned by the first user, normally the admin.
  */
 object Seeder {
     private data class SeedUnit(val en: String, val nb: String, val kind: UnitKind, val factor: Double?, val enSuffix: String = "", val nbSuffix: String = "")
@@ -44,32 +45,36 @@ object Seeder {
 
     fun isNorwegian(locale: String?): Boolean = Languages.isNorwegian(locale)
 
-    /** Seeds an empty catalog. Does nothing if the user already has units or nutrients. */
-    fun seed(db: CalorieCompanionDatabase, userId: Long, locale: String?) = db.transaction {
-        val norwegian = isNorwegian(locale)
-        val unitService = UnitService(db, userId)
-        val nutrientService = NutrientService(db, userId)
-        // (name, plural ending) in the main language, and the other language's as a translation.
-        fun <T> names(en: T, nb: T) = if (norwegian) nb to en else en to nb
-        val other = if (norwegian) "en" else "nb"
-        if (unitService.list(includeArchived = true).isEmpty()) {
-            units.forEach { seed ->
-                val (name, otherName) = names(seed.en, seed.nb)
-                val (suffix, otherSuffix) = names(seed.enSuffix, seed.nbSuffix)
-                val translations = if (otherName != name) listOf(NameTranslation(other, otherName, otherSuffix)) else emptyList()
-                unitService.create(UnitInput(name, seed.kind, seed.factor, suffix, translations))
+    /**
+     * Sets up a new user: creates the built-in units and nutrients if the server has none yet (owned by
+     * [userId]), and shows them for the user. Built-ins whose name is already taken are left out.
+     */
+    fun seed(db: CalorieCompanionDatabase, userId: Long) = db.transaction {
+        val unitQueries = db.quantityUnitQueries
+        val nutrientQueries = db.nutrientQueries
+        if (unitQueries.selectBuiltInUnitIds().executeAsList().isEmpty()) {
+            val service = UnitService(db, userId)
+            val taken = loadUnits(db, userId).flatMapTo(HashSet()) { it.allNames() }
+            for (seed in units) {
+                if (normalizeName(seed.en) in taken || normalizeName(seed.nb) in taken) continue
+                val translations = if (seed.nb != seed.en) listOf(NameTranslation("nb", seed.nb, seed.nbSuffix)) else emptyList()
+                service.insert(seed.en, seed.kind, seed.factor, seed.enSuffix, translations, builtIn = true)
             }
         }
-        if (nutrientService.list(includeArchived = true).isEmpty()) {
-            val ids = HashMap<String, Long>()
-            nutrients.forEach { seed ->
-                val parentId = seed.parent?.let { ids.getValue(it) }
-                val (name, otherName) = names(seed.en, seed.nb)
-                val translations = if (otherName != name) listOf(NameTranslation(other, otherName)) else emptyList()
-                val created = nutrientService.create(NutrientInput(name, seed.unit, seed.precision, parentId, translations))
-                ids[seed.en] = created.id
+        if (nutrientQueries.selectBuiltInNutrients().executeAsList().isEmpty()) {
+            val service = NutrientService(db, userId)
+            val existing = loadNutrients(db, userId)
+            val taken = existing.flatMapTo(HashSet()) { it.allNames() }
+            val ids = existing.associateTo(HashMap()) { normalizeName(it.name) to it.id }
+            for (seed in nutrients) {
+                if (normalizeName(seed.en) in taken || normalizeName(seed.nb) in taken) continue
+                val translations = if (seed.nb != seed.en) listOf(NameTranslation("nb", seed.nb)) else emptyList()
+                val parentId = seed.parent?.let { ids[normalizeName(it)] }
+                ids[normalizeName(seed.en)] = service.insert(NutrientInput(seed.en, seed.unit, seed.precision, parentId, translations), builtIn = true)
             }
         }
+        unitQueries.selectBuiltInUnitIds().executeAsList().forEach { unitQueries.showUnit(userId, it) }
+        nutrientQueries.selectBuiltInNutrients().executeAsList().forEach { nutrientQueries.showNutrient(userId, it.id, it.sort_order) }
     }
 }
 
@@ -81,9 +86,10 @@ object LocalUser {
     fun ensure(db: CalorieCompanionDatabase, locale: String?, now: Long = System.currentTimeMillis()): Long =
         db.transactionWithResult {
             db.appUserQueries.selectFirst().executeAsOneOrNull()?.id ?: run {
-                db.appUserQueries.insertUser(USERNAME, null, false, locale, now)
+                // The only user, so it may also change the built-in units and nutrients.
+                db.appUserQueries.insertUser(USERNAME, null, true, locale, now)
                 val id = db.appUserQueries.lastInsertRowId().executeAsOne()
-                Seeder.seed(db, id, locale)
+                Seeder.seed(db, id)
                 id
             }
         }

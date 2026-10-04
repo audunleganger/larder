@@ -20,16 +20,33 @@ interface Named {
     fun allNames(): Set<String> = (listOf(name) + translations.values.map { it.name }).mapTo(HashSet(), ::normalizeName)
 }
 
+/** Units and nutrients are shared by a server's users; the rest of [Owned] is as seen by one reader. */
+interface Owned {
+    /** The user who made it. */
+    val ownerId: Long
+    val ownerName: String
+    /** One of the units or nutrients every user starts with; only admins can change these. */
+    val builtIn: Boolean
+    /** Hidden for the reader: left out of their lists and pickers, but still works where it's used. */
+    val hidden: Boolean
+
+    /** Whether the user [userId] may change or delete it. */
+    fun canEdit(userId: Long, isAdmin: Boolean): Boolean = isAdmin || (!builtIn && ownerId == userId)
+}
+
 data class UnitDef(
     override val id: Long,
     override val name: String,
     val kind: UnitKind,
     val baseFactor: Double?,
-    val archived: Boolean,
+    override val hidden: Boolean = false,
     /** Plural ending of the main name (U-8). */
     val pluralSuffix: String = "",
     override val translations: Map<String, NameTranslation> = emptyMap(),
-) : Named {
+    override val ownerId: Long = 0,
+    override val ownerName: String = "",
+    override val builtIn: Boolean = false,
+) : Named, Owned {
     fun displayPluralSuffix(language: String?): String = pickTranslation(translations, language)?.pluralSuffix ?: pluralSuffix
 }
 
@@ -38,11 +55,15 @@ data class NutrientDef(
     override val name: String,
     val measureUnit: String,
     val displayPrecision: Int,
+    /** The reader's order (N-3); hidden nutrients come after the shown ones. */
     val sortOrder: Int,
     val parentId: Long?,
-    val archived: Boolean,
+    override val hidden: Boolean = false,
     override val translations: Map<String, NameTranslation> = emptyMap(),
-) : Named
+    override val ownerId: Long = 0,
+    override val ownerName: String = "",
+    override val builtIn: Boolean = false,
+) : Named, Owned
 
 data class FoodDef(
     override val id: Long,
@@ -83,7 +104,7 @@ data class CompositeDef(
     val grams: List<Double?> = emptyList(),
 )
 
-/** A user's complete catalog, loaded into memory for calculations. */
+/** A user's complete catalog, loaded into memory for calculations: their foods, and every unit and nutrient. */
 class Catalog(
     units: List<UnitDef>,
     nutrients: List<NutrientDef>,
@@ -95,8 +116,8 @@ class Catalog(
     val nutrientsById: Map<Long, NutrientDef> = this.nutrients.associateBy { it.id }
     val foods: Map<Long, FoodDef> = foods.associateBy { it.id }
 
-    /** Nutrients shown in day views, totals and history (not archived). */
-    val displayedNutrients: List<NutrientDef> get() = nutrients.filter { !it.archived }
+    /** Nutrients shown in day views, totals and history (not hidden). */
+    val displayedNutrients: List<NutrientDef> get() = nutrients.filter { !it.hidden }
 }
 
 /**

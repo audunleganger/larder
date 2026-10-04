@@ -18,7 +18,7 @@ class TargetService(private val db: CalorieCompanionDatabase, private val userId
     fun list(): List<TargetDto> = queries.selectTargets(userId).executeAsList().map { it.toDto() }
 
     fun set(input: TargetInput): TargetDto = db.transactionWithResult {
-        val nutrients = db.nutrientQueries.selectNutrients(userId).executeAsList()
+        val nutrients = db.nutrientQueries.selectNutrients().executeAsList()
         if (nutrients.none { it.id == input.nutrientId }) notFound("Nutrient")
         requireNonNegative(input.min, "Minimum")
         requireNonNegative(input.max, "Maximum")

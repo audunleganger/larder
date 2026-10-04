@@ -44,7 +44,7 @@ class Auth(private val config: ServerConfig, private val now: () -> Long = Syste
             }
             db.appUserQueries.insertUser(name, hashPassword(password), isAdmin, cleanLocale(locale), now())
             val id = db.appUserQueries.lastInsertRowId().executeAsOne()
-            Seeder.seed(db, id, locale)
+            Seeder.seed(db, id)
             db.appUserQueries.selectById(id).executeAsOne()
         }
 

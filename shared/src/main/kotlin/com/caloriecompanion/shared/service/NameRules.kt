@@ -46,7 +46,7 @@ internal object NameRules {
             val clash = item.allNames().firstOrNull { it in wanted } ?: continue
             val name = wanted.getValue(clash)
             val owner = if (normalizeName(item.name) == clash) "" else " (it's a translation of '${item.name}')"
-            throw AppException(ErrorCodes.NAME_TAKEN, "A $what named '$name' already exists$owner", 409)
+            throw AppException(ErrorCodes.NAME_TAKEN, "A $what named '$name' already exists$owner", 409, mapOf("id" to item.id))
         }
     }
 

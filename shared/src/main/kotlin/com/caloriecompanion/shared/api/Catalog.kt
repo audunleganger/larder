@@ -30,6 +30,10 @@ data class NameTranslation(
 
 // ---- Units ----
 
+/**
+ * Units and nutrients are shared by all users of a server. Each user sees the ones they choose: the
+ * rest are [UnitDto.hidden] for them. Only the user who made one, and admins, can change it ([UnitDto.canEdit]).
+ */
 @Serializable
 data class UnitDto(
     val id: Long,
@@ -38,7 +42,14 @@ data class UnitDto(
     val kind: UnitKind,
     /** For mass/volume: size in g or ml. Null for custom units. */
     val baseFactor: Double?,
-    val archived: Boolean,
+    /** Left out of the reader's lists and pickers; still works where it's already used. */
+    val hidden: Boolean,
+    /** One of the standard units every user starts with (U-3); only admins can change these. */
+    val builtIn: Boolean,
+    /** Username of the user who made it. */
+    val createdBy: String,
+    /** Whether the reader may change or delete it. */
+    val canEdit: Boolean,
     /** Appended to the main name when the quantity isn't 1 (U-8). */
     val pluralSuffix: String,
     val translations: List<NameTranslation>,
@@ -86,9 +97,15 @@ data class NutrientDto(
     val name: String,
     val measureUnit: String,
     val displayPrecision: Int,
+    /** The reader's order (N-3); hidden nutrients come after the shown ones. */
     val sortOrder: Int,
     val parentId: Long?,
-    val archived: Boolean,
+    /** Left out of the reader's totals, history and lists; foods keep their values. See [UnitDto]. */
+    val hidden: Boolean,
+    /** One of the nutrients every user starts with (N-2); only admins can change these. */
+    val builtIn: Boolean,
+    val createdBy: String,
+    val canEdit: Boolean,
     val translations: List<NameTranslation>,
     val displayName: String,
 )

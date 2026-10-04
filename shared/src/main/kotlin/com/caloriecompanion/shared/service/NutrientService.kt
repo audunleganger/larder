@@ -17,14 +17,20 @@ import com.caloriecompanion.shared.domain.notFound
 import com.caloriecompanion.shared.domain.validation
 import com.caloriecompanion.shared.normalizeName
 
-/** [language]: the reader's language, for display names (L-5). */
+/**
+ * Nutrients, shared by all users of the server; [userId] is the user acting. Everyone chooses which
+ * nutrients they show and in which order; only a nutrient's maker and admins can change it.
+ * [language]: the reader's language, for display names (L-5).
+ */
 class NutrientService(private val db: CalorieCompanionDatabase, private val userId: Long, private val language: String? = null) {
     private val queries = db.nutrientQueries
+    private val reader by lazy { Reader.of(db, userId, language) }
 
-    fun list(includeArchived: Boolean = false): List<NutrientDto> =
-        all().filter { includeArchived || !it.archived }.map { it.toDto(language) }
+    /** The nutrients the user shows, in their order, or [includeHidden] all of them (hidden ones last). */
+    fun list(includeHidden: Boolean = false): List<NutrientDto> =
+        all().filter { includeHidden || !it.hidden }.map { it.toDto(reader) }
 
-    fun get(id: Long): NutrientDto = find(id).toDto(language)
+    fun get(id: Long): NutrientDto = find(id).toDto(reader)
 
     fun detail(id: Long, entryLimit: Int = 500): NutrientDetail {
         val catalog = loadCatalog(db, userId)
@@ -61,39 +67,38 @@ class NutrientService(private val db: CalorieCompanionDatabase, private val user
                 unitPluralSuffix = unit?.displayPluralSuffix(language).orEmpty(),
             )
         }
-        return NutrientDetail(nutrient.toDto(language), foods, entries, entriesTruncated = rows.size > entryLimit)
+        return NutrientDetail(nutrient.toDto(reader), foods, entries, entriesTruncated = rows.size > entryLimit)
     }
 
-    fun create(input: NutrientInput, archived: Boolean = false): NutrientDto = db.transactionWithResult {
+    /**
+     * Creates a nutrient owned by the user and shows it for them, last. Names are unique across the
+     * server: a taken name fails with NAME_TAKEN and the existing nutrient's id, so it can be shown instead.
+     */
+    fun create(input: NutrientInput, hidden: Boolean = false): NutrientDto = db.transactionWithResult {
         val clean = validate(input, selfId = null)
-        val sortOrder = (queries.maxNutrientSortOrder(userId).executeAsOne().max ?: -1) + 1
-        queries.insertNutrient(
-            userId, clean.name, normalizeName(clean.name), clean.measureUnit,
-            clean.displayPrecision.toLong(), sortOrder, clean.parentId, archived,
-        )
-        val id = db.appUserQueries.lastInsertRowId().executeAsOne()
-        writeTranslations(id, clean.translations.orEmpty())
-        find(id).toDto(language)
+        val id = insert(clean, builtIn = false)
+        if (!hidden) show(id)
+        find(id).toDto(reader)
     }
 
     /** A null translation list in [input] leaves the translations unchanged. */
     fun update(id: Long, input: NutrientInput): NutrientDto = db.transactionWithResult {
-        find(id)
+        editable(id)
         val clean = validate(input, selfId = id)
         queries.updateNutrient(
             clean.name, normalizeName(clean.name), clean.measureUnit,
-            clean.displayPrecision.toLong(), clean.parentId, id, userId,
+            clean.displayPrecision.toLong(), clean.parentId, id,
         )
         clean.translations?.let { writeTranslations(id, it) }
         // A changed parent moves the nutrient into (or out of) a group; store the grouped order.
         storeOrder(all())
-        find(id).toDto(language)
+        find(id).toDto(reader)
     }
 
     /**
-     * Sets the display order (N-3). Nutrients not listed keep their relative order after the listed ones.
-     * The result is always grouped: a main nutrient's position moves its whole group, and sub-nutrients
-     * are only ordered among their siblings.
+     * Sets the user's display order (N-3). Shown nutrients not listed keep their relative order after the
+     * listed ones. The result is always grouped: a main nutrient's position moves its whole group, and
+     * sub-nutrients are only ordered among their siblings.
      */
     fun reorder(ids: List<Long>): List<NutrientDto> = db.transactionWithResult {
         val existing = all()
@@ -102,36 +107,61 @@ class NutrientService(private val db: CalorieCompanionDatabase, private val user
         if (ids.toSet().size != ids.size) validation("Duplicate nutrient in order")
         val position = (ids + existing.map { it.id }.filter { it !in ids }).withIndex().associate { it.value to it.index }
         storeOrder(existing.map { it.copy(sortOrder = position.getValue(it.id)) })
-        all().map { it.toDto(language) }
+        list(includeHidden = true)
     }
 
     private fun storeOrder(nutrients: List<NutrientDef>) {
-        nutrients.inDisplayOrder().forEachIndexed { index, n -> queries.setNutrientSortOrder(index.toLong(), n.id, userId) }
+        nutrients.filter { !it.hidden }.inDisplayOrder()
+            .forEachIndexed { index, n -> queries.setShownNutrientOrder(index.toLong(), userId, n.id) }
     }
 
-    fun setArchived(id: Long, archived: Boolean): NutrientDto {
+    /**
+     * Hides the nutrient from the user's totals, history and lists, or shows it again at the end of its
+     * group. Anyone can, for any nutrient; foods keep their values either way.
+     */
+    fun setHidden(id: Long, hidden: Boolean): NutrientDto = db.transactionWithResult {
         find(id)
-        queries.setNutrientArchived(archived, id, userId)
-        return find(id).toDto(language)
+        if (hidden) queries.hideNutrient(userId, id) else show(id)
+        find(id).toDto(reader)
     }
 
-    /** Deletes an unreferenced nutrient (N-5); otherwise fails with REFERENCED. */
+    private fun show(id: Long) {
+        queries.showNutrient(userId, id, (queries.maxShownNutrientOrder(userId).executeAsOne().max ?: -1) + 1)
+    }
+
+    /** Deletes a nutrient no one uses (N-5); otherwise fails with REFERENCED. */
     fun delete(id: Long) = db.transaction {
-        find(id)
+        editable(id)
         val foods = queries.countNutrientFoodRefs(id).executeAsOne()
         val targets = queries.countNutrientTargetRefs(id).executeAsOne()
         if (foods > 0 || targets > 0) {
             throw AppException(
-                ErrorCodes.REFERENCED, "Nutrient is in use; archive it instead", 409,
+                ErrorCodes.REFERENCED, "Nutrient is in use; hide it instead", 409,
                 mapOf("foods" to foods, "targets" to targets),
             )
         }
-        queries.deleteNutrient(id, userId)
+        queries.deleteNutrient(id)
     }
 
-    private fun all(): List<NutrientDef> {
-        val translations = nutrientTranslations(db, userId)
-        return queries.selectNutrients(userId).executeAsList().map { it.toDef(translations[it.id].orEmpty()) }.inDisplayOrder()
+    /** Inserts a validated nutrient owned by the user, last in the default order; for [create] and the built-in nutrients. */
+    internal fun insert(clean: NutrientInput, builtIn: Boolean): Long {
+        val sortOrder = (queries.maxNutrientSortOrder().executeAsOne().max ?: -1) + 1
+        queries.insertNutrient(
+            userId, clean.name, normalizeName(clean.name), clean.measureUnit,
+            clean.displayPrecision.toLong(), sortOrder, clean.parentId, builtIn,
+        )
+        val id = db.appUserQueries.lastInsertRowId().executeAsOne()
+        writeTranslations(id, clean.translations.orEmpty())
+        return id
+    }
+
+    private fun all(): List<NutrientDef> = loadNutrients(db, userId)
+
+    private fun editable(id: Long): NutrientDef = find(id).also {
+        if (!it.canEdit(userId, reader.isAdmin)) {
+            val who = if (it.builtIn) "an admin" else "${it.ownerName} or an admin"
+            throw AppException(ErrorCodes.FORBIDDEN, "Only $who can change '${it.name}'", 403)
+        }
     }
 
     private fun writeTranslations(id: Long, translations: List<NameTranslation>) {
@@ -141,7 +171,7 @@ class NutrientService(private val db: CalorieCompanionDatabase, private val user
 
     private fun find(id: Long): NutrientDef = all().firstOrNull { it.id == id } ?: notFound("Nutrient")
 
-    private fun validate(input: NutrientInput, selfId: Long?): NutrientInput {
+    internal fun validate(input: NutrientInput, selfId: Long?): NutrientInput {
         val name = cleanName(input.name)
         val translations = input.translations?.let { NameRules.cleanTranslations(it, withSuffix = false) }
         val current = selfId?.let { id -> all().firstOrNull { it.id == id } }?.translations?.values.orEmpty()

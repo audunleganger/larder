@@ -9,8 +9,8 @@ class NutrientGroupingTest {
     private val t = TestDb()
     private val nutrients = NutrientService(t.db, t.userId)
 
-    private fun id(name: String) = nutrients.list(includeArchived = true).first { it.name == name }.id
-    private fun names() = nutrients.list(includeArchived = true).map { it.name }
+    private fun id(name: String) = nutrients.list(includeHidden = true).first { it.name == name }.id
+    private fun names() = nutrients.list(includeHidden = true).map { it.name }
 
     private val seeded = listOf("Energy", "Protein", "Carbohydrates", "Sugars", "Fat", "Saturated fat", "Fiber", "Salt")
 
@@ -46,6 +46,6 @@ class NutrientGroupingTest {
         nutrients.update(salt.id, NutrientInput(salt.name, salt.measureUnit, salt.displayPrecision, parentId = id("Protein")))
         assertEquals(listOf("Energy", "Protein", "Salt", "Carbohydrates"), names().take(4))
         // Sort orders are stored in display order, so a plain sort by sortOrder agrees.
-        assertEquals(names(), nutrients.list(includeArchived = true).sortedBy { it.sortOrder }.map { it.name })
+        assertEquals(names(), nutrients.list(includeHidden = true).sortedBy { it.sortOrder }.map { it.name })
     }
 }

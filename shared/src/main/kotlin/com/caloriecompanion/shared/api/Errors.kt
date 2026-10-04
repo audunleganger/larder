@@ -22,6 +22,9 @@ object ErrorCodes {
 data class ErrorResponse(
     val error: String,
     val message: String,
-    /** For REFERENCED: counts of what still references the item, e.g. {"entries": 3}. */
+    /**
+     * For REFERENCED: counts of what still references the item, e.g. {"entries": 3}. For NAME_TAKEN by a
+     * unit or nutrient: {"id": <the one with that name>}, so a hidden one can be shown instead.
+     */
     val details: Map<String, Long> = emptyMap(),
 )

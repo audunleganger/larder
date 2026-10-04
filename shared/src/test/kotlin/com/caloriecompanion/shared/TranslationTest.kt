@@ -25,7 +25,7 @@ class TranslationTest {
     private val t = TestDb()
     private fun units(language: String? = null) = UnitService(t.db, t.userId, language)
     private fun foods(language: String? = null) = FoodService(t.db, t.userId, language)
-    private fun unit(name: String) = units().list(includeArchived = true).first { it.name == name }
+    private fun unit(name: String) = units().list(includeHidden = true).first { it.name == name }
 
     private fun expectCode(code: String, block: () -> Unit) {
         assertEquals(code, assertFailsWith<AppException> { block() }.code)
@@ -54,11 +54,11 @@ class TranslationTest {
     }
 
     @Test
-    fun `a Norwegian user's main names are Norwegian`() {
+    fun `built-in names are English with Norwegian translations, whatever the first user's language`() {
         val nb = TestDb("nb")
-        val porsjon = UnitService(nb.db, nb.userId).list().first { it.name == "porsjon" }
-        assertEquals(listOf(NameTranslation("en", "serving", "s")), porsjon.translations)
-        assertEquals("er", porsjon.pluralSuffix)
+        val serving = UnitService(nb.db, nb.userId, "nb").list().first { it.name == "serving" }
+        assertEquals(listOf(NameTranslation("nb", "porsjon", "er")), serving.translations)
+        assertEquals("porsjon", serving.displayName)
     }
 
     @Test
