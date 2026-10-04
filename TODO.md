@@ -117,3 +117,12 @@ one go:
 - **Harmless to change:** the export file name `calorie-companion-<date>.json` (server and Android), the backup
   file prefix.
 - Replace the default Vite favicon (`web/public/favicon.svg`) with an icon for the new name.
+- **On this machine**, outside the repository (done by hand, after the rename is merged):
+  - Rename the checkout `~/development/calorie-companion` to `~/development/larder`. Git and the `origin` remote
+    don't care about the folder name.
+  - Claude Code keeps its notes on the project in a folder named after the checkout's path
+    (`~/.claude/projects/-home-audun-development-calorie-companion`). Rename it to match
+    (`-home-audun-development-larder`), or the notes are lost.
+  - The deployment in `~/development/infra/calorie-companion`: the folder, the compose service and container name,
+    the image name, and the database file in `data/` (only once the server opens the new file name, see above).
+    Stop the container first, and update any backup paths that point at the old folder.
