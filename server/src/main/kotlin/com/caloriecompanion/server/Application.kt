@@ -91,7 +91,7 @@ fun Application.module(config: ServerConfig) {
     routing {
         route("/api") {
             get("/health") {
-                call.respond(HealthResponse(status = "ok", version = AppInfo.VERSION, apiVersion = AppInfo.API_VERSION))
+                call.respond(HealthResponse(status = "ok", version = config.version, apiVersion = AppInfo.API_VERSION))
             }
             route("/v1") {
                 accountRoutes(database, auth)

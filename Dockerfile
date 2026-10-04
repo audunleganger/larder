@@ -16,6 +16,9 @@ COPY server server
 RUN ./gradlew --no-daemon :server:buildFatJar
 
 FROM eclipse-temurin:21-jre
+# The version /api/health reports, set by CI to the release tag or commit (DEP-5). Unset means the source version.
+ARG APP_VERSION=""
+LABEL org.opencontainers.image.source="https://github.com/audunleganger/larder"
 RUN useradd --system --create-home calorie \
     && mkdir /data && chown calorie /data
 WORKDIR /app
@@ -24,7 +27,8 @@ COPY --from=web /web/dist web
 USER calorie
 ENV CC_PORT=8080 \
     CC_DATA_DIR=/data \
-    CC_WEB_DIR=/app/web
+    CC_WEB_DIR=/app/web \
+    CC_VERSION=${APP_VERSION}
 VOLUME /data
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

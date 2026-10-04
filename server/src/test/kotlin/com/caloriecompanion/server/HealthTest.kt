@@ -27,6 +27,22 @@ class HealthTest {
     }
 
     @Test
+    fun `health reports the configured version`() = testApplication {
+        val dataDir = Files.createTempDirectory("cc-test")
+        application { module(ServerConfig(dataDir = dataDir, bcryptCost = 4, version = "1.2.3")) }
+        val client = createClient { install(ContentNegotiation) { json() } }
+
+        assertEquals("1.2.3", client.get("/api/health").body<HealthResponse>().version)
+    }
+
+    @Test
+    fun `version comes from CC_VERSION, or the source version when unset or blank`() {
+        assertEquals("0.10.0-test", ServerConfig.fromEnv(mapOf("CC_VERSION" to "0.10.0-test")).version)
+        assertEquals(AppInfo.VERSION, ServerConfig.fromEnv(mapOf("CC_VERSION" to "")).version)
+        assertEquals(AppInfo.VERSION, ServerConfig.fromEnv(emptyMap()).version)
+    }
+
+    @Test
     fun `unknown api paths 404 even when the web GUI is served`() = testApplication {
         val dataDir = Files.createTempDirectory("cc-test")
         val webDir = Files.createTempDirectory("cc-web").also { it.resolve("index.html").writeText("<html></html>") }
