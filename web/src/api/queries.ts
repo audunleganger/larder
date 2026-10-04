@@ -31,6 +31,28 @@ export const useFoodDetail = (id: number | null) =>
     enabled: id !== null,
   })
 
+/**
+ * The food and every composite food that contains it, directly or through other composites. None of
+ * them can be its ingredient (F-10): the server refuses such a loop.
+ */
+export const useFoodAndContainers = (id: number) =>
+  useQuery({
+    queryKey: ['foods', 'containers', id],
+    queryFn: async () => {
+      const found = new Set([id])
+      for (let queue = [id]; queue.length > 0; ) {
+        const detail = await endpoints.foodDetail(queue.shift()!)
+        for (const ref of detail.usedIn) {
+          if (!found.has(ref.id)) {
+            found.add(ref.id)
+            queue.push(ref.id)
+          }
+        }
+      }
+      return found
+    },
+  })
+
 export const useDay = (date: string) => useQuery({ queryKey: ['days', date], queryFn: () => endpoints.day(date) })
 
 export const useTargets = () => useQuery({ queryKey: ['targets'], queryFn: endpoints.listTargets })

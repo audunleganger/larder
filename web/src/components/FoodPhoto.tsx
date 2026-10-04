@@ -61,7 +61,15 @@ export function FoodPhotoEditor({ food }: { food: FoodDto }) {
   return (
     <div className="photo-editor">
       {food.imageVersion !== null ? (
-        image.data ? <img className="food-photo" src={image.data} alt={t('photo.alt', { name: food.displayName })} /> : <div className="food-photo placeholder" />
+        image.data ? (
+          // The whole photo in a square, with a blurred copy of it filling the space around it.
+          <div className="food-photo">
+            <img className="food-photo-backdrop" src={image.data} alt="" aria-hidden="true" />
+            <img className="food-photo-image" src={image.data} alt={t('photo.alt', { name: food.displayName })} />
+          </div>
+        ) : (
+          <div className="food-photo placeholder" />
+        )
       ) : (
         <div className="food-photo placeholder empty">
           <span>{t('photo.none')}</span>

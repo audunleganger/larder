@@ -48,6 +48,12 @@ const en = {
     alt: 'Photo of {{name}}',
     hint: 'Shown next to the food when you log it. Photos are shrunk before uploading.',
     unreadable: 'That file couldn’t be read as an image. Try a JPEG or PNG.',
+    thumbnails: 'Photo thumbnails',
+    thumbnailsHint: 'Older thumbnails show only the middle of the photo. Make them again from the stored photos to show the whole photo.',
+    redoThumbnails: 'Make thumbnails again',
+    redoing: 'Making thumbnails … {{done}} of {{total}}',
+    redone_one: 'Made {{count}} thumbnail again.',
+    redone_other: 'Made {{count}} thumbnails again.',
   },
   breakdown: {
     title: '{{nutrient}} by food',

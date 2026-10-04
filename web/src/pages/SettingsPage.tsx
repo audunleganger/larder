@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import * as endpoints from '../api/endpoints'
@@ -9,6 +9,7 @@ import { useAuth } from '../auth/useAuth'
 import { LanguageSwitch } from '../components/LanguageSwitch'
 import { Card, ErrorText, Field, PageHeader } from '../components/ui'
 import { todayIso } from '../lib/dates'
+import { redoThumbnail } from '../lib/images'
 
 function PasswordForm() {
   const { t } = useTranslation()
@@ -165,6 +166,50 @@ function DataTransfer() {
   )
 }
 
+/** Makes every photo's thumbnail again from the stored photo, so old centre-cropped ones show the whole image. */
+function PhotoThumbnails() {
+  const { t } = useTranslation()
+  const queryClient = useQueryClient()
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
+  const [redone, setRedone] = useState<number | null>(null)
+  const [error, setError] = useState<unknown>(null)
+
+  async function redo() {
+    setError(null)
+    setRedone(null)
+    try {
+      const foods = (await endpoints.listFoods(undefined, true)).filter((f) => f.imageVersion !== null)
+      setProgress({ done: 0, total: foods.length })
+      for (const [i, food] of foods.entries()) {
+        const dataUrl = await endpoints.foodImage(food.id, food.imageVersion!, 'full')
+        const [, contentType, image] = /^data:([^;,]+);base64,(.*)$/.exec(dataUrl)!
+        await endpoints.setFoodImage(food.id, await redoThumbnail({ contentType, image, thumbnail: '' }))
+        setProgress({ done: i + 1, total: foods.length })
+      }
+      setRedone(foods.length)
+    } catch (e) {
+      setError(e)
+    } finally {
+      setProgress(null)
+      // New photo versions, so lists and pickers load the new thumbnails.
+      await queryClient.invalidateQueries({ queryKey: ['foods'] })
+    }
+  }
+
+  return (
+    <Card title={t('photo.thumbnails')}>
+      <p className="field-hint">{t('photo.thumbnailsHint')}</p>
+      <div>
+        <button type="button" className="btn" disabled={progress !== null} onClick={() => void redo()}>
+          {progress ? t('photo.redoing', progress) : t('photo.redoThumbnails')}
+        </button>
+      </div>
+      {redone !== null && <p className="muted">{t('photo.redone', { count: redone })}</p>}
+      <ErrorText error={error} />
+    </Card>
+  )
+}
+
 export function SettingsPage() {
   const { t } = useTranslation()
   const { updateUser } = useAuth()
@@ -190,6 +235,7 @@ export function SettingsPage() {
         </Card>
       </div>
       <DataTransfer />
+      <PhotoThumbnails />
       {health.data && (
         <p className="muted small">
           {t('settings.version', { version: health.data.version, api: health.data.apiVersion })}

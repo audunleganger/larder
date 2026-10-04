@@ -22,10 +22,11 @@ interface Option {
 }
 
 /**
- * Searchable food combobox. Archived foods are excluded (F-7). Typing a new name offers to create
- * the food with only its name (F-1), so logging is never blocked on catalog work.
+ * Searchable food combobox. Archived foods are excluded (F-7), and so are the ids in [exclude].
+ * Typing a new name offers to create the food with only its name (F-1), so logging is never blocked
+ * on catalog work.
  */
-export function FoodPicker({ value, onChange, autoFocus, ariaLabel }: { value: PickedFood | null; onChange: (food: PickedFood | null) => void; autoFocus?: boolean; ariaLabel?: string }) {
+export function FoodPicker({ value, onChange, autoFocus, ariaLabel, exclude }: { value: PickedFood | null; onChange: (food: PickedFood | null) => void; autoFocus?: boolean; ariaLabel?: string; exclude?: ReadonlySet<number> }) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const id = useId()
@@ -44,8 +45,8 @@ export function FoodPicker({ value, onChange, autoFocus, ariaLabel }: { value: P
 
   const query = useDebounced(text.trim(), 120)
   const foods = useFoods(open ? query : '', false)
-  const matches = (foods.data ?? []).slice(0, 12)
-  const exact = matches.some((f) => f.name.toLowerCase() === text.trim().toLowerCase())
+  const matches = (foods.data ?? []).filter((f) => !exclude?.has(f.id)).slice(0, 12)
+  const exact = (foods.data ?? []).some((f) => f.name.toLowerCase() === text.trim().toLowerCase())
   const options: Option[] = [
     ...matches.map((f) => ({ key: `f${f.id}`, label: f.name, food: { id: f.id, name: f.name }, imageVersion: f.imageVersion, composite: f.composite })),
     ...(text.trim() && !exact ? [{ key: 'create', label: t('foodPicker.create', { name: text.trim() }), create: text.trim() }] : []),

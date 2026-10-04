@@ -99,11 +99,7 @@ export function TotalBar({ total, nutrient, contributions }: { total: NutrientTo
       </div>
       {split && (
         <div className="breakdown-popover" id={`${id}-list`} role="tooltip">
-          <p className="breakdown-title">
-            {hoveredSegment
-              ? `${hoveredSegment.time} · ${hoveredSegment.foodName} · ${formatAmount(hoveredSegment.amount, nutrient)} (${formatNumber((hoveredSegment.amount / parts.total) * 100, 0)} %)`
-              : t('breakdown.title', { nutrient: nutrient.displayName })}
-          </p>
+          <p className="breakdown-title">{t('breakdown.title', { nutrient: nutrient.displayName })}</p>
           <BreakdownList parts={parts} nutrient={nutrient} highlight={hoveredSegment?.foodId} />
         </div>
       )}

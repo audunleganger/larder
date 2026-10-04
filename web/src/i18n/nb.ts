@@ -51,6 +51,12 @@ const nb: Translation<typeof en> = {
     alt: 'Bilde av {{name}}',
     hint: 'Vises ved siden av matvaren når du registrerer den. Bildene gjøres mindre før opplasting.',
     unreadable: 'Filen kunne ikke leses som et bilde. Prøv JPEG eller PNG.',
+    thumbnails: 'Miniatyrbilder',
+    thumbnailsHint: 'Eldre miniatyrbilder viser bare midten av bildet. Lag dem på nytt fra de lagrede bildene for å vise hele bildet.',
+    redoThumbnails: 'Lag miniatyrbildene på nytt',
+    redoing: 'Lager miniatyrbilder … {{done}} av {{total}}',
+    redone_one: 'Laget {{count}} miniatyrbilde på nytt.',
+    redone_other: 'Laget {{count}} miniatyrbilder på nytt.',
   },
   breakdown: {
     title: '{{nutrient}} fordelt på matvarer',

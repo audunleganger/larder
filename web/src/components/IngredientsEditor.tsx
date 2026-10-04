@@ -3,7 +3,7 @@ import type { Dispatch, SetStateAction } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import * as endpoints from '../api/endpoints'
-import { useFoodDetail } from '../api/queries'
+import { useFoodAndContainers, useFoodDetail } from '../api/queries'
 import type { CompositeDetail, UnitDto } from '../api/types.gen'
 import { formatNumber, parseDecimal } from '../lib/format'
 import { unitLabel } from '../lib/names'
@@ -13,7 +13,7 @@ import { DecimalInput } from './DecimalInput'
 import { FoodPicker } from './FoodPicker'
 
 /** One ingredient: food, amount and unit (the units that food can be measured in come first). */
-function IngredientRowEditor({ row, units, saved, onPatch, onRemove }: { row: IngredientRow; units: UnitDto[]; saved?: CompositeDetail['ingredients'][number]; onPatch: (patch: Partial<IngredientRow>) => void; onRemove: () => void }) {
+function IngredientRowEditor({ row, units, saved, exclude, onPatch, onRemove }: { row: IngredientRow; units: UnitDto[]; saved?: CompositeDetail['ingredients'][number]; exclude?: ReadonlySet<number>; onPatch: (patch: Partial<IngredientRow>) => void; onRemove: () => void }) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const detail = useFoodDetail(row.food?.id ?? null)
@@ -30,6 +30,7 @@ function IngredientRowEditor({ row, units, saved, onPatch, onRemove }: { row: In
         <FoodPicker
           value={row.food}
           ariaLabel={t('composite.ingredient')}
+          exclude={exclude}
           onChange={(food) => {
             onPatch({ food, unitId: '' })
             if (!food) return
@@ -80,8 +81,10 @@ function IngredientRowEditor({ row, units, saved, onPatch, onRemove }: { row: In
  * What a composite food is made of (F-10): its ingredients, how much they make, and whether logging
  * it adds each ingredient as its own entry or one entry.
  */
-export function IngredientsEditor({ draft, onChange, units, saved }: { draft: CompositeDraft; onChange: Dispatch<SetStateAction<CompositeDraft>>; units: UnitDto[]; saved: CompositeDetail | null }) {
+export function IngredientsEditor({ foodId, draft, onChange, units, saved }: { foodId: number; draft: CompositeDraft; onChange: Dispatch<SetStateAction<CompositeDraft>>; units: UnitDto[]; saved: CompositeDetail | null }) {
   const { t } = useTranslation()
+  // The food itself and the foods that contain it can't be its ingredients.
+  const containers = useFoodAndContainers(foodId)
   // Functional updates: a row's unit is set asynchronously after its food is picked.
   const update = (patch: Partial<CompositeDraft>) => onChange((d) => ({ ...d, ...patch }))
   const patchRow = (key: number, patch: Partial<IngredientRow>) =>
@@ -102,6 +105,7 @@ export function IngredientsEditor({ draft, onChange, units, saved }: { draft: Co
               row={row}
               units={units}
               saved={saved?.ingredients[index]}
+              exclude={containers.data}
               onPatch={(patch) => patchRow(row.key, patch)}
               onRemove={() => onChange((d) => ({ ...d, rows: d.rows.filter((r) => r.key !== row.key) }))}
             />

@@ -180,7 +180,7 @@ function FoodEditor({ detail, units, nutrients }: { detail: FoodDetail; units: U
       </Card>
 
       <Card title={t('composite.title')}>
-        <IngredientsEditor draft={composite} onChange={setComposite} units={units} saved={detail.composite} />
+        <IngredientsEditor foodId={detail.food.id} draft={composite} onChange={setComposite} units={units} saved={detail.composite} />
       </Card>
 
       {isComposite ? (

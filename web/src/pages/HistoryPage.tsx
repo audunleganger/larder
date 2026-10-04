@@ -54,9 +54,16 @@ interface TooltipProps {
   payload?: { payload: Point }[]
   nutrient: NutrientDto
   breakdowns: Map<string, Breakdown>
+  hovered: HoveredSegment | null
 }
 
-function ChartTooltip({ active, payload, nutrient, breakdowns }: TooltipProps) {
+/** The segment of the hovered day's bar under the pointer; its food is highlighted, like in the day view. */
+interface HoveredSegment {
+  date: string
+  foodId: number
+}
+
+function ChartTooltip({ active, payload, nutrient, breakdowns, hovered }: TooltipProps) {
   const { t } = useTranslation()
   const point = payload?.[0]?.payload
   if (!active || !point) return null
@@ -77,7 +84,7 @@ function ChartTooltip({ active, payload, nutrient, breakdowns }: TooltipProps) {
           )}
           {point.total && point.total.status !== 'none' && <TargetStatusLabel status={point.total.status} />}
           {point.total && point.total.missingCount > 0 && <div className="muted">{t('day.missingData', { count: point.total.missingCount })}</div>}
-          {breakdowns.get(point.date) && <BreakdownList parts={breakdowns.get(point.date)!} nutrient={nutrient} />}
+          {breakdowns.get(point.date) && <BreakdownList parts={breakdowns.get(point.date)!} nutrient={nutrient} highlight={hovered?.date === point.date ? hovered.foodId : null} />}
         </>
       )}
     </div>
@@ -95,9 +102,11 @@ function TargetTick(props: { cx?: number; cy?: number; value?: number | null; in
  * The hovered day's bar, split into one segment per entry with the earliest at the bottom and each
  * food in its own colour (H-5), like the day view's bars. Other days stay plain.
  */
-function SplitBar(props: BarShapeProps & { breakdowns: Map<string, Breakdown> }) {
-  const { x, y, width, height, payload, breakdowns } = props
-  const parts = breakdowns.get((payload as Point).date)
+function SplitBar(props: BarShapeProps & { breakdowns: Map<string, Breakdown>; hovered: HoveredSegment | null; onHover: (segment: HoveredSegment | null) => void }) {
+  const { x, y, width, height, payload, breakdowns, hovered, onHover } = props
+  const date = (payload as Point).date
+  const parts = breakdowns.get(date)
+  const hoveredFood = hovered?.date === date ? hovered.foodId : null
   const gap = 2
   const usable = parts ? height - gap * (parts.segments.length - 1) : 0
   if (!parts || parts.segments.length === 0 || usable <= parts.segments.length) {
@@ -109,7 +118,19 @@ function SplitBar(props: BarShapeProps & { breakdowns: Map<string, Breakdown> })
   return (
     <g>
       {parts.segments.map((s, i) => (
-        <Rectangle key={s.entryId} x={x} y={tops[i]} width={width} height={heights[i]} radius={i === parts.segments.length - 1 ? [4, 4, 0, 0] : 0} fill={colorVar(s.color)} />
+        // Rectangle doesn't pass on mouse events, so the group around it takes them. Mouse move rather
+        // than enter: the segments appear under a pointer that is already there.
+        <g key={s.entryId} onMouseMove={() => onHover({ date, foodId: s.foodId })} onMouseLeave={() => onHover(null)}>
+          <Rectangle
+            x={x}
+            y={tops[i]}
+            width={width}
+            height={heights[i]}
+            radius={i === parts.segments.length - 1 ? [4, 4, 0, 0] : 0}
+            fill={colorVar(s.color)}
+            fillOpacity={hoveredFood !== null && hoveredFood !== s.foodId ? 0.35 : 1}
+          />
+        </g>
       ))}
     </g>
   )
@@ -117,6 +138,9 @@ function SplitBar(props: BarShapeProps & { breakdowns: Map<string, Breakdown> })
 
 function MainChart({ view, nutrient, showAverage, breakdowns }: { view: HistoryView; nutrient: NutrientDto; showAverage: boolean; breakdowns: Map<string, Breakdown> }) {
   const { t } = useTranslation()
+  const [hovered, setHoveredState] = useState<HoveredSegment | null>(null)
+  const setHovered = (next: HoveredSegment | null) =>
+    setHoveredState((current) => (current?.date === next?.date && current?.foodId === next?.foodId ? current : next))
   const data = seriesFor(view, nutrient.id)
   const days = view.days.length
   const hasTarget = data.some((p) => p.min !== null || p.max !== null)
@@ -140,18 +164,18 @@ function MainChart({ view, nutrient, showAverage, breakdowns }: { view: HistoryV
       </ul>
       <div className="chart" role="img" aria-label={t('history.chartLabel', { nutrient: nutrient.displayName })}>
         <ResponsiveContainer width="100%" height={300}>
-          <ComposedChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+          <ComposedChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }} onMouseLeave={() => setHovered(null)}>
             <CartesianGrid vertical={false} stroke="var(--grid)" />
             <XAxis dataKey="date" tickFormatter={tickFormatter(days)} tick={{ fill: 'var(--text-3)', fontSize: 12 }} tickLine={false} axisLine={{ stroke: 'var(--border)' }} minTickGap={16} />
             <YAxis tick={{ fill: 'var(--text-3)', fontSize: 12 }} tickLine={false} axisLine={false} width={48} tickFormatter={(v: number) => formatNumber(v, 0)} />
-            <Tooltip content={<ChartTooltip nutrient={nutrient} breakdowns={breakdowns} />} cursor={{ fill: 'var(--hover)' }} />
+            <Tooltip content={<ChartTooltip nutrient={nutrient} breakdowns={breakdowns} hovered={hovered} />} cursor={{ fill: 'var(--hover)' }} />
             <Bar
               dataKey="amount"
               fill="var(--series-1)"
               radius={[4, 4, 0, 0]}
               maxBarSize={28}
               isAnimationActive={false}
-              activeBar={(props: BarShapeProps) => <SplitBar {...props} breakdowns={breakdowns} />}
+              activeBar={(props: BarShapeProps) => <SplitBar {...props} breakdowns={breakdowns} hovered={hovered} onHover={setHovered} />}
             />
             {hasTarget && <Line dataKey="min" stroke="none" dot={(p: object) => <TargetTick {...p} halfWidth={halfWidth} />} activeDot={false} isAnimationActive={false} />}
             {hasTarget && <Line dataKey="max" stroke="none" dot={(p: object) => <TargetTick {...p} halfWidth={halfWidth} />} activeDot={false} isAnimationActive={false} />}
