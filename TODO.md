@@ -33,15 +33,9 @@ Changes to stored data also need a schema migration, a new export format version
     takes effect one launch late, or right away through an "Update available — reload" prompt. Real offline use
     (logging without a connection and syncing later) is a separate, much larger feature.
   - Should an app left open for days notice a new deploy, by checking when it comes back to the foreground, and
-    ask to reload? `/api/health` returns `AppInfo.VERSION`, which is a fixed `0.1.0`, so it would need a value
-    that changes with each build, such as the commit hash.
+    ask to reload? `/api/health` reports the release version, or `main-<commit>` for images built from main
+    (`CC_VERSION`), so a change in it means a new deploy.
   - The icon: wait for the Larder rename, which needs a new icon anyway?
-- **The food list as a table.** One row per food and a column per nutrient, showing the values per reference
-  amount (with the reference amount in its own column). Toggles above the table choose the nutrient columns. A
-  missing value shows as a red dash (–). Composite foods show their calculated values. On phones the table
-  scrolls sideways.
-- **Filters for the food list:** by tag (F-16), composite only, ingredient only, and has or lacks a value for a given
-  nutrient. They combine with the search.
 
 ## Changes
 
