@@ -114,6 +114,18 @@ data class FoodDef(
     val ownerName: String = "",
     /** Left out of the food picker when logging, but usable as an ingredient. */
     val ingredientOnly: Boolean = false,
+    /** Its tags (F-16). */
+    val tagIds: List<Long> = emptyList(),
+) : Named
+
+/** A tag for grouping foods (F-16); per user, like foods. */
+data class TagDef(
+    override val id: Long,
+    override val name: String,
+    override val translations: Map<String, NameTranslation> = emptyMap(),
+    val archived: Boolean = false,
+    val createdAt: Long = 0,
+    val updatedAt: Long? = null,
 ) : Named
 
 /** A composite food's definition (F-10) and what was derived from it. */

@@ -14,6 +14,11 @@ export const useNutrients = (includeHidden = false) =>
 export const useNutrientDetail = (id: number) =>
   useQuery({ queryKey: ['nutrients', 'detail', id], queryFn: () => endpoints.nutrientDetail(id) })
 
+export const useTags = (includeArchived = false) =>
+  useQuery({ queryKey: ['tags', { includeArchived }], queryFn: () => endpoints.listTags(includeArchived) })
+
+export const useTagDetail = (id: number) => useQuery({ queryKey: ['tags', 'detail', id], queryFn: () => endpoints.tagDetail(id) })
+
 export const useFoods = (q = '', includeArchived = false) =>
   useQuery({
     queryKey: ['foods', { q, includeArchived }],

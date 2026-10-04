@@ -5,9 +5,6 @@ Changes to stored data also need a schema migration, a new export format version
 
 ## Features
 
-- **Tags for foods.** A tag has a main name and a name per language, like foods, units and nutrients (L-5), with
-  the same uniqueness and archive/delete rules. A food can have several tags. Used by the food list filters below.
-  Tags record who made them and when, and who changed them last, like units and nutrients (U-9).
 - **Photo from a URL**, besides file upload and the camera. The server downloads the image once and stores it like
   an upload (shrunk, with a thumbnail), so backups and exports include it and it survives the link breaking. It
   must refuse addresses on the local network (loopback, private and link-local, checked again after each
@@ -43,7 +40,7 @@ Changes to stored data also need a schema migration, a new export format version
   amount (with the reference amount in its own column). Toggles above the table choose the nutrient columns. A
   missing value shows as a red dash (–). Composite foods show their calculated values. On phones the table
   scrolls sideways.
-- **Filters for the food list:** by tag, composite only, ingredient only, and has or lacks a value for a given
+- **Filters for the food list:** by tag (F-16), composite only, ingredient only, and has or lacks a value for a given
   nutrient. They combine with the search.
 
 ## Changes

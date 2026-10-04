@@ -29,6 +29,10 @@ import com.caloriecompanion.shared.api.PreviewInput
 import com.caloriecompanion.shared.api.PreviewResult
 import com.caloriecompanion.shared.api.SetupInput
 import com.caloriecompanion.shared.api.SetupStatus
+import com.caloriecompanion.shared.api.TagDetail
+import com.caloriecompanion.shared.api.TagDto
+import com.caloriecompanion.shared.api.TagInput
+import com.caloriecompanion.shared.api.TagMetadataInput
 import com.caloriecompanion.shared.api.TargetDto
 import com.caloriecompanion.shared.api.TargetInput
 import com.caloriecompanion.shared.api.UnitDetail
@@ -61,6 +65,7 @@ class TypeScriptTypesTest {
         serializer<NutrientInput>(), serializer<NutrientOrderInput>(), serializer<NutrientDetail>(),
         serializer<FoodSummary>(), serializer<FoodInput>(), serializer<FoodDetail>(), serializer<FoodRefDefault>(),
         serializer<MetadataInput>(), serializer<FoodMetadataInput>(),
+        serializer<TagDto>(), serializer<TagInput>(), serializer<TagDetail>(), serializer<TagMetadataInput>(),
         serializer<EntryInput>(), serializer<PreviewInput>(), serializer<PreviewResult>(), serializer<DayView>(),
         serializer<TargetDto>(), serializer<TargetInput>(), serializer<HistoryView>(), serializer<NutrientContributions>(),
         serializer<ExportFile>(), serializer<ImportResult>(), serializer<ConflictStrategy>(),

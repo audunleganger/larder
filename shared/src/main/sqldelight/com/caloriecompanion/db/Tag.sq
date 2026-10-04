@@ -1,0 +1,71 @@
+import kotlin.Boolean;
+
+-- Tags group a user's foods (F-16). Like foods, they're per user.
+CREATE TABLE tag (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    name_norm TEXT NOT NULL,
+    archived INTEGER AS Boolean NOT NULL DEFAULT 0,
+    -- When it was made and last changed (ms since 1970; null: never changed). Admins can correct both.
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER,
+    UNIQUE (user_id, name_norm)
+);
+
+-- The tag's name in other languages (L-5); the main name is the fallback.
+CREATE TABLE tag_translation (
+    tag_id INTEGER NOT NULL REFERENCES tag(id) ON DELETE CASCADE,
+    locale TEXT NOT NULL,
+    name TEXT NOT NULL,
+    name_norm TEXT NOT NULL,
+    PRIMARY KEY (tag_id, locale)
+);
+
+-- The tags of each food.
+CREATE TABLE food_tag (
+    food_id INTEGER NOT NULL REFERENCES food(id) ON DELETE CASCADE,
+    tag_id INTEGER NOT NULL REFERENCES tag(id) ON DELETE RESTRICT,
+    PRIMARY KEY (food_id, tag_id)
+);
+
+CREATE INDEX food_tag_tag ON food_tag(tag_id);
+
+selectTags:
+SELECT * FROM tag WHERE user_id = ? ORDER BY name_norm;
+
+selectTagTranslations:
+SELECT t.* FROM tag_translation t JOIN tag g ON g.id = t.tag_id WHERE g.user_id = ?;
+
+insertTag:
+INSERT INTO tag(user_id, name, name_norm, archived, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?);
+
+updateTag:
+UPDATE tag SET name = ?, name_norm = ?, updated_at = ? WHERE id = ? AND user_id = ?;
+
+setTagMetadata:
+UPDATE tag SET created_at = ?, updated_at = ? WHERE id = ? AND user_id = ?;
+
+setTagArchived:
+UPDATE tag SET archived = ? WHERE id = ? AND user_id = ?;
+
+deleteTag:
+DELETE FROM tag WHERE id = ? AND user_id = ?;
+
+insertTagTranslation:
+INSERT INTO tag_translation(tag_id, locale, name, name_norm) VALUES (?, ?, ?, ?);
+
+deleteTagTranslations:
+DELETE FROM tag_translation WHERE tag_id = ?;
+
+selectFoodTags:
+SELECT ft.* FROM food_tag ft JOIN food f ON f.id = ft.food_id WHERE f.user_id = ?;
+
+insertFoodTag:
+INSERT OR IGNORE INTO food_tag(food_id, tag_id) VALUES (?, ?);
+
+deleteFoodTags:
+DELETE FROM food_tag WHERE food_id = ?;
+
+countTagFoodRefs:
+SELECT count(*) FROM food_tag WHERE tag_id = ?;

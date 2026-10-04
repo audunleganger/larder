@@ -11,6 +11,7 @@ import { formatDate } from '../lib/dates'
 import { currentLocale, formatAmount, formatNumber, formatQuantity, parseDecimal, toInputValue } from '../lib/format'
 import { compositeDraft, toCompositeInput } from '../lib/composite'
 import { IngredientsEditor } from '../components/IngredientsEditor'
+import { TagsEditor } from '../components/TagsEditor'
 import { draftTranslations, toTranslations, unitLabel } from '../lib/names'
 import { TranslationFields } from '../components/TranslationFields'
 import { FoodPhotoEditor } from '../components/FoodPhoto'
@@ -34,6 +35,7 @@ function FoodEditor({ detail, units, nutrients }: { detail: FoodDetail; units: U
   const [refUnitId, setRefUnitId] = useState<number | ''>(food.refUnitId ?? '')
   const [notes, setNotes] = useState(food.notes ?? '')
   const [ingredientOnly, setIngredientOnly] = useState(food.ingredientOnly)
+  const [tagIds, setTagIds] = useState(food.tagIds)
   const [values, setValues] = useState<Record<number, string>>(() =>
     Object.fromEntries(food.nutrients.map((v) => [v.nutrientId, toInputValue(v.amount)])),
   )
@@ -102,6 +104,7 @@ function FoodEditor({ detail, units, nutrients }: { detail: FoodDetail; units: U
       refUnitId: refUnitId === '' ? null : refUnitId,
       notes: notes.trim() || null,
       ingredientOnly,
+      tagIds,
       nutrients: nutrientValues,
       units: unitLinks,
     }
@@ -182,6 +185,16 @@ function FoodEditor({ detail, units, nutrients }: { detail: FoodDetail; units: U
           <input type="checkbox" checked={ingredientOnly} onChange={(e) => setIngredientOnly(e.target.checked)} /> {t('foods.ingredientOnly')}
         </label>
         <p className="field-hint">{t('foods.ingredientOnlyHint')}</p>
+      </Card>
+
+      <Card title={t('tags.title')}>
+        <TagsEditor
+          value={tagIds}
+          onChange={(ids) => {
+            setTagIds(ids)
+            setSaved(false)
+          }}
+        />
       </Card>
 
       <Card title={t('composite.title')}>

@@ -16,6 +16,8 @@ import { LoginPage, SetupPage } from './pages/LoginPage'
 import { NutrientDetailPage } from './pages/NutrientDetailPage'
 import { NutrientsPage } from './pages/NutrientsPage'
 import { SettingsPage } from './pages/SettingsPage'
+import { TagDetailPage } from './pages/TagDetailPage'
+import { TagsPage } from './pages/TagsPage'
 import { TargetsPage } from './pages/TargetsPage'
 import { UnitDetailPage } from './pages/UnitDetailPage'
 import { UnitsPage } from './pages/UnitsPage'
@@ -89,6 +91,8 @@ function Gate() {
             <Route path="day/:date" element={<DayPage />} />
             <Route path="foods" element={<FoodsPage />} />
             <Route path="foods/:id" element={<FoodDetailPage />} />
+            <Route path="tags" element={<TagsPage />} />
+            <Route path="tags/:id" element={<TagDetailPage />} />
             <Route path="units" element={<UnitsPage />} />
             <Route path="units/:id" element={<UnitDetailPage />} />
             <Route path="nutrients" element={<NutrientsPage />} />

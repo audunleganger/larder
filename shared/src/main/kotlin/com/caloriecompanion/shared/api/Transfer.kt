@@ -20,6 +20,8 @@ data class ExportFile(
     val foods: List<ExportFood>,
     val entries: List<ExportEntry>,
     val targets: List<ExportTarget>,
+    /** Absent before version 6. */
+    val tags: List<ExportTag> = emptyList(),
 ) {
     companion object {
         const val FORMAT = "calorie-companion-export"
@@ -32,8 +34,9 @@ data class ExportFile(
          * 3: units and nutrients are shared by a server's users; `hidden` replaces `archived` for them.
          * 4: when units, nutrients and foods were made and last changed (`createdAt`, `updatedAt`).
          * 5: "ingredient only" foods (`ingredientOnly`, F-15).
+         * 6: tags (`tags`, and `tags` on foods by name, F-16).
          */
-        const val VERSION = 5
+        const val VERSION = 6
     }
 }
 
@@ -99,6 +102,18 @@ data class ExportFood(
     val createdAt: String? = null,
     /** Left out of the food picker when logging (F-15). Absent before version 5. */
     val ingredientOnly: Boolean = false,
+    /** Tag names (F-16). Absent before version 6. */
+    val tags: List<String> = emptyList(),
+)
+
+@Serializable
+data class ExportTag(
+    val name: String,
+    val archived: Boolean = false,
+    val translations: List<NameTranslation> = emptyList(),
+    /** ISO-8601 instants; kept when imported as a new tag. */
+    val createdAt: String? = null,
+    val updatedAt: String? = null,
 )
 
 @Serializable
@@ -151,4 +166,5 @@ data class ImportResult(
     /** created = imported, skipped = identical entry already existed. */
     val entries: ImportCounts,
     val targets: ImportCounts,
+    val tags: ImportCounts = ImportCounts(),
 )

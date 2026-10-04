@@ -30,6 +30,10 @@ import type {
   SetupStatus,
   TargetDto,
   TargetInput,
+  TagDetail,
+  TagDto,
+  TagInput,
+  TagMetadataInput,
   UnitDetail,
   UnitDto,
   UnitInput,
@@ -67,6 +71,15 @@ export const resetUnitOrder = () => api<UnitDto[]>('/units/order', { method: 'DE
 export const hideUnit = (id: number, hidden: boolean) => api<UnitDto>(`/units/${id}/${hidden ? 'hide' : 'show'}`, { method: 'POST' })
 export const setUnitMetadata = (id: number, input: MetadataInput) => api<UnitDto>(`/units/${id}/metadata`, { method: 'PUT', body: input })
 export const deleteUnit = (id: number) => api<void>(`/units/${id}`, { method: 'DELETE' })
+
+// Tags (F-16): per user, like foods.
+export const listTags = (includeArchived = false) => api<TagDto[]>('/tags', { query: { includeArchived } })
+export const tagDetail = (id: number) => api<TagDetail>(`/tags/${id}`)
+export const createTag = (input: TagInput) => api<TagDto>('/tags', { method: 'POST', body: input })
+export const updateTag = (id: number, input: TagInput) => api<TagDto>(`/tags/${id}`, { method: 'PUT', body: input })
+export const archiveTag = (id: number, archived: boolean) => api<TagDto>(`/tags/${id}/${archived ? 'archive' : 'unarchive'}`, { method: 'POST' })
+export const setTagMetadata = (id: number, input: TagMetadataInput) => api<TagDto>(`/tags/${id}/metadata`, { method: 'PUT', body: input })
+export const deleteTag = (id: number) => api<void>(`/tags/${id}`, { method: 'DELETE' })
 
 // Nutrients
 export const listNutrients = (includeHidden = false) => api<NutrientDto[]>('/nutrients', { query: { includeHidden } })
