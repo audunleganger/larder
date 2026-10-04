@@ -67,7 +67,7 @@ const nb: Translation<typeof en> = {
     title: 'Navn på andre språk',
     hint: 'Vises når appen er på det språket. La stå tomt for å bruke hovednavnet.',
     in: { en: 'Engelsk navn', nb: 'Norsk navn' },
-    pluralSuffix: 'Flertallsendelse',
+    plural: 'Flertall',
     pluralExample: 'f.eks. «{{example}}»',
   },
   nav: {

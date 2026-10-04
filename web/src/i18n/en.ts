@@ -64,7 +64,7 @@ const en = {
     title: 'Names in other languages',
     hint: 'Shown when the app is in that language. Leave empty to use the main name.',
     in: { en: 'English name', nb: 'Norwegian name' },
-    pluralSuffix: 'Plural ending',
+    plural: 'Plural',
     pluralExample: 'e.g. “{{example}}”',
   },
   nav: {

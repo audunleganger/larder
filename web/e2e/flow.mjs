@@ -57,7 +57,7 @@ await step('log entry from day view', async () => {
   await picker.fill('rye')
   await page.getByRole('option', { name: 'Rye bread' }).click()
   await page.getByLabel('Quantity').first().fill('2')
-  // Unit names take their plural ending when the quantity isn't 1.
+  // Unit names take their plural form when the quantity isn't 1.
   await page.locator('.entry-form select').selectOption({ label: 'servings' })
   await page.locator('.preview .chip').first().waitFor()
   await shot('04-day-preview')
@@ -155,6 +155,22 @@ await step('unit order', async () => {
   await page.getByRole('button', { name: 'Reset to alphabetical' }).click()
   await page.getByRole('button', { name: 'Reset to alphabetical' }).waitFor({ state: 'detached' })
   if ((await rows.allInnerTexts()).join() !== before.join()) throw new Error('reset did not restore alphabetical order')
+})
+
+await step('plural forms', async () => {
+  // A new unit's plural follows the default for its name until it's edited; irregular plurals work.
+  await page.getByRole('link', { name: 'Units', exact: true }).click()
+  await page.getByLabel('Name', { exact: true }).fill('loaf')
+  const plural = page.getByLabel('Plural', { exact: true }).first()
+  if ((await plural.inputValue()) !== 'loafs') throw new Error(`default plural was: ${await plural.inputValue()}`)
+  await plural.fill('loaves')
+  await page.getByText('e.g. “2 loaves”').waitFor()
+  await page.getByRole('button', { name: 'Create' }).click()
+  await page.getByRole('link', { name: 'loaf', exact: true }).click()
+  await page.getByRole('heading', { name: 'loaf', exact: true }).waitFor()
+  const saved = page.getByLabel('Plural', { exact: true }).first()
+  if ((await saved.inputValue()) !== 'loaves') throw new Error(`saved plural was: ${await saved.inputValue()}`)
+  await shot('08c-unit-plural')
 })
 
 await step('nutrients pages', async () => {

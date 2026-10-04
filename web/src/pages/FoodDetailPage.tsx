@@ -305,7 +305,7 @@ function CompositeNutrients({ detail, units, nutrients }: { detail: FoodDetail; 
     <Card
       title={
         composite?.yieldAmount && yieldUnit
-          ? t('composite.nutrientsOfAll', { amount: formatNumber(composite.yieldAmount, 3), unit: unitLabel(yieldUnit.displayName, yieldUnit.displayPluralSuffix, composite.yieldAmount) })
+          ? t('composite.nutrientsOfAll', { amount: formatNumber(composite.yieldAmount, 3), unit: unitLabel(yieldUnit.displayName, yieldUnit.displayPlural, composite.yieldAmount) })
           : t('foods.nutrients')
       }
     >
@@ -354,7 +354,7 @@ function EntriesByDate({ detail }: { detail: FoodDetail }) {
           <span className="date-list-items">
             {entries.map((e) => (
               <span key={e.entryId} className="chip" title={`${formatQuantity(e.quantity)} × ${e.unitName} · ${e.time}`}>
-                {detail.food.displayName} · {formatQuantity(e.quantity)} {unitLabel(e.unitName, e.unitPluralSuffix, e.quantity)}
+                {detail.food.displayName} · {formatQuantity(e.quantity)} {unitLabel(e.unitName, e.unitPlural, e.quantity)}
               </span>
             ))}
             {asItems.has(date) && <span className="chip chip-muted">{t('composite.loggedAsItems')}</span>}

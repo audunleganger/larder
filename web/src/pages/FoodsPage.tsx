@@ -26,7 +26,7 @@ export function FoodsPage() {
   const tagName = (id: number) => tags.data?.find((tag) => tag.id === id)?.displayName
   const unitName = (id: number | null, amount: number) => {
     const unit = units.data?.find((u) => u.id === id)
-    return unit ? unitLabel(unit.displayName, unit.displayPluralSuffix, amount) : ''
+    return unit ? unitLabel(unit.displayName, unit.displayPlural, amount) : ''
   }
   const create = useApiMutation(endpoints.createFood)
 

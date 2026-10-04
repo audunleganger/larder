@@ -1330,8 +1330,8 @@ textarea.input {
   margin-bottom: 0.25rem;
 }
 
-.field.suffix {
-  flex: 0 0 9rem;
+.field.plural {
+  flex: 1 1 10rem;
 }
 
 /* ---------- Food editor ---------- */

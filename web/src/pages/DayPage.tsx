@@ -58,7 +58,7 @@ function EntryItem({ entry, nutrients, onEdit }: { entry: EntryView; nutrients: 
             {entry.foodName}
           </Link>
           <span className="muted">
-            {formatQuantity(entry.quantity)} {unitLabel(entry.unitName, entry.unitPluralSuffix, entry.quantity)}
+            {formatQuantity(entry.quantity)} {unitLabel(entry.unitName, entry.unitPlural, entry.quantity)}
           </span>
           {entry.unresolved && <Badge tone="warning">⚠ {t('day.incomplete')}</Badge>}
         </div>
