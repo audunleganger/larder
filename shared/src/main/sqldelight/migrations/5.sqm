@@ -1,0 +1,150 @@
+-- v5 -> v6: units and nutrients are shared by all users of a server. Each user sees the ones they
+-- choose (shown_unit, shown_nutrient), and keeps their own nutrient order. Units and nutrients with the
+-- same name are merged into one; if they differ, the oldest one is kept.
+
+ALTER TABLE quantity_unit ADD COLUMN built_in INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE nutrient ADD COLUMN built_in INTEGER NOT NULL DEFAULT 0;
+
+CREATE TABLE shown_unit (
+    user_id INTEGER NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
+    unit_id INTEGER NOT NULL REFERENCES quantity_unit(id) ON DELETE CASCADE,
+    PRIMARY KEY (user_id, unit_id)
+);
+
+CREATE TABLE shown_nutrient (
+    user_id INTEGER NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
+    nutrient_id INTEGER NOT NULL REFERENCES nutrient(id) ON DELETE CASCADE,
+    sort_order INTEGER NOT NULL,
+    PRIMARY KEY (user_id, nutrient_id)
+);
+
+-- Android local mode's single user (the only one without a password) may now edit the built-in
+-- units and nutrients, which only admins can.
+UPDATE app_user SET is_admin = 1 WHERE password_hash IS NULL;
+
+-- ---------- Units ----------
+
+-- Which unit each unit becomes: the oldest one with the same main name.
+CREATE TABLE unit_merge (old_id INTEGER PRIMARY KEY NOT NULL, new_id INTEGER NOT NULL);
+INSERT INTO unit_merge(old_id, new_id)
+SELECT u.id, min(o.id) FROM quantity_unit u JOIN quantity_unit o ON o.name_norm = u.name_norm GROUP BY u.id;
+
+-- A unit whose main name is an older unit's name in another language joins that unit too
+-- (a Norwegian user's "stk" and an English user's "piece", also called "stk").
+CREATE TABLE unit_alias (from_id INTEGER PRIMARY KEY NOT NULL, to_id INTEGER NOT NULL);
+INSERT INTO unit_alias(from_id, to_id)
+SELECT u.id, min(t.unit_id) FROM quantity_unit u
+JOIN unit_translation t ON t.name_norm = u.name_norm AND t.unit_id < u.id
+WHERE u.id IN (SELECT new_id FROM unit_merge) AND t.unit_id IN (SELECT new_id FROM unit_merge)
+GROUP BY u.id;
+UPDATE unit_merge SET new_id = (SELECT to_id FROM unit_alias WHERE from_id = unit_merge.new_id)
+WHERE new_id IN (SELECT from_id FROM unit_alias);
+
+-- Each user sees the units they had, unless they had archived them.
+INSERT OR IGNORE INTO shown_unit(user_id, unit_id)
+SELECT u.user_id, m.new_id FROM quantity_unit u JOIN unit_merge m ON m.old_id = u.id WHERE u.archived = 0;
+
+-- Everything that used a merged unit uses the one it became.
+UPDATE food SET ref_unit_id = (SELECT new_id FROM unit_merge WHERE old_id = food.ref_unit_id)
+WHERE ref_unit_id IN (SELECT old_id FROM unit_merge WHERE new_id <> old_id);
+UPDATE food SET yield_unit_id = (SELECT new_id FROM unit_merge WHERE old_id = food.yield_unit_id)
+WHERE yield_unit_id IN (SELECT old_id FROM unit_merge WHERE new_id <> old_id);
+UPDATE food_unit SET unit_id = (SELECT new_id FROM unit_merge WHERE old_id = food_unit.unit_id)
+WHERE unit_id IN (SELECT old_id FROM unit_merge WHERE new_id <> old_id);
+UPDATE food_unit SET equals_unit_id = (SELECT new_id FROM unit_merge WHERE old_id = food_unit.equals_unit_id)
+WHERE equals_unit_id IN (SELECT old_id FROM unit_merge WHERE new_id <> old_id);
+UPDATE food_ingredient SET unit_id = (SELECT new_id FROM unit_merge WHERE old_id = food_ingredient.unit_id)
+WHERE unit_id IN (SELECT old_id FROM unit_merge WHERE new_id <> old_id);
+UPDATE entry SET unit_id = (SELECT new_id FROM unit_merge WHERE old_id = entry.unit_id)
+WHERE unit_id IN (SELECT old_id FROM unit_merge WHERE new_id <> old_id);
+UPDATE app_user SET food_ref_unit_id = (SELECT new_id FROM unit_merge WHERE old_id = app_user.food_ref_unit_id)
+WHERE food_ref_unit_id IN (SELECT old_id FROM unit_merge WHERE new_id <> old_id);
+
+-- The kept unit gets the merged ones' names in languages it has none in.
+INSERT OR IGNORE INTO unit_translation(unit_id, locale, name, name_norm, plural_suffix)
+SELECT m.new_id, t.locale, t.name, t.name_norm, t.plural_suffix FROM unit_translation t
+JOIN unit_merge m ON m.old_id = t.unit_id WHERE m.new_id <> m.old_id;
+
+DELETE FROM quantity_unit WHERE id IN (SELECT old_id FROM unit_merge WHERE new_id <> old_id);
+
+-- A name belongs to one unit in any language: drop names in other languages that are now another
+-- unit's main name, or an older unit's name in another language.
+DELETE FROM unit_translation
+WHERE EXISTS (SELECT 1 FROM quantity_unit o WHERE o.name_norm = unit_translation.name_norm AND o.id <> unit_translation.unit_id)
+   OR EXISTS (SELECT 1 FROM unit_translation o WHERE o.name_norm = unit_translation.name_norm AND o.unit_id < unit_translation.unit_id);
+
+-- And names in another language that are just the main name again (merging can leave such).
+DELETE FROM unit_translation
+WHERE EXISTS (SELECT 1 FROM quantity_unit u WHERE u.id = unit_translation.unit_id
+              AND u.name_norm = unit_translation.name_norm AND u.plural_suffix = unit_translation.plural_suffix);
+
+DROP TABLE unit_alias;
+DROP TABLE unit_merge;
+
+UPDATE quantity_unit SET archived = 0;
+
+-- The standard units every user starts with (U-3), owned by the first admin.
+UPDATE quantity_unit SET built_in = 1
+WHERE name_norm IN ('g', 'kg', 'mg', 'oz', 'lb', 'ml', 'dl', 'l', 'tsp', 'tbsp', 'cup', 'serving', 'piece',
+                    'ts', 'ss', 'kopp', 'porsjon', 'stk');
+UPDATE quantity_unit SET user_id = coalesce((SELECT min(id) FROM app_user WHERE is_admin = 1), user_id)
+WHERE built_in = 1;
+
+CREATE UNIQUE INDEX quantity_unit_name ON quantity_unit(name_norm);
+
+-- ---------- Nutrients ----------
+
+CREATE TABLE nutrient_merge (old_id INTEGER PRIMARY KEY NOT NULL, new_id INTEGER NOT NULL);
+INSERT INTO nutrient_merge(old_id, new_id)
+SELECT n.id, min(o.id) FROM nutrient n JOIN nutrient o ON o.name_norm = n.name_norm GROUP BY n.id;
+
+CREATE TABLE nutrient_alias (from_id INTEGER PRIMARY KEY NOT NULL, to_id INTEGER NOT NULL);
+INSERT INTO nutrient_alias(from_id, to_id)
+SELECT n.id, min(t.nutrient_id) FROM nutrient n
+JOIN nutrient_translation t ON t.name_norm = n.name_norm AND t.nutrient_id < n.id
+WHERE n.id IN (SELECT new_id FROM nutrient_merge) AND t.nutrient_id IN (SELECT new_id FROM nutrient_merge)
+GROUP BY n.id;
+UPDATE nutrient_merge SET new_id = (SELECT to_id FROM nutrient_alias WHERE from_id = nutrient_merge.new_id)
+WHERE new_id IN (SELECT from_id FROM nutrient_alias);
+
+-- Each user sees the nutrients they had, unless archived, in their own order.
+INSERT OR IGNORE INTO shown_nutrient(user_id, nutrient_id, sort_order)
+SELECT n.user_id, m.new_id, n.sort_order FROM nutrient n JOIN nutrient_merge m ON m.old_id = n.id WHERE n.archived = 0;
+
+UPDATE food_nutrient SET nutrient_id = (SELECT new_id FROM nutrient_merge WHERE old_id = food_nutrient.nutrient_id)
+WHERE nutrient_id IN (SELECT old_id FROM nutrient_merge WHERE new_id <> old_id);
+UPDATE target SET nutrient_id = (SELECT new_id FROM nutrient_merge WHERE old_id = target.nutrient_id)
+WHERE nutrient_id IN (SELECT old_id FROM nutrient_merge WHERE new_id <> old_id);
+UPDATE nutrient SET parent_id = (SELECT new_id FROM nutrient_merge WHERE old_id = nutrient.parent_id)
+WHERE parent_id IN (SELECT old_id FROM nutrient_merge WHERE new_id <> old_id);
+
+INSERT OR IGNORE INTO nutrient_translation(nutrient_id, locale, name, name_norm)
+SELECT m.new_id, t.locale, t.name, t.name_norm FROM nutrient_translation t
+JOIN nutrient_merge m ON m.old_id = t.nutrient_id WHERE m.new_id <> m.old_id;
+
+DELETE FROM nutrient WHERE id IN (SELECT old_id FROM nutrient_merge WHERE new_id <> old_id);
+
+DELETE FROM nutrient_translation
+WHERE EXISTS (SELECT 1 FROM nutrient o WHERE o.name_norm = nutrient_translation.name_norm AND o.id <> nutrient_translation.nutrient_id)
+   OR EXISTS (SELECT 1 FROM nutrient_translation o WHERE o.name_norm = nutrient_translation.name_norm AND o.nutrient_id < nutrient_translation.nutrient_id);
+
+DELETE FROM nutrient_translation
+WHERE EXISTS (SELECT 1 FROM nutrient n WHERE n.id = nutrient_translation.nutrient_id AND n.name_norm = nutrient_translation.name_norm);
+
+-- Groups stay one level deep (N-6), whichever user's grouping was kept.
+UPDATE nutrient SET parent_id = NULL WHERE parent_id = id;
+UPDATE nutrient SET parent_id = NULL WHERE parent_id IN (SELECT id FROM nutrient WHERE parent_id IS NOT NULL);
+
+DROP TABLE nutrient_alias;
+DROP TABLE nutrient_merge;
+
+UPDATE nutrient SET archived = 0;
+
+-- The nutrients every user starts with (N-2), owned by the first admin.
+UPDATE nutrient SET built_in = 1
+WHERE name_norm IN ('energy', 'protein', 'carbohydrates', 'sugars', 'fat', 'saturated fat', 'fiber', 'salt',
+                    'energi', 'karbohydrater', 'sukkerarter', 'fett', 'mettet fett', 'kostfiber');
+UPDATE nutrient SET user_id = coalesce((SELECT min(id) FROM app_user WHERE is_admin = 1), user_id)
+WHERE built_in = 1;
+
+CREATE UNIQUE INDEX nutrient_name ON nutrient(name_norm);

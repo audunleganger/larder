@@ -41,13 +41,31 @@ class TransferService(
         val catalog = loadCatalog(db, userId)
         val unitName = { id: Long -> catalog.units.getValue(id).name }
         val nutrientName = { id: Long -> catalog.nutrientsById.getValue(id).name }
+        val entryRows = db.entryQueries.selectAllEntries(userId).executeAsList()
+        val targets = TargetService(db, userId).list()
+
+        // The units and nutrients the user's data uses or the user shows; the other users' are left out.
+        val usedUnits = HashSet<Long>()
+        val usedNutrients = HashSet<Long>()
+        for (food in catalog.foods.values) {
+            val composite = food.composite
+            listOfNotNull(food.refUnitId, composite?.manualRefUnitId, composite?.yieldUnitId).forEach { usedUnits += it }
+            food.links.forEach { usedUnits += it.unitId; it.equalsUnitId?.let(usedUnits::add) }
+            composite?.ingredients.orEmpty().forEach { usedUnits += it.unitId }
+            usedNutrients += (composite?.manualNutrients ?: food.nutrients).keys
+        }
+        entryRows.forEach { usedUnits += it.unit_id }
+        targets.forEach { usedNutrients += it.nutrientId }
+        val nutrients = catalog.nutrients.filter { !it.hidden || it.id in usedNutrients }
+        // A group's main nutrient comes along, so the group can be rebuilt.
+        val parents = nutrients.mapNotNullTo(HashSet()) { it.parentId }
         return ExportFile(
             exportedAt = Instant.ofEpochMilli(now()).toString(),
-            units = catalog.units.values.sortedBy { it.id }.map {
-                ExportUnit(it.name, it.kind, it.baseFactor, it.archived, it.pluralSuffix, it.translations.inLanguageOrder())
+            units = catalog.units.values.filter { !it.hidden || it.id in usedUnits }.sortedBy { it.id }.map {
+                ExportUnit(it.name, it.kind, it.baseFactor, it.hidden, it.pluralSuffix, it.translations.inLanguageOrder())
             },
-            nutrients = catalog.nutrients.map {
-                ExportNutrient(it.name, it.measureUnit, it.displayPrecision, it.parentId?.let(nutrientName), it.archived, it.translations.inLanguageOrder())
+            nutrients = catalog.nutrients.filter { it in nutrients || it.id in parents }.map {
+                ExportNutrient(it.name, it.measureUnit, it.displayPrecision, it.parentId?.let(nutrientName), it.hidden, it.translations.inLanguageOrder())
             },
             foods = catalog.foods.values.sortedBy { it.id }.map { food ->
                 // A composite food's own values are the ones entered by hand; the rest is recalculated on import.
@@ -72,13 +90,13 @@ class TransferService(
                     logAsWhole = composite?.logAsWhole ?: false,
                 )
             },
-            entries = db.entryQueries.selectAllEntries(userId).executeAsList().map {
+            entries = entryRows.map {
                 ExportEntry(
                     catalog.foods.getValue(it.food_id).name, unitName(it.unit_id), it.quantity, it.local_date, it.local_time, it.note,
                     via = it.via_food_id?.let { via -> catalog.foods[via]?.name },
                 )
             },
-            targets = TargetService(db, userId).list().map { ExportTarget(nutrientName(it.nutrientId), it.min, it.max, it.effectiveFrom) },
+            targets = targets.map { ExportTarget(nutrientName(it.nutrientId), it.min, it.max, it.effectiveFrom) },
         )
     }
 
@@ -86,6 +104,9 @@ class TransferService(
      * Imports [file], matching units, nutrients and foods by name. On a name conflict the existing item is
      * kept ([ConflictStrategy.SKIP]) or overwritten ([ConflictStrategy.OVERWRITE]). Entries identical to an
      * existing one are skipped, so importing the same file twice is harmless. All or nothing.
+     *
+     * Units and nutrients are shared: they match the server's by any of their names, and new ones become
+     * the user's. Others' units and nutrients are never overwritten, but whether the user shows them is.
      */
     fun import(file: ExportFile, strategy: ConflictStrategy): ImportResult {
         if (file.format !in ExportFile.ACCEPTED_FORMATS) invalid("Not an export file from this app")
@@ -104,51 +125,70 @@ class TransferService(
         val nutrientService = NutrientService(db, userId)
         val foodService = FoodService(db, userId)
 
-        // Units
+        // Units. One matched by its name in another language keeps its own names when overwritten.
         var unitCounts = ImportCounts()
-        val unitIds = unitService.list(includeArchived = true).associateTo(HashMap()) { normalizeName(it.name) to it.id }
+        val units = unitService.list(includeHidden = true)
+        val editableUnits = units.filter { it.canEdit }.mapTo(HashSet()) { it.id }
+        val unitIds = HashMap<String, Long>()
+        units.forEach { unit -> (listOf(unit.name) + unit.translations.map { it.name }).forEach { unitIds[normalizeName(it)] = unit.id } }
         for (unit in file.units) {
             val key = normalizeName(unit.name)
             val existing = unitIds[key]
+            val hidden = if (file.version >= 3) unit.hidden else unit.archived
             val translations = freeTranslations(unit.translations, existing, unit.name, withSuffix = true) { loadCatalog(db, userId).units.values }
             // Version 1 files have no plural endings: keep existing ones, use the default for new units.
             val suffix = if (file.version >= 2) unit.pluralSuffix else null
             val input = UnitInput(unit.name, unit.kind, unit.baseFactor, suffix, translations)
             unitCounts = when {
                 existing == null -> {
-                    unitIds[key] = unitService.create(input, unit.archived).id
+                    unitIds[key] = unitService.create(input, hidden).id
                     unitCounts.copy(created = unitCounts.created + 1)
                 }
                 overwrite -> {
-                    unitService.update(existing, input)
-                    unitService.setArchived(existing, unit.archived)
-                    unitCounts.copy(updated = unitCounts.updated + 1)
+                    unitService.setHidden(existing, hidden)
+                    if (existing in editableUnits) {
+                        val current = unitService.get(existing)
+                        unitService.update(existing, if (normalizeName(current.name) == key) input else input.copy(name = current.name, translations = null))
+                        unitCounts.copy(updated = unitCounts.updated + 1)
+                    } else {
+                        unitCounts.copy(skipped = unitCounts.skipped + 1)
+                    }
                 }
                 else -> unitCounts.copy(skipped = unitCounts.skipped + 1)
             }
         }
         fun unitId(name: String) = unitIds[normalizeName(name)] ?: invalid("Unknown unit '$name'")
 
-        // Nutrients: create/update without parents first, then link parents.
+        // Nutrients: create/update without parents first, then link parents. Matched like units.
         var nutrientCounts = ImportCounts()
-        val nutrientIds = nutrientService.list(includeArchived = true).associateTo(HashMap()) { normalizeName(it.name) to it.id }
+        val nutrients = nutrientService.list(includeHidden = true)
+        val editableNutrients = nutrients.filter { it.canEdit }.mapTo(HashSet()) { it.id }
+        val nutrientIds = HashMap<String, Long>()
+        nutrients.forEach { n -> (listOf(n.name) + n.translations.map { it.name }).forEach { nutrientIds[normalizeName(it)] = n.id } }
         val touched = ArrayList<ExportNutrient>()
         for (nutrient in file.nutrients) {
             val key = normalizeName(nutrient.name)
             val existing = nutrientIds[key]
+            val hidden = if (file.version >= 3) nutrient.hidden else nutrient.archived
             val translations = freeTranslations(nutrient.translations, existing, nutrient.name, withSuffix = false) { loadCatalog(db, userId).nutrients }
             val input = NutrientInput(nutrient.name, nutrient.measureUnit, nutrient.displayPrecision, translations = translations)
             nutrientCounts = when {
                 existing == null -> {
-                    nutrientIds[key] = nutrientService.create(input, nutrient.archived).id
+                    nutrientIds[key] = nutrientService.create(input, hidden).id
                     touched += nutrient
                     nutrientCounts.copy(created = nutrientCounts.created + 1)
                 }
                 overwrite -> {
-                    nutrientService.update(existing, input)
-                    nutrientService.setArchived(existing, nutrient.archived)
-                    touched += nutrient
-                    nutrientCounts.copy(updated = nutrientCounts.updated + 1)
+                    nutrientService.setHidden(existing, hidden)
+                    if (existing in editableNutrients) {
+                        val current = nutrientService.get(existing)
+                        val kept = input.copy(parentId = current.parentId)
+                        nutrientService.update(existing, if (normalizeName(current.name) == key) kept else kept.copy(name = current.name, translations = null))
+                        touched += nutrient
+                        nutrientCounts.copy(updated = nutrientCounts.updated + 1)
+                    } else {
+                        nutrientCounts.copy(skipped = nutrientCounts.skipped + 1)
+                    }
                 }
                 else -> nutrientCounts.copy(skipped = nutrientCounts.skipped + 1)
             }
@@ -156,11 +196,9 @@ class TransferService(
         fun nutrientId(name: String) = nutrientIds[normalizeName(name)] ?: invalid("Unknown nutrient '$name'")
         for (nutrient in touched) {
             val parent = nutrient.parent ?: continue
+            val id = nutrientId(nutrient.name)
             // Translations were written above; null leaves them as they are.
-            nutrientService.update(
-                nutrientId(nutrient.name),
-                NutrientInput(nutrient.name, nutrient.measureUnit, nutrient.displayPrecision, nutrientId(parent)),
-            )
+            nutrientService.update(id, NutrientInput(nutrientService.get(id).name, nutrient.measureUnit, nutrient.displayPrecision, nutrientId(parent)))
         }
 
         // Foods

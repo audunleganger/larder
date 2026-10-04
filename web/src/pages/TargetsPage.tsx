@@ -103,7 +103,7 @@ export function TargetsPage() {
                 <table className="table targets-table">
                   <tbody>
                     {nutrients.data
-                      .filter((n) => !n.archived)
+                      .filter((n) => !n.hidden)
                       .map((n) => {
                         const current = list.filter((v) => v.nutrientId === n.id && v.effectiveFrom <= today).at(-1)
                         return <TargetRow key={`${n.id}-${current?.id ?? 'none'}-${current?.min}-${current?.max}`} nutrient={n} current={current} />

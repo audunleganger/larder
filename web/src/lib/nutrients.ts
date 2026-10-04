@@ -6,7 +6,7 @@ export interface NutrientGroup<T> {
 
 /**
  * Groups a list that is already in display order (the server keeps sub-nutrients directly after
- * their parent). A sub-nutrient whose parent isn't in the list, e.g. because the parent is archived
+ * their parent). A sub-nutrient whose parent isn't in the list, e.g. because the parent is hidden
  * and filtered out, becomes a group of its own.
  */
 export function groupNutrients<T extends { id: number; parentId: number | null }>(list: T[]): NutrientGroup<T>[] {

@@ -55,24 +55,23 @@ export const updateUser = (id: number, input: AdminUserUpdate) =>
 export const backup = () => api<BackupResult>('/admin/backup', { method: 'POST' })
 
 // Units
-export const listUnits = (includeArchived = false) => api<UnitDto[]>('/units', { query: { includeArchived } })
+// Units and nutrients are shared by everyone on the server; each user hides the ones they don't want.
+export const listUnits = (includeHidden = false) => api<UnitDto[]>('/units', { query: { includeHidden } })
 export const unitDetail = (id: number) => api<UnitDetail>(`/units/${id}`)
 export const createUnit = (input: UnitInput) => api<UnitDto>('/units', { method: 'POST', body: input })
 export const updateUnit = (id: number, input: UnitInput) => api<UnitDto>(`/units/${id}`, { method: 'PUT', body: input })
-export const archiveUnit = (id: number, archived: boolean) =>
-  api<UnitDto>(`/units/${id}/${archived ? 'archive' : 'unarchive'}`, { method: 'POST' })
+export const hideUnit = (id: number, hidden: boolean) => api<UnitDto>(`/units/${id}/${hidden ? 'hide' : 'show'}`, { method: 'POST' })
 export const deleteUnit = (id: number) => api<void>(`/units/${id}`, { method: 'DELETE' })
 
 // Nutrients
-export const listNutrients = (includeArchived = false) =>
-  api<NutrientDto[]>('/nutrients', { query: { includeArchived } })
+export const listNutrients = (includeHidden = false) => api<NutrientDto[]>('/nutrients', { query: { includeHidden } })
 export const nutrientDetail = (id: number) => api<NutrientDetail>(`/nutrients/${id}`)
 export const createNutrient = (input: NutrientInput) => api<NutrientDto>('/nutrients', { method: 'POST', body: input })
 export const updateNutrient = (id: number, input: NutrientInput) =>
   api<NutrientDto>(`/nutrients/${id}`, { method: 'PUT', body: input })
 export const reorderNutrients = (ids: number[]) => api<NutrientDto[]>('/nutrients/order', { method: 'PUT', body: { ids } })
-export const archiveNutrient = (id: number, archived: boolean) =>
-  api<NutrientDto>(`/nutrients/${id}/${archived ? 'archive' : 'unarchive'}`, { method: 'POST' })
+export const hideNutrient = (id: number, hidden: boolean) =>
+  api<NutrientDto>(`/nutrients/${id}/${hidden ? 'hide' : 'show'}`, { method: 'POST' })
 export const deleteNutrient = (id: number) => api<void>(`/nutrients/${id}`, { method: 'DELETE' })
 
 // Foods

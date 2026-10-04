@@ -1,17 +1,26 @@
 import kotlin.Boolean;
 
+-- Nutrients are shared by all users of a server; each user picks which ones they see, and in which
+-- order (shown_nutrient).
 CREATE TABLE nutrient (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    -- The user who made the nutrient; only they and admins can change it.
     user_id INTEGER NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     name_norm TEXT NOT NULL,
     measure_unit TEXT NOT NULL,
     display_precision INTEGER NOT NULL DEFAULT 1,
+    -- The default position; each user's own order is in shown_nutrient.
     sort_order INTEGER NOT NULL DEFAULT 0,
     parent_id INTEGER REFERENCES nutrient(id) ON DELETE SET NULL,
+    -- Unused since nutrients can be hidden per user (schema 6); kept because older SQLite can't drop columns.
     archived INTEGER AS Boolean NOT NULL DEFAULT 0,
+    -- One of the nutrients every user starts with (N-2); only admins can change these.
+    built_in INTEGER AS Boolean NOT NULL DEFAULT 0,
     UNIQUE (user_id, name_norm)
 );
+
+CREATE UNIQUE INDEX nutrient_name ON nutrient(name_norm);
 
 -- The nutrient's name in other languages (L-5); the main name is the fallback.
 CREATE TABLE nutrient_translation (
@@ -22,11 +31,26 @@ CREATE TABLE nutrient_translation (
     PRIMARY KEY (nutrient_id, locale)
 );
 
+-- The nutrients a user sees in totals, history and lists, in their own order (N-3). The rest are
+-- hidden for them, but foods keep their values.
+CREATE TABLE shown_nutrient (
+    user_id INTEGER NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
+    nutrient_id INTEGER NOT NULL REFERENCES nutrient(id) ON DELETE CASCADE,
+    sort_order INTEGER NOT NULL,
+    PRIMARY KEY (user_id, nutrient_id)
+);
+
 selectNutrients:
-SELECT * FROM nutrient WHERE user_id = ? ORDER BY sort_order, id;
+SELECT n.*, a.username AS owner_name FROM nutrient n JOIN app_user a ON a.id = n.user_id ORDER BY n.sort_order, n.id;
+
+selectShownNutrients:
+SELECT nutrient_id, sort_order FROM shown_nutrient WHERE user_id = ?;
+
+selectBuiltInNutrients:
+SELECT id, sort_order FROM nutrient WHERE built_in = 1;
 
 selectNutrientTranslations:
-SELECT t.* FROM nutrient_translation t JOIN nutrient n ON n.id = t.nutrient_id WHERE n.user_id = ?;
+SELECT * FROM nutrient_translation;
 
 insertNutrientTranslation:
 INSERT INTO nutrient_translation(nutrient_id, locale, name, name_norm) VALUES (?, ?, ?, ?);
@@ -34,28 +58,31 @@ INSERT INTO nutrient_translation(nutrient_id, locale, name, name_norm) VALUES (?
 deleteNutrientTranslations:
 DELETE FROM nutrient_translation WHERE nutrient_id = ?;
 
-selectNutrientByNorm:
-SELECT * FROM nutrient WHERE user_id = ? AND name_norm = ?;
-
 insertNutrient:
-INSERT INTO nutrient(user_id, name, name_norm, measure_unit, display_precision, sort_order, parent_id, archived)
+INSERT INTO nutrient(user_id, name, name_norm, measure_unit, display_precision, sort_order, parent_id, built_in)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?);
 
 updateNutrient:
 UPDATE nutrient SET name = ?, name_norm = ?, measure_unit = ?, display_precision = ?, parent_id = ?
-WHERE id = ? AND user_id = ?;
-
-setNutrientSortOrder:
-UPDATE nutrient SET sort_order = ? WHERE id = ? AND user_id = ?;
+WHERE id = ?;
 
 maxNutrientSortOrder:
-SELECT max(sort_order) FROM nutrient WHERE user_id = ?;
+SELECT max(sort_order) FROM nutrient;
 
-setNutrientArchived:
-UPDATE nutrient SET archived = ? WHERE id = ? AND user_id = ?;
+showNutrient:
+INSERT OR IGNORE INTO shown_nutrient(user_id, nutrient_id, sort_order) VALUES (?, ?, ?);
+
+hideNutrient:
+DELETE FROM shown_nutrient WHERE user_id = ? AND nutrient_id = ?;
+
+setShownNutrientOrder:
+UPDATE shown_nutrient SET sort_order = ? WHERE user_id = ? AND nutrient_id = ?;
+
+maxShownNutrientOrder:
+SELECT max(sort_order) FROM shown_nutrient WHERE user_id = ?;
 
 deleteNutrient:
-DELETE FROM nutrient WHERE id = ? AND user_id = ?;
+DELETE FROM nutrient WHERE id = ?;
 
 countNutrientFoodRefs:
 SELECT count(*) FROM food_nutrient WHERE nutrient_id = ?;

@@ -98,7 +98,7 @@ class CalculationTest {
     }
 
     @Test
-    fun `archived nutrients are not displayed`() {
+    fun `hidden nutrients are not displayed`() {
         assertFalse(hidden.id in calculator.entryNutrition(bread, g.id, 1.0).amounts)
     }
 
@@ -109,7 +109,7 @@ class CalculationTest {
         assertTrue(usable.getValue(slice.id).explicit)
         assertFalse(usable.getValue(kg.id).explicit)
         assertFalse(dl.id in usable)
-        assertFalse(oldMass.id in usable, "archived standard units aren't offered implicitly")
+        assertFalse(oldMass.id in usable, "hidden standard units aren't offered implicitly")
         assertEquals(35.0, usable.getValue(slice.id).amountInRefUnit!!, 1e-9)
     }
 

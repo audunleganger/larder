@@ -7,6 +7,7 @@ import { Badge, Card, ConfirmButton, Empty, ErrorText, PageHeader, QueryView } f
 import { formatDate } from '../lib/dates'
 import { currentLocale } from '../lib/format'
 import { unitSize } from '../lib/units'
+import { ReadOnlyNote } from '../components/Shared'
 import { UnitFields } from './UnitsPage'
 
 function FoodLinks({ foods }: { foods: FoodRef[] }) {
@@ -28,7 +29,7 @@ export function UnitDetailPage() {
   const id = Number(useParams().id)
   const detail = useUnitDetail(id)
   const update = useApiMutation((input: UnitInput) => endpoints.updateUnit(id, input))
-  const archive = useApiMutation((archived: boolean) => endpoints.archiveUnit(id, archived))
+  const hide = useApiMutation((hidden: boolean) => endpoints.hideUnit(id, hidden))
   const remove = useApiMutation(() => endpoints.deleteUnit(id))
 
   return (
@@ -39,24 +40,29 @@ export function UnitDetailPage() {
             <PageHeader
               title={
                 <>
-                  {data.unit.displayName} {data.unit.archived && <Badge>{t('common.archived')}</Badge>}
+                  {data.unit.displayName} {data.unit.hidden && <Badge>{t('common.hidden')}</Badge>}
                 </>
               }
               subtitle={
                 <>
-                  <Link to="/units">← {t('units.title')}</Link> · {t(`units.kinds.${data.unit.kind}`)} {unitSize(data.unit) && `· ${unitSize(data.unit)}`}
+                  <Link to="/units">← {t('units.title')}</Link> · {t(`units.kinds.${data.unit.kind}`)} {unitSize(data.unit) && `· ${unitSize(data.unit)}`} ·{' '}
+                  {t('common.createdBy')} {data.unit.createdBy}
                 </>
               }
             />
             <Card title={t('common.edit')}>
-              <UnitFields
-                key={JSON.stringify(data.unit)}
-                initial={data.unit}
-                submitLabel={t('common.save')}
-                onSubmit={(input) => update.mutateAsync(input)}
-                error={update.error}
-                busy={update.isPending}
-              />
+              {data.unit.canEdit ? (
+                <UnitFields
+                  key={JSON.stringify(data.unit)}
+                  initial={data.unit}
+                  submitLabel={t('common.save')}
+                  onSubmit={(input) => update.mutateAsync(input)}
+                  error={update.error}
+                  busy={update.isPending}
+                />
+              ) : (
+                <ReadOnlyNote item={data.unit} />
+              )}
             </Card>
             <div className="two-col">
               <Card title={t('units.foods')}>
@@ -83,15 +89,15 @@ export function UnitDetailPage() {
                 )}
               </Card>
             </div>
-            <Card title={t('common.manage')}>
+            <Card title={data.unit.canEdit ? t('common.hideOrDelete') : t('common.hide')}>
               <div className="form-actions">
-                <button type="button" className="btn" onClick={() => archive.mutate(!data.unit.archived)}>
-                  {data.unit.archived ? t('common.unarchive') : t('common.archive')}
+                <button type="button" className="btn" onClick={() => hide.mutate(!data.unit.hidden)}>
+                  {data.unit.hidden ? t('common.show') : t('common.hide')}
                 </button>
-                <ConfirmButton onConfirm={() => remove.mutate(undefined, { onSuccess: () => navigate('/units') })}>{t('common.delete')}</ConfirmButton>
+                {data.unit.canEdit && <ConfirmButton onConfirm={() => remove.mutate(undefined, { onSuccess: () => navigate('/units') })}>{t('common.delete')}</ConfirmButton>}
               </div>
-              <p className="field-hint">{t('units.archiveHint')}</p>
-              <ErrorText error={archive.error ?? remove.error} />
+              <p className="field-hint">{t('units.hideHint')}</p>
+              <ErrorText error={hide.error ?? remove.error} />
             </Card>
           </>
         )}

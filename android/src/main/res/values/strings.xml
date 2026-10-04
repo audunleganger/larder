@@ -37,6 +37,11 @@
     <string name="nutrients_move_down">Move %1$s down</string>
     <string name="archived">archived</string>
     <string name="show_archived">Archived</string>
+    <string name="action_hide">Hide</string>
+    <string name="action_show">Show</string>
+    <string name="hidden">hidden</string>
+    <string name="show_hidden">Hidden</string>
+    <string name="shared_read_only">Shared with everyone on the server. Only %1$s or an admin can change it.</string>
     <string name="name">Name</string>
     <string name="saved">Saved</string>
     <string name="manage">Archive or delete</string>
@@ -164,7 +169,7 @@
     <string name="units_implicit_foods">Also usable automatically</string>
     <string name="units_dates">Logged on</string>
     <string name="units_no_dates">No entries use this unit.</string>
-    <string name="units_archive_hint">Archived units are hidden from pickers but stay in your history. Only units nothing refers to can be deleted.</string>
+    <string name="units_hide_hint">Units are shared by everyone on the server. Hiding one removes it from your pickers; foods that use it keep it. Only units nothing refers to can be deleted.</string>
 
     <!-- Nutrients -->
     <string name="nutrients_title">Nutrients</string>
@@ -177,7 +182,7 @@
     <string name="nutrients_no_foods">No food has a value for this nutrient.</string>
     <string name="nutrients_entries">Entries</string>
     <string name="nutrients_no_entries">No entries contribute to this nutrient.</string>
-    <string name="nutrients_archive_hint">Archived nutrients are hidden from the day view. Only nutrients without food values or targets can be deleted.</string>
+    <string name="nutrients_hide_hint">Nutrients are shared by everyone on the server. Hiding one removes it from your day view; foods keep their values. Only nutrients without food values or targets can be deleted.</string>
 
     <!-- Targets -->
     <string name="targets_title">Daily targets</string>

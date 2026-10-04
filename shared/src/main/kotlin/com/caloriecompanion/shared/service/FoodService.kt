@@ -115,14 +115,15 @@ class FoodService(
 
     /**
      * The reference amount and unit a new food starts with (F-12): the ones last set on a food, or
-     * 100 g when there are none yet (or that unit is gone or archived).
+     * 100 g when there are none yet (or that unit is gone or hidden).
      */
     fun refDefault(): FoodRefDefault {
         val catalog = loadCatalog(db, userId)
         val stored = db.appUserQueries.selectFoodRefDefault(userId).executeAsOneOrNull()
         val unit = stored?.food_ref_unit_id?.let { catalog.units[it] }
-        if (stored?.food_ref_amount != null && unit != null && !unit.archived) return FoodRefDefault(stored.food_ref_amount, unit.id)
-        val gram = catalog.units.values.filter { it.kind == UnitKind.MASS && it.baseFactor == 1.0 && !it.archived }.minByOrNull { it.id }
+        if (stored?.food_ref_amount != null && unit != null && !unit.hidden) return FoodRefDefault(stored.food_ref_amount, unit.id)
+        // Grams, even if hidden: every food needs some reference.
+        val gram = catalog.units.values.filter { it.kind == UnitKind.MASS && it.baseFactor == 1.0 }.minWithOrNull(compareBy({ it.hidden }, { it.id }))
         return FoodRefDefault(gram?.let { 100.0 }, gram?.id)
     }
 

@@ -49,7 +49,7 @@ export function FoodsPage() {
           <select className="input unit-select" aria-label={t('foods.refUnit')} value={ref.unitId} onChange={(e) => setNewRef({ ...ref, unitId: e.target.value ? Number(e.target.value) : '' })}>
             <option value="">{t('foods.notSet')}</option>
             {(units.data ?? [])
-              .filter((u) => !u.archived || u.id === ref.unitId)
+              .filter((u) => !u.hidden || u.id === ref.unitId)
               .map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.displayName}

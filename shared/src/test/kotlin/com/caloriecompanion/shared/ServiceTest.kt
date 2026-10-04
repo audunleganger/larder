@@ -35,8 +35,8 @@ class ServiceTest {
     private val entries = EntryService(t.db, t.userId)
     private val targets = TargetService(t.db, t.userId)
 
-    private fun unit(name: String) = units.list(includeArchived = true).first { it.name == name }.id
-    private fun nutrient(name: String) = nutrients.list(includeArchived = true).first { it.name == name }.id
+    private fun unit(name: String) = units.list(includeHidden = true).first { it.name == name }.id
+    private fun nutrient(name: String) = nutrients.list(includeHidden = true).first { it.name == name }.id
 
     private fun bread() = foods.create(
         FoodInput(

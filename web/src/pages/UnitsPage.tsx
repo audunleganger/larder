@@ -6,7 +6,9 @@ import { useApiMutation, useUnits } from '../api/queries'
 import type { UnitDto, UnitInput, UnitKind } from '../api/types.gen'
 import { BASE_UNIT, KINDS, unitSize } from '../lib/units'
 import { DecimalInput } from '../components/DecimalInput'
-import { Badge, Card, ErrorText, Field, PageHeader, QueryView } from '../components/ui'
+import { Card, Empty, ErrorText, Field, PageHeader, QueryView } from '../components/ui'
+import { MadeBy, TakenHiddenNotice } from '../components/Shared'
+import { takenHidden } from '../lib/shared'
 import { parseDecimal, toInputValue } from '../lib/format'
 import { draftTranslations, effectiveSuffix, toTranslations } from '../lib/names'
 import { PluralSuffixField, TranslationFields } from '../components/TranslationFields'
@@ -82,51 +84,98 @@ export function UnitFields({ initial, submitLabel, onSubmit, error, busy }: { in
   )
 }
 
+/** One unit in the units list, with a button to hide or show it. */
+function UnitRow({ unit, onToggle, busy }: { unit: UnitDto; onToggle: () => void; busy: boolean }) {
+  const { t } = useTranslation()
+  return (
+    <tr>
+      <td>
+        <Link to={`/units/${unit.id}`}>{unit.displayName}</Link>
+      </td>
+      <td>{t(`units.kinds.${unit.kind}`)}</td>
+      <td className="num">{unitSize(unit) || <span className="muted">{t('units.perFood')}</span>}</td>
+      <td>
+        <MadeBy item={unit} />
+      </td>
+      <td className="num">
+        <button type="button" className="btn btn-ghost btn-small" disabled={busy} onClick={onToggle}>
+          {unit.hidden ? t('common.show') : t('common.hide')}
+        </button>
+      </td>
+    </tr>
+  )
+}
+
+function UnitTable({ units, onToggle, busy }: { units: UnitDto[]; onToggle: (unit: UnitDto) => void; busy: boolean }) {
+  const { t } = useTranslation()
+  return (
+    <div className="table-scroll">
+      <table className="table">
+        <thead>
+          <tr>
+            <th>{t('common.name')}</th>
+            <th>{t('units.kind')}</th>
+            <th className="num">{t('units.sizeColumn')}</th>
+            <th>{t('common.createdBy')}</th>
+            <th />
+          </tr>
+        </thead>
+        <tbody>
+          {units.map((unit) => (
+            <UnitRow key={unit.id} unit={unit} busy={busy} onToggle={() => onToggle(unit)} />
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+/**
+ * Units are shared by everyone on the server. The page lists the ones the user shows, and the
+ * hidden ones (theirs, and other users') on request.
+ */
 export function UnitsPage() {
   const { t } = useTranslation()
-  const [showArchived, setShowArchived] = useState(false)
-  const units = useUnits(showArchived)
+  const [showHidden, setShowHidden] = useState(false)
+  // Remounts the create form, emptying it, once a hidden item is shown instead of created.
+  const [formKey, setFormKey] = useState(0)
+  const units = useUnits(true)
   const create = useApiMutation(endpoints.createUnit)
+  const toggle = useApiMutation((unit: UnitDto) => endpoints.hideUnit(unit.id, !unit.hidden))
+  const taken = takenHidden(create.error, units.data)
+  const hidden = units.data?.filter((u) => u.hidden) ?? []
 
   return (
     <div className="page">
       <PageHeader title={t('units.title')} subtitle={t('units.subtitle')} />
       <Card title={t('units.new')}>
-        <UnitFields submitLabel={t('common.create')} onSubmit={(input) => create.mutateAsync(input)} error={create.error} busy={create.isPending} />
+        <UnitFields key={formKey} submitLabel={t('common.create')} onSubmit={(input) => create.mutateAsync(input)} error={taken ? null : create.error} busy={create.isPending} />
+        {taken && <TakenHiddenNotice item={taken} onShow={() =>
+              toggle.mutate(taken, {
+                onSuccess: () => {
+                  create.reset()
+                  setFormKey((k) => k + 1)
+                },
+              })
+            } />}
       </Card>
       <Card
         title={t('units.all')}
         actions={
-          <label className="checkbox">
-            <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} /> {t('common.showArchived')}
-          </label>
+          <button type="button" className="btn btn-small" aria-expanded={showHidden} onClick={() => setShowHidden((v) => !v)}>
+            {t('units.showHidden', { count: hidden.length })}
+          </button>
         }
       >
-        <QueryView query={units}>
-          {(data) => (
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>{t('common.name')}</th>
-                  <th>{t('units.kind')}</th>
-                  <th className="num">{t('units.sizeColumn')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.map((unit) => (
-                  <tr key={unit.id}>
-                    <td>
-                      <Link to={`/units/${unit.id}`}>{unit.displayName}</Link> {unit.archived && <Badge>{t('common.archived')}</Badge>}
-                    </td>
-                    <td>{t(`units.kinds.${unit.kind}`)}</td>
-                    <td className="num">{unitSize(unit) || <span className="muted">{t('units.perFood')}</span>}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </QueryView>
+        <QueryView query={units}>{(data) => <UnitTable units={data.filter((u) => !u.hidden)} onToggle={(unit) => toggle.mutate(unit)} busy={toggle.isPending} />}</QueryView>
+        <ErrorText error={toggle.error} />
       </Card>
+      {showHidden && (
+        <Card title={t('units.hiddenTitle')}>
+          <p className="field-hint">{t('units.hiddenHint')}</p>
+          {hidden.length === 0 ? <Empty>{t('units.noHidden')}</Empty> : <UnitTable units={hidden} onToggle={(unit) => toggle.mutate(unit)} busy={toggle.isPending} />}
+        </Card>
+      )}
     </div>
   )
 }

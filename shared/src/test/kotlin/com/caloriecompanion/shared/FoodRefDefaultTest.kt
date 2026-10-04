@@ -13,7 +13,7 @@ class FoodRefDefaultTest {
     private val t = TestDb()
     private val units = UnitService(t.db, t.userId)
     private val foods = FoodService(t.db, t.userId)
-    private fun unit(name: String) = units.list(includeArchived = true).first { it.name == name }.id
+    private fun unit(name: String) = units.list(includeHidden = true).first { it.name == name }.id
 
     @Test
     fun `starts as 100 g`() {
@@ -40,9 +40,9 @@ class FoodRefDefaultTest {
     }
 
     @Test
-    fun `falls back to 100 g when the remembered unit is archived`() {
+    fun `falls back to 100 g when the remembered unit is hidden`() {
         foods.create(FoodInput("Juice", 1.0, unit("dl")))
-        units.setArchived(unit("dl"), true)
+        units.setHidden(unit("dl"), true)
         assertEquals(FoodRefDefault(100.0, unit("g")), foods.refDefault())
     }
 

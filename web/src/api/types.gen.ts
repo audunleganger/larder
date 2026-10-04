@@ -166,8 +166,9 @@ export interface ExportNutrient {
   measureUnit: string
   displayPrecision?: number
   parent?: string | null
-  archived?: boolean
+  hidden?: boolean
   translations?: NameTranslation[]
+  archived?: boolean
 }
 
 export interface ExportTarget {
@@ -181,9 +182,10 @@ export interface ExportUnit {
   name: string
   kind: UnitKind
   baseFactor?: number | null
-  archived?: boolean
+  hidden?: boolean
   pluralSuffix?: string
   translations?: NameTranslation[]
+  archived?: boolean
 }
 
 export interface FoodDetail {
@@ -365,7 +367,10 @@ export interface NutrientDto {
   displayPrecision: number
   sortOrder: number
   parentId: number | null
-  archived: boolean
+  hidden: boolean
+  builtIn: boolean
+  createdBy: string
+  canEdit: boolean
   translations: NameTranslation[]
   displayName: string
 }
@@ -477,7 +482,10 @@ export interface UnitDto {
   name: string
   kind: UnitKind
   baseFactor: number | null
-  archived: boolean
+  hidden: boolean
+  builtIn: boolean
+  createdBy: string
+  canEdit: boolean
   pluralSuffix: string
   translations: NameTranslation[]
   displayName: string

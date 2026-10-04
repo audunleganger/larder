@@ -38,19 +38,19 @@ class RepositoryException(
  * or a server ([RemoteRepository]). The UI doesn't know which one it talks to.
  */
 interface Repository {
-    suspend fun units(includeArchived: Boolean = false): List<UnitDto>
+    suspend fun units(includeHidden: Boolean = false): List<UnitDto>
     suspend fun unitDetail(id: Long): UnitDetail
     suspend fun createUnit(input: UnitInput): UnitDto
     suspend fun updateUnit(id: Long, input: UnitInput): UnitDto
-    suspend fun archiveUnit(id: Long, archived: Boolean): UnitDto
+    suspend fun hideUnit(id: Long, hidden: Boolean): UnitDto
     suspend fun deleteUnit(id: Long)
 
-    suspend fun nutrients(includeArchived: Boolean = false): List<NutrientDto>
+    suspend fun nutrients(includeHidden: Boolean = false): List<NutrientDto>
     suspend fun nutrientDetail(id: Long): NutrientDetail
     suspend fun createNutrient(input: NutrientInput): NutrientDto
     suspend fun updateNutrient(id: Long, input: NutrientInput): NutrientDto
     suspend fun reorderNutrients(ids: List<Long>): List<NutrientDto>
-    suspend fun archiveNutrient(id: Long, archived: Boolean): NutrientDto
+    suspend fun hideNutrient(id: Long, hidden: Boolean): NutrientDto
     suspend fun deleteNutrient(id: Long)
 
     suspend fun foods(query: String? = null, includeArchived: Boolean = false): List<FoodSummary>

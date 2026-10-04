@@ -20,7 +20,7 @@ function IngredientRowEditor({ row, units, saved, exclude, onPatch, onRemove }: 
   const qty = parseDecimal(row.quantity)
   const usable = detail.data?.usableUnits ?? []
   const usableIds = new Set(usable.map((u) => u.unitId))
-  const otherUnits = units.filter((u) => !u.archived && !usableIds.has(u.id))
+  const otherUnits = units.filter((u) => !u.hidden && !usableIds.has(u.id))
   // The saved calculation only describes this row while it's unchanged.
   const unresolved = saved && saved.foodId === row.food?.id && saved.unitId === row.unitId && saved.unresolved
 
@@ -90,7 +90,7 @@ export function IngredientsEditor({ foodId, draft, onChange, units, saved }: { f
   const patchRow = (key: number, patch: Partial<IngredientRow>) =>
     onChange((d) => ({ ...d, rows: d.rows.map((row) => (row.key === key ? { ...row, ...patch } : row)) }))
   const totalGrams = saved?.totalGrams
-  const yieldUnits = units.filter((u) => !u.archived || u.id === draft.yieldUnitId)
+  const yieldUnits = units.filter((u) => !u.hidden || u.id === draft.yieldUnitId)
   const yieldQty = parseDecimal(draft.yieldAmount)
 
   return (

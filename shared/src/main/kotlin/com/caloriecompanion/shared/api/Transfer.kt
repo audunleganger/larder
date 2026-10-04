@@ -1,11 +1,14 @@
 package com.caloriecompanion.shared.api
 
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Portable export of one user's data (X-1). References use names, not IDs,
- * so the file can be imported into any catalog.
+ * Portable export of one user's data (X-1). References use names, not IDs, so the file can be imported
+ * into any server. Units and nutrients are shared by a server's users: the file has the ones the user's
+ * data uses or the user shows, whoever made them.
  */
 @Serializable
 data class ExportFile(
@@ -24,29 +27,40 @@ data class ExportFile(
         /** Format ids import accepts; if the app is renamed, the new id is added here and old files still import. */
         val ACCEPTED_FORMATS = listOf(FORMAT)
 
-        /** 2: names per language and plural endings (L-5, U-8), food photos (F-13), composite foods (F-10). */
-        const val VERSION = 2
+        /**
+         * 2: names per language and plural endings (L-5, U-8), food photos (F-13), composite foods (F-10).
+         * 3: units and nutrients are shared by a server's users; `hidden` replaces `archived` for them.
+         */
+        const val VERSION = 3
     }
 }
 
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class ExportUnit(
     val name: String,
     val kind: UnitKind,
     val baseFactor: Double? = null,
-    val archived: Boolean = false,
+    /** Hidden for the user who exported it. */
+    val hidden: Boolean = false,
     val pluralSuffix: String = "",
     val translations: List<NameTranslation> = emptyList(),
+    /** Version 2 files: archived, read as [hidden]. */
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val archived: Boolean = false,
 )
 
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class ExportNutrient(
     val name: String,
     val measureUnit: String,
     val displayPrecision: Int = 1,
     val parent: String? = null,
-    val archived: Boolean = false,
+    /** Hidden for the user who exported it. */
+    val hidden: Boolean = false,
     val translations: List<NameTranslation> = emptyList(),
+    /** Version 2 files: archived, read as [hidden]. */
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val archived: Boolean = false,
 )
 
 @Serializable

@@ -26,7 +26,7 @@ export function compositeDraft(food: FoodDto, saved: CompositeDetail | null, uni
   const composite = food.composite
   if (!composite) {
     // A food that becomes composite starts as "makes 1 serving", if there's such a unit.
-    const serving = units.find((u) => !u.archived && u.kind === 'custom' && [u.name, ...u.translations.map((t) => t.name)].some((n) => ['serving', 'porsjon'].includes(n.toLowerCase())))
+    const serving = units.find((u) => !u.hidden && u.kind === 'custom' && [u.name, ...u.translations.map((t) => t.name)].some((n) => ['serving', 'porsjon'].includes(n.toLowerCase())))
     return { rows: [], yieldMode: serving ? 'set' : 'auto', yieldAmount: serving ? '1' : '', yieldUnitId: serving?.id ?? '', logAsWhole: false }
   }
   return {

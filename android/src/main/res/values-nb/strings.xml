@@ -34,6 +34,11 @@
     <string name="nutrients_move_down">Flytt %1$s ned</string>
     <string name="archived">arkivert</string>
     <string name="show_archived">Arkiverte</string>
+    <string name="action_hide">Skjul</string>
+    <string name="action_show">Vis</string>
+    <string name="hidden">skjult</string>
+    <string name="show_hidden">Skjulte</string>
+    <string name="shared_read_only">Delt med alle på serveren. Bare %1$s eller en administrator kan endre den.</string>
     <string name="name">Navn</string>
     <string name="saved">Lagret</string>
     <string name="manage">Arkiver eller slett</string>
@@ -155,7 +160,7 @@
     <string name="units_implicit_foods">Kan også brukes automatisk</string>
     <string name="units_dates">Registrert</string>
     <string name="units_no_dates">Ingen registreringer bruker enheten.</string>
-    <string name="units_archive_hint">Arkiverte enheter skjules i valglister, men blir værende i historikken. Bare enheter som ikke brukes noe sted kan slettes.</string>
+    <string name="units_hide_hint">Enhetene deles av alle på serveren. En skjult enhet vises ikke i valglistene dine, men matvarer som bruker den, beholder den. Bare enheter som ikke brukes noe sted kan slettes.</string>
 
     <string name="nutrients_title">Næringsstoffer</string>
     <string name="nutrients_new">Nytt næringsstoff</string>
@@ -167,7 +172,7 @@
     <string name="nutrients_no_foods">Ingen matvarer har verdi for dette næringsstoffet.</string>
     <string name="nutrients_entries">Registreringer</string>
     <string name="nutrients_no_entries">Ingen registreringer bidrar til dette næringsstoffet.</string>
-    <string name="nutrients_archive_hint">Arkiverte næringsstoffer skjules i dagsoversikten. Bare næringsstoffer uten verdier og dagsmål kan slettes.</string>
+    <string name="nutrients_hide_hint">Næringsstoffene deles av alle på serveren. Et skjult næringsstoff vises ikke i dagsoversikten din, men matvarene beholder verdiene. Bare næringsstoffer uten verdier og dagsmål kan slettes.</string>
 
     <string name="targets_title">Dagsmål</string>
     <string name="targets_hint">Valgfritt minimum og/eller maksimum per næringsstoff, likt hver dag. Når du lagrer, lages en ny versjon fra valgt dato; tidligere dager beholder målet som gjaldt da. La begge stå tomme for å fjerne et mål.</string>

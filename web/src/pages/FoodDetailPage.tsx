@@ -24,10 +24,6 @@ interface LinkRow {
 
 let rowKey = 0
 
-function unitOption(unit: UnitDto, t: (key: 'common.archived') => string) {
-  return unit.archived ? `${unit.displayName} (${t('common.archived')})` : unit.displayName
-}
-
 function FoodEditor({ detail, units, nutrients }: { detail: FoodDetail; units: UnitDto[]; nutrients: NutrientDto[] }) {
   const { t } = useTranslation()
   const food = detail.food
@@ -48,8 +44,10 @@ function FoodEditor({ detail, units, nutrients }: { detail: FoodDetail; units: U
   const [saved, setSaved] = useState(false)
   const save = useApiMutation((input: FoodInput) => endpoints.updateFood(food.id, input))
 
-  // Archived nutrients are only shown when this food has a value for them.
-  const shownNutrients = nutrients.filter((n) => !n.archived || values[n.id] !== undefined)
+  // Hidden nutrients and units are only offered where this food already uses them.
+  const shownNutrients = nutrients.filter((n) => !n.hidden || values[n.id] !== undefined)
+  const usedUnits = new Set([food.refUnitId, refUnitId, ...food.units.flatMap((l) => [l.unitId, l.equalsUnitId]), ...links.flatMap((l) => [l.unitId, l.equalsUnitId])])
+  const pickableUnits = units.filter((u) => !u.hidden || usedUnits.has(u.id))
   const refUnitName = units.find((u) => u.id === refUnitId)?.displayName ?? ''
 
   function build(): FoodInput | null {
@@ -163,9 +161,9 @@ function FoodEditor({ detail, units, nutrients }: { detail: FoodDetail; units: U
               <Field label={t('foods.refUnit')} className="grow">
                 <select className="input" value={refUnitId} onChange={(e) => setRefUnitId(e.target.value ? Number(e.target.value) : '')}>
                   <option value="">{t('foods.notSet')}</option>
-                  {units.map((u) => (
+                  {pickableUnits.map((u) => (
                     <option key={u.id} value={u.id}>
-                      {unitOption(u, t)}
+                      {u.displayName}
                     </option>
                   ))}
                 </select>
@@ -208,9 +206,9 @@ function FoodEditor({ detail, units, nutrients }: { detail: FoodDetail; units: U
                 <span className="muted">1</span>
                 <select className="input" aria-label={t('foods.unit')} value={row.unitId} onChange={(e) => updateLink(row.key, { unitId: e.target.value ? Number(e.target.value) : '' })}>
                   <option value="">{t('foods.chooseUnit')}</option>
-                  {units.map((u) => (
+                  {pickableUnits.map((u) => (
                     <option key={u.id} value={u.id}>
-                      {unitOption(u, t)}
+                      {u.displayName}
                     </option>
                   ))}
                 </select>
@@ -218,11 +216,11 @@ function FoodEditor({ detail, units, nutrients }: { detail: FoodDetail; units: U
                 <DecimalInput className="qty-input" value={row.equalsAmount} onChange={(text) => updateLink(row.key, { equalsAmount: text })} aria-label={t('foods.equalsAmount')} placeholder="?" />
                 <select className="input" aria-label={t('foods.equalsUnit')} value={row.equalsUnitId} onChange={(e) => updateLink(row.key, { equalsUnitId: e.target.value ? Number(e.target.value) : '' })}>
                   <option value="">{t('foods.chooseUnit')}</option>
-                  {units
+                  {pickableUnits
                     .filter((u) => u.id !== row.unitId)
                     .map((u) => (
                       <option key={u.id} value={u.id}>
-                        {unitOption(u, t)}
+                        {u.displayName}
                       </option>
                     ))}
                 </select>
@@ -282,7 +280,7 @@ function CompositeNutrients({ detail, units, nutrients }: { detail: FoodDetail; 
   const composite = detail.composite
   const yieldUnit = units.find((u) => u.id === composite?.yieldUnitId)
   const values = new Map(composite?.nutrients.map((v) => [v.nutrientId, v.amount]))
-  const shown = nutrients.filter((n) => !n.archived || values.has(n.id))
+  const shown = nutrients.filter((n) => !n.hidden || values.has(n.id))
   return (
     <Card
       title={
