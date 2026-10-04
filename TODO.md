@@ -54,6 +54,10 @@ Changes to stored data also need a schema migration, a new export format version
 
 ## Changes
 
+- **Only a name when adding a food.** The "new food" form on the foods page asks just for the name; the reference
+  amount and unit are set on the food's page, which opens right after. The new food still starts with the
+  remembered reference amount (F-12): the form sends it without showing it, or the food's page prefills it. Same
+  change in the Android app.
 - **Full plural forms instead of a suffix**, so irregular plurals work (goose → geese). Each name and each
   translation gets its own plural form. Existing units migrate to name + suffix. The rule lives in `unitLabel`,
   in `web/src/lib/names.ts` and in `Names.kt` in the shared module, and new units get their default ending from
