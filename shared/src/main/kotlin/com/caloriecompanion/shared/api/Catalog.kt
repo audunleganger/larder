@@ -48,6 +48,12 @@ data class UnitDto(
     val builtIn: Boolean,
     /** Username of the user who made it. */
     val createdBy: String,
+    /** When it was made, in ms since 1970. */
+    val createdAt: Long,
+    /** When it was last changed, in ms since 1970; null if never. Hiding and showing don't count. */
+    val updatedAt: Long?,
+    /** Username of the user who last changed it; null if never, or unknown (imported). */
+    val updatedBy: String?,
     /** Whether the reader may change or delete it. */
     val canEdit: Boolean,
     /** Appended to the main name when the quantity isn't 1 (U-8). */
@@ -105,6 +111,9 @@ data class NutrientDto(
     /** One of the nutrients every user starts with (N-2); only admins can change these. */
     val builtIn: Boolean,
     val createdBy: String,
+    val createdAt: Long,
+    val updatedAt: Long?,
+    val updatedBy: String?,
     val canEdit: Boolean,
     val translations: List<NameTranslation>,
     val displayName: String,
@@ -118,6 +127,25 @@ data class NutrientInput(
     val parentId: Long? = null,
     /** Null: unchanged on update (none on create). */
     val translations: List<NameTranslation>? = null,
+)
+
+/**
+ * Corrects who made a unit or nutrient and when, and when and by whom it was last changed; admins only.
+ * Users are given by username. [createdBy] becomes the owner, who may then change it.
+ */
+@Serializable
+data class MetadataInput(
+    val createdAt: Long,
+    val createdBy: String,
+    val updatedAt: Long? = null,
+    /** Needs [updatedAt]. */
+    val updatedBy: String? = null,
+)
+
+/** Corrects when a food was made; admins only. Who made it is its owner and can't change. */
+@Serializable
+data class FoodMetadataInput(
+    val createdAt: Long,
 )
 
 @Serializable
@@ -264,6 +292,10 @@ data class FoodDto(
      * then the values entered by hand, unused while it's composite (see [FoodDetail.composite]).
      */
     val composite: CompositeInput?,
+    /** When it was made, in ms since 1970. */
+    val createdAt: Long,
+    /** Username of the user who made it (and owns it). */
+    val createdBy: String,
 )
 
 /**

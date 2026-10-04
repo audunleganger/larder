@@ -53,6 +53,12 @@ class MigrationTest {
         assertEquals("s", units.first { it.name == "slice" }.pluralSuffix)
         assertEquals("", units.first { it.name == "g" }.pluralSuffix)
         assertEquals(listOf("Energi", "Karbohydrater", "Sukkerarter"), NutrientService(db, 1, "nb").list().map { it.displayName })
+        // v7: existing items count as made at the upgrade, by their owner, and never changed.
+        val upgradedAt = System.currentTimeMillis()
+        val slice = units.first { it.name == "slice" }
+        assertTrue(slice.createdAt in upgradedAt - 60_000..upgradedAt)
+        assertEquals(null, slice.updatedAt)
+        assertTrue(FoodService(db, 1).list().all { FoodService(db, 1).get(it.id).createdAt in upgradedAt - 60_000..upgradedAt })
     }
 
     @Test

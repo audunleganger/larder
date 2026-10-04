@@ -9,6 +9,7 @@ import com.caloriecompanion.shared.api.FoodDto
 import com.caloriecompanion.shared.api.FoodEntryRef
 import com.caloriecompanion.shared.api.FoodImageData
 import com.caloriecompanion.shared.api.FoodInput
+import com.caloriecompanion.shared.api.FoodMetadataInput
 import com.caloriecompanion.shared.api.FoodNutrientValue
 import com.caloriecompanion.shared.api.FoodRef
 import com.caloriecompanion.shared.api.FoodRefDefault
@@ -127,11 +128,14 @@ class FoodService(
         return FoodRefDefault(gram?.let { 100.0 }, gram?.id)
     }
 
-    /** [rememberRef]: whether a reference amount set here becomes the default for new foods. */
-    fun create(input: FoodInput, archived: Boolean = false, rememberRef: Boolean = true): FoodDto = db.transactionWithResult {
+    /**
+     * [rememberRef]: whether a reference amount set here becomes the default for new foods.
+     * [createdAt]: as in an imported file; by default now.
+     */
+    fun create(input: FoodInput, archived: Boolean = false, rememberRef: Boolean = true, createdAt: Long? = null): FoodDto = db.transactionWithResult {
         val catalog = loadCatalog(db, userId)
         val clean = validate(catalog, input, selfId = null)
-        queries.insertFood(userId, clean.name, normalizeName(clean.name), clean.refAmount, clean.refUnitId, clean.notes, archived)
+        queries.insertFood(userId, clean.name, normalizeName(clean.name), clean.refAmount, clean.refUnitId, clean.notes, archived, createdAt ?: now())
         val id = db.appUserQueries.lastInsertRowId().executeAsOne()
         writeRelations(id, clean)
         writeTranslations(id, clean.translations.orEmpty())
@@ -188,6 +192,15 @@ class FoodService(
         requirePositive(input.yieldAmount, "How much it makes")
         input.yieldUnitId?.let { if (it !in catalog.units) notFound("Unit") }
         return input
+    }
+
+    /** Corrects when the food was made; admins only, for their own foods (foods are private). */
+    fun setMetadata(id: Long, input: FoodMetadataInput): FoodDto = db.transactionWithResult {
+        MetadataRules.requireAdmin(Reader.of(db, userId, language))
+        get(id)
+        MetadataRules.validTime(input.createdAt, "Created")
+        queries.setFoodCreatedAt(input.createdAt, id, userId)
+        get(id)
     }
 
     fun setArchived(id: Long, archived: Boolean): FoodDto {

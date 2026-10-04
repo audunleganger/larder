@@ -46,6 +46,9 @@ internal fun SelectUnits.toDef(translations: Map<String, NameTranslation>, hidde
     ownerId = user_id,
     ownerName = owner_name,
     builtIn = built_in,
+    createdAt = created_at,
+    updatedAt = updated_at,
+    updatedByName = updated_by_name,
 )
 
 /** [sortOrder]: the reader's position for it. */
@@ -61,6 +64,9 @@ internal fun SelectNutrients.toDef(translations: Map<String, NameTranslation>, h
     ownerId = user_id,
     ownerName = owner_name,
     builtIn = built_in,
+    createdAt = created_at,
+    updatedAt = updated_at,
+    updatedByName = updated_by_name,
 )
 
 /** What a reader sees of units and nutrients: display names in their [language] (L-5), and whether they may edit them. */
@@ -79,6 +85,9 @@ internal fun UnitDef.toDto(reader: Reader) = UnitDto(
     hidden = hidden,
     builtIn = builtIn,
     createdBy = ownerName,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    updatedBy = updatedByName,
     canEdit = canEdit(reader.userId, reader.isAdmin),
     pluralSuffix = pluralSuffix,
     translations = translations.inLanguageOrder(),
@@ -96,6 +105,9 @@ internal fun NutrientDef.toDto(reader: Reader) = NutrientDto(
     hidden = hidden,
     builtIn = builtIn,
     createdBy = ownerName,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    updatedBy = updatedByName,
     canEdit = canEdit(reader.userId, reader.isAdmin),
     translations = translations.inLanguageOrder(),
     displayName = displayName(reader.language),
@@ -115,6 +127,8 @@ internal fun FoodDef.toDto(language: String?) = FoodDto(
     displayName = displayName(language),
     imageVersion = imageVersion,
     composite = composite?.let { CompositeInput(it.ingredients, it.yieldAmount, it.yieldUnitId, it.logAsWhole) },
+    createdAt = createdAt,
+    createdBy = ownerName,
 )
 
 /** Every unit on the server, as seen by [userId]: the ones they haven't chosen to show are hidden. */
@@ -158,6 +172,7 @@ fun loadCatalog(db: CalorieCompanionDatabase, userId: Long): Catalog {
         .groupBy({ it.food_id }, { Ingredient(it.ingredient_id, it.unit_id, it.quantity) })
     val links = db.foodQueries.selectFoodUnits(userId).executeAsList().groupBy { it.food_id }
     val values = db.foodQueries.selectFoodNutrients(userId).executeAsList().groupBy { it.food_id }
+    val ownerName = db.appUserQueries.selectById(userId).executeAsOneOrNull()?.username.orEmpty()
     val foods = db.foodQueries.selectFoods(userId).executeAsList().map { food: Food ->
         val manualNutrients = values[food.id].orEmpty().associate { it.nutrient_id to it.amount }
         FoodDef(
@@ -174,6 +189,8 @@ fun loadCatalog(db: CalorieCompanionDatabase, userId: Long): Catalog {
             composite = ingredients[food.id]?.let {
                 CompositeDef(it, food.yield_amount, food.yield_unit_id, food.log_as_whole, food.ref_amount, food.ref_unit_id, manualNutrients)
             },
+            createdAt = food.created_at,
+            ownerName = ownerName,
         )
     }
     return Catalog(units, nutrients, Composites.derive(units, nutrients, foods))

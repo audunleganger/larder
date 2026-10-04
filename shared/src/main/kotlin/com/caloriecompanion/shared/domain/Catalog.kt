@@ -29,6 +29,11 @@ interface Owned {
     val builtIn: Boolean
     /** Hidden for the reader: left out of their lists and pickers, but still works where it's used. */
     val hidden: Boolean
+    /** When it was made, in ms since 1970. */
+    val createdAt: Long
+    /** When and by whom it was last changed; null if never (the name also when unknown). */
+    val updatedAt: Long?
+    val updatedByName: String?
 
     /** Whether the user [userId] may change or delete it. */
     fun canEdit(userId: Long, isAdmin: Boolean): Boolean = isAdmin || (!builtIn && ownerId == userId)
@@ -46,6 +51,9 @@ data class UnitDef(
     override val ownerId: Long = 0,
     override val ownerName: String = "",
     override val builtIn: Boolean = false,
+    override val createdAt: Long = 0,
+    override val updatedAt: Long? = null,
+    override val updatedByName: String? = null,
 ) : Named, Owned {
     fun displayPluralSuffix(language: String?): String = pickTranslation(translations, language)?.pluralSuffix ?: pluralSuffix
 }
@@ -63,6 +71,9 @@ data class NutrientDef(
     override val ownerId: Long = 0,
     override val ownerName: String = "",
     override val builtIn: Boolean = false,
+    override val createdAt: Long = 0,
+    override val updatedAt: Long? = null,
+    override val updatedByName: String? = null,
 ) : Named, Owned
 
 data class FoodDef(
@@ -83,6 +94,9 @@ data class FoodDef(
      * of a composite food are then derived from its ingredients (see [Composites]).
      */
     val composite: CompositeDef? = null,
+    /** When it was made, in ms since 1970, and by whom (its owner). */
+    val createdAt: Long = 0,
+    val ownerName: String = "",
 ) : Named
 
 /** A composite food's definition (F-10) and what was derived from it. */

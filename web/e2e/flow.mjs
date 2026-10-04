@@ -227,6 +227,22 @@ await step('shared units and nutrients', async () => {
   await page.locator('.card', { hasText: 'Your units' }).getByRole('link', { name: 'glass', exact: true }).waitFor()
 })
 
+await step('who made it and when', async () => {
+  await page.locator('.card', { hasText: 'Your units' }).getByRole('link', { name: 'glass', exact: true }).click()
+  const details = page.locator('.card', { hasText: 'Details' })
+  await details.getByText(/^Made .* by kari\.$/).waitFor()
+  await details.getByText('Not changed since.').waitFor()
+  // An admin's edit is recorded as a change.
+  await page.locator('.card', { hasText: 'Edit' }).first().getByRole('button', { name: 'Save' }).click()
+  await details.getByText(/^Last changed .* by audun\.$/).waitFor()
+  // Admins can correct it; the new maker owns the unit.
+  await details.getByRole('button', { name: 'Correct' }).click()
+  await details.getByLabel('Made by').selectOption('audun')
+  await details.getByRole('button', { name: 'Save' }).click()
+  await details.getByText(/^Made .* by audun\.$/).waitFor()
+  await shot('13d-unit-details')
+})
+
 await step('food photo', async () => {
   // A small PNG; the app shrinks and re-encodes photos in the browser before uploading.
   const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAHgAAABQCAIAAABd+SbeAAAAzElEQVR4nO3QQRHAIADAMEDXNKEOgVOx8liioNd59jP43rod8BdGR4yOGB0xOmJ0xOiI0RGjI0ZHjI4YHTE6YnTE6IjREaMjRkeMjhgdMTpidMToiNERoyNGR4yOGB0xOmJ0xOiI0RGjI0ZHjI4YHTE6YnTE6IjREaMjRkeMjhgdMTpidMToiNERoyNGR4yOGB0xOmJ0xOiI0RGjI0ZHjI4YHTE6YnTE6IjREaMjRkeMjhgdMTpidMToiNERoyNGR4yOGB0xOmJ0xOjIC/b/Af6iJ0AQAAAAAElFTkSuQmCC', 'base64')

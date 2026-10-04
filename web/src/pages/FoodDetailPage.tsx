@@ -5,6 +5,7 @@ import * as endpoints from '../api/endpoints'
 import { useApiMutation, useFoodDetail, useNutrients, useUnits } from '../api/queries'
 import type { CompositeInput, FoodDetail, FoodInput, NutrientDto, UnitDto } from '../api/types.gen'
 import { DecimalInput } from '../components/DecimalInput'
+import { MetadataCard } from '../components/Metadata'
 import { Badge, Card, ConfirmButton, Empty, ErrorText, Field, PageHeader, QueryView } from '../components/ui'
 import { formatDate } from '../lib/dates'
 import { currentLocale, formatAmount, formatNumber, formatQuantity, parseDecimal, toInputValue } from '../lib/format'
@@ -354,6 +355,7 @@ export function FoodDetailPage() {
   const nutrients = useNutrients(true)
   const archive = useApiMutation((archived: boolean) => endpoints.archiveFood(id, archived))
   const remove = useApiMutation(() => endpoints.deleteFood(id))
+  const correct = useApiMutation((createdAt: number) => endpoints.setFoodMetadata(id, { createdAt }))
 
   return (
     <div className="page">
@@ -388,6 +390,7 @@ export function FoodDetailPage() {
                 </ul>
               </Card>
             )}
+            <MetadataCard item={data.food} withUpdated={false} onSave={(input) => correct.mutateAsync(input.createdAt)} />
             <Card title={t('common.manage')}>
               <div className="form-actions">
                 <button type="button" className="btn" onClick={() => archive.mutate(!data.food.archived)}>

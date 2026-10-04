@@ -2,7 +2,8 @@ import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router'
 import * as endpoints from '../api/endpoints'
 import { useApiMutation, useNutrientDetail, useNutrients } from '../api/queries'
-import type { NutrientInput } from '../api/types.gen'
+import type { MetadataInput, NutrientInput } from '../api/types.gen'
+import { MetadataCard } from '../components/Metadata'
 import { Badge, Card, ConfirmButton, Empty, ErrorText, PageHeader, QueryView } from '../components/ui'
 import { formatDate } from '../lib/dates'
 import { unitLabel } from '../lib/names'
@@ -19,6 +20,7 @@ export function NutrientDetailPage() {
   const update = useApiMutation((input: NutrientInput) => endpoints.updateNutrient(id, input))
   const hide = useApiMutation((hidden: boolean) => endpoints.hideNutrient(id, hidden))
   const remove = useApiMutation(() => endpoints.deleteNutrient(id))
+  const correct = useApiMutation((input: MetadataInput) => endpoints.setNutrientMetadata(id, input))
 
   return (
     <div className="page">
@@ -119,6 +121,7 @@ export function NutrientDetailPage() {
                   {data.entriesTruncated && <p className="field-hint">{t('nutrients.truncated', { count: data.entries.length })}</p>}
                 </Card>
               </div>
+              <MetadataCard item={nutrient} withUpdated onSave={(input) => correct.mutateAsync(input)} />
               <Card title={nutrient.canEdit ? t('common.hideOrDelete') : t('common.hide')}>
                 <div className="form-actions">
                   <button type="button" className="btn" onClick={() => hide.mutate(!nutrient.hidden)}>

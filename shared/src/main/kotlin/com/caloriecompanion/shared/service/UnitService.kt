@@ -3,6 +3,7 @@ package com.caloriecompanion.shared.service
 import com.caloriecompanion.db.CalorieCompanionDatabase
 import com.caloriecompanion.shared.api.ErrorCodes
 import com.caloriecompanion.shared.api.FoodRef
+import com.caloriecompanion.shared.api.MetadataInput
 import com.caloriecompanion.shared.api.NameTranslation
 import com.caloriecompanion.shared.api.UnitDetail
 import com.caloriecompanion.shared.api.UnitDto
@@ -22,7 +23,12 @@ import com.caloriecompanion.shared.normalizeName
  * unit and chooses which ones they show; only a unit's maker and admins can change it.
  * [language]: the reader's language, for display names (L-5).
  */
-class UnitService(private val db: CalorieCompanionDatabase, private val userId: Long, private val language: String? = null) {
+class UnitService(
+    private val db: CalorieCompanionDatabase,
+    private val userId: Long,
+    private val language: String? = null,
+    private val now: () -> Long = System::currentTimeMillis,
+) {
     private val queries = db.quantityUnitQueries
     private val reader by lazy { Reader.of(db, userId, language) }
 
@@ -55,14 +61,15 @@ class UnitService(private val db: CalorieCompanionDatabase, private val userId: 
     /**
      * Creates a unit owned by the user and shows it for them. Names are unique across the server: a
      * taken name fails with NAME_TAKEN and the existing unit's id, so it can be shown instead.
+     * [createdAt] and [updatedAt]: as in an imported file; by default it's made now and never changed.
      */
-    fun create(input: UnitInput, hidden: Boolean = false): UnitDto = db.transactionWithResult {
+    fun create(input: UnitInput, hidden: Boolean = false, createdAt: Long? = null, updatedAt: Long? = null): UnitDto = db.transactionWithResult {
         val name = cleanName(input.name)
         val factor = validFactor(input.kind, input.baseFactor)
         val translations = NameRules.cleanTranslations(input.translations.orEmpty(), withSuffix = true)
         NameRules.ensureFree(listOf(name) + translations.map { it.name }, null, all(), "unit")
         val suffix = input.pluralSuffix?.let(NameRules::cleanSuffix) ?: defaultPluralSuffix(name, input.kind, language)
-        val id = insert(name, input.kind, factor, suffix, translations, builtIn = false)
+        val id = insert(name, input.kind, factor, suffix, translations, builtIn = false, createdAt ?: now(), updatedAt)
         if (!hidden) queries.showUnit(userId, id)
         find(id).toDto(reader)
     }
@@ -77,6 +84,16 @@ class UnitService(private val db: CalorieCompanionDatabase, private val userId: 
         val suffix = input.pluralSuffix?.let(NameRules::cleanSuffix) ?: before.pluralSuffix
         queries.updateUnit(name, normalizeName(name), input.kind.dbValue(), factor, suffix, id)
         if (translations != null) writeTranslations(id, translations)
+        queries.touchUnit(now(), userId, id)
+        find(id).toDto(reader)
+    }
+
+    /** Corrects who made the unit and when, and when and by whom it was last changed; admins only. */
+    fun setMetadata(id: Long, input: MetadataInput): UnitDto = db.transactionWithResult {
+        MetadataRules.requireAdmin(reader)
+        find(id)
+        val metadata = MetadataRules.resolve(db, input)
+        queries.setUnitMetadata(metadata.ownerId, metadata.createdAt, metadata.updatedAt, metadata.updatedBy, id)
         find(id).toDto(reader)
     }
 
@@ -102,8 +119,17 @@ class UnitService(private val db: CalorieCompanionDatabase, private val userId: 
     }
 
     /** Inserts a unit owned by the user, without checks; for [create] and the built-in units. */
-    internal fun insert(name: String, kind: UnitKind, factor: Double?, suffix: String, translations: List<NameTranslation>, builtIn: Boolean): Long {
-        queries.insertUnit(userId, name, normalizeName(name), kind.dbValue(), factor, suffix, builtIn)
+    internal fun insert(
+        name: String,
+        kind: UnitKind,
+        factor: Double?,
+        suffix: String,
+        translations: List<NameTranslation>,
+        builtIn: Boolean,
+        createdAt: Long = now(),
+        updatedAt: Long? = null,
+    ): Long {
+        queries.insertUnit(userId, name, normalizeName(name), kind.dbValue(), factor, suffix, builtIn, createdAt, updatedAt)
         val id = db.appUserQueries.lastInsertRowId().executeAsOne()
         writeTranslations(id, translations)
         return id

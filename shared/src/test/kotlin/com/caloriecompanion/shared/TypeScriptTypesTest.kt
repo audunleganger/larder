@@ -10,6 +10,7 @@ import com.caloriecompanion.shared.api.ErrorResponse
 import com.caloriecompanion.shared.api.ExportFile
 import com.caloriecompanion.shared.api.FoodDetail
 import com.caloriecompanion.shared.api.FoodInput
+import com.caloriecompanion.shared.api.FoodMetadataInput
 import com.caloriecompanion.shared.api.FoodRefDefault
 import com.caloriecompanion.shared.api.FoodSummary
 import com.caloriecompanion.shared.api.HealthResponse
@@ -18,6 +19,7 @@ import com.caloriecompanion.shared.api.ImportResult
 import com.caloriecompanion.shared.api.LocaleInput
 import com.caloriecompanion.shared.api.LoginInput
 import com.caloriecompanion.shared.api.LoginResult
+import com.caloriecompanion.shared.api.MetadataInput
 import com.caloriecompanion.shared.api.NutrientContributions
 import com.caloriecompanion.shared.api.NutrientDetail
 import com.caloriecompanion.shared.api.NutrientInput
@@ -57,6 +59,7 @@ class TypeScriptTypesTest {
         serializer<UnitInput>(), serializer<UnitDetail>(),
         serializer<NutrientInput>(), serializer<NutrientOrderInput>(), serializer<NutrientDetail>(),
         serializer<FoodSummary>(), serializer<FoodInput>(), serializer<FoodDetail>(), serializer<FoodRefDefault>(),
+        serializer<MetadataInput>(), serializer<FoodMetadataInput>(),
         serializer<EntryInput>(), serializer<PreviewInput>(), serializer<PreviewResult>(), serializer<DayView>(),
         serializer<TargetDto>(), serializer<TargetInput>(), serializer<HistoryView>(), serializer<NutrientContributions>(),
         serializer<ExportFile>(), serializer<ImportResult>(), serializer<ConflictStrategy>(),
