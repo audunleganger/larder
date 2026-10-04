@@ -6,6 +6,7 @@ import com.caloriecompanion.shared.api.FoodMetadataInput
 import com.caloriecompanion.shared.api.MetadataInput
 import com.caloriecompanion.shared.api.NutrientInput
 import com.caloriecompanion.shared.api.NutrientOrderInput
+import com.caloriecompanion.shared.api.PhotoLinkInput
 import com.caloriecompanion.shared.api.FoodTagsInput
 import com.caloriecompanion.shared.api.TagColorInput
 import com.caloriecompanion.shared.api.TagInput
@@ -32,7 +33,7 @@ import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 
 /** Units and nutrients (shared by all users, each hidden or shown per user) and food stuffs (F-*, U-*, N-*). */
-fun Route.catalogRoutes(database: Database, auth: Auth) {
+fun Route.catalogRoutes(database: Database, auth: Auth, photoFetcher: PhotoFetcher) {
     route("/units") {
         get {
             val all = call.flag("includeHidden")
@@ -121,6 +122,15 @@ fun Route.catalogRoutes(database: Database, auth: Auth) {
             call.withUserLanguage(database, auth) { db, user, language -> NutrientService(db, user, language).delete(id) }
             call.respond(HttpStatusCode.NoContent)
         }
+    }
+
+    // A photo from a link (F-13): downloaded here, then shrunk and uploaded by the client like a file.
+    post("/photo-links/fetch") {
+        call.user(database, auth)
+        val input = call.receive<PhotoLinkInput>()
+        val image = photoFetcher.fetch(input.url)
+        call.response.header(HttpHeaders.CacheControl, "no-store")
+        call.respondBytes(image.bytes, ContentType.parse(image.contentType))
     }
 
     route("/foods") {

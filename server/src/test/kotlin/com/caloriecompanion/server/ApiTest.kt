@@ -22,6 +22,7 @@ import com.caloriecompanion.shared.api.LoginInput
 import com.caloriecompanion.shared.api.LoginResult
 import com.caloriecompanion.shared.api.NutrientDto
 import com.caloriecompanion.shared.api.PasswordChangeInput
+import com.caloriecompanion.shared.api.PhotoLinkInput
 import com.caloriecompanion.shared.api.SetupInput
 import com.caloriecompanion.shared.api.SetupStatus
 import com.caloriecompanion.shared.api.TagColorInput
@@ -125,6 +126,16 @@ class ApiTest {
 
         assertEquals(null, client.delete("/api/v1/foods/${food.id}/image") { bearerAuth(token) }.body<FoodDto>().imageVersion)
         assertEquals(HttpStatusCode.NotFound, client.get("/api/v1/foods/${food.id}/image") { bearerAuth(token) }.status)
+    }
+
+    @Test
+    fun `photo links need a session and may not reach the local network`() = testApplication {
+        val client = jsonClient()
+        val token = client.setup()
+        assertEquals(HttpStatusCode.Unauthorized, client.post("/api/v1/photo-links/fetch") { json(PhotoLinkInput("http://127.0.0.1/a.png")) }.status)
+        val refused = client.post("/api/v1/photo-links/fetch") { bearerAuth(token); json(PhotoLinkInput("http://127.0.0.1:8080/a.png")) }
+        assertEquals(HttpStatusCode.BadRequest, refused.status)
+        assertEquals(ErrorCodes.LINK_REFUSED, refused.error().error)
     }
 
     @Test

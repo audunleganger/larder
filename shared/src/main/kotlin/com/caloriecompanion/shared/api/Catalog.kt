@@ -388,6 +388,12 @@ data class FoodImageData(
     val thumbnail: String,
 )
 
+/** A link to a photo (F-13) for the server to download; it answers with the image file as it is. */
+@Serializable
+data class PhotoLinkInput(
+    val url: String,
+)
+
 @Serializable
 data class FoodInput(
     val name: String,
