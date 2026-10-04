@@ -35,8 +35,9 @@ data class ExportFile(
          * 4: when units, nutrients and foods were made and last changed (`createdAt`, `updatedAt`).
          * 5: "ingredient only" foods (`ingredientOnly`, F-15).
          * 6: tags (`tags`, and `tags` on foods by name, F-16).
+         * 7: full plural forms of units (`plural`) instead of a plural ending (`pluralSuffix`, U-8).
          */
-        const val VERSION = 6
+        const val VERSION = 7
     }
 }
 
@@ -48,13 +49,27 @@ data class ExportUnit(
     val baseFactor: Double? = null,
     /** Hidden for the user who exported it. */
     val hidden: Boolean = false,
-    val pluralSuffix: String = "",
-    val translations: List<NameTranslation> = emptyList(),
+    /** Empty: the same as the name. */
+    val plural: String = "",
+    val translations: List<ExportUnitTranslation> = emptyList(),
+    /** Versions 2 to 6: the plural ending, read as name + ending. */
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val pluralSuffix: String = "",
     /** Version 2 files: archived, read as [hidden]. */
     @EncodeDefault(EncodeDefault.Mode.NEVER) val archived: Boolean = false,
     /** ISO-8601 instant; kept when imported as a new item. Absent before version 4. */
     val createdAt: String? = null,
     val updatedAt: String? = null,
+)
+
+/** A unit's name in one language; like [NameTranslation], plus the plural ending of older files. */
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+data class ExportUnitTranslation(
+    val locale: String,
+    val name: String,
+    val plural: String = "",
+    /** Versions 2 to 6: the plural ending, read as name + ending. */
+    @EncodeDefault(EncodeDefault.Mode.NEVER) val pluralSuffix: String = "",
 )
 
 @OptIn(ExperimentalSerializationApi::class)

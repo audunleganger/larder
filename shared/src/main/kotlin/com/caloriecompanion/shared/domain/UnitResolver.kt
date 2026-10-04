@@ -71,7 +71,7 @@ class UnitResolver(private val catalog: Catalog) {
                     kind = unit.kind,
                     explicit = explicit,
                     amountInRefUnit = amountInRefUnit(food, id),
-                    pluralSuffix = unit.displayPluralSuffix(language),
+                    plural = unit.displayPlural(language),
                 )
             }
     }

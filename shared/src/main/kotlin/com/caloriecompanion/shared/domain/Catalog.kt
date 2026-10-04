@@ -47,8 +47,8 @@ data class UnitDef(
     val kind: UnitKind,
     val baseFactor: Double?,
     override val hidden: Boolean = false,
-    /** Plural ending of the main name (U-8). */
-    val pluralSuffix: String = "",
+    /** Plural form of the main name (U-8); empty: the same as the name. */
+    val plural: String = "",
     override val translations: Map<String, NameTranslation> = emptyMap(),
     override val ownerId: Long = 0,
     override val ownerName: String = "",
@@ -59,7 +59,7 @@ data class UnitDef(
     /** The reader's position for it, if they have set an order; see [unitOrder]. */
     val sortOrder: Int? = null,
 ) : Named, Owned {
-    fun displayPluralSuffix(language: String?): String = pickTranslation(translations, language)?.pluralSuffix ?: pluralSuffix
+    fun displayPlural(language: String?): String = pickTranslation(translations, language)?.plural ?: plural
 }
 
 /**

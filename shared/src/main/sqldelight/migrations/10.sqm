@@ -1,0 +1,6 @@
+-- v10 -> v11: full plural forms instead of a plural ending (U-8). The old plural_suffix columns stay, unused.
+ALTER TABLE quantity_unit ADD COLUMN plural TEXT NOT NULL DEFAULT '';
+ALTER TABLE unit_translation ADD COLUMN plural TEXT NOT NULL DEFAULT '';
+
+UPDATE quantity_unit SET plural = name || plural_suffix WHERE plural_suffix <> '';
+UPDATE unit_translation SET plural = name || plural_suffix WHERE plural_suffix <> '';

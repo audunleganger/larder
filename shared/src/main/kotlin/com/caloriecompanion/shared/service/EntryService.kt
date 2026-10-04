@@ -144,7 +144,7 @@ internal fun Entry.toView(
     foodImageVersion = catalog.foods[food_id]?.imageVersion,
     unitId = unit_id,
     unitName = catalog.units[unit_id]?.displayName(language) ?: "?",
-    unitPluralSuffix = catalog.units[unit_id]?.displayPluralSuffix(language).orEmpty(),
+    unitPlural = catalog.units[unit_id]?.displayPlural(language).orEmpty(),
     viaFoodId = via_food_id,
     viaFoodName = via_food_id?.let { catalog.foods[it]?.displayName(language) },
     quantity = quantity,

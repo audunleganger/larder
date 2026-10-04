@@ -13,7 +13,7 @@ import com.caloriecompanion.shared.domain.AppException
 import com.caloriecompanion.shared.domain.UnitDef
 import com.caloriecompanion.shared.domain.UnitResolver
 import com.caloriecompanion.shared.domain.cleanName
-import com.caloriecompanion.shared.domain.defaultPluralSuffix
+import com.caloriecompanion.shared.domain.defaultPlural
 import com.caloriecompanion.shared.domain.notFound
 import com.caloriecompanion.shared.domain.unitOrder
 import com.caloriecompanion.shared.domain.validation
@@ -67,23 +67,23 @@ class UnitService(
     fun create(input: UnitInput, hidden: Boolean = false, createdAt: Long? = null, updatedAt: Long? = null): UnitDto = db.transactionWithResult {
         val name = cleanName(input.name)
         val factor = validFactor(input.kind, input.baseFactor)
-        val translations = NameRules.cleanTranslations(input.translations.orEmpty(), withSuffix = true)
+        val translations = NameRules.cleanTranslations(input.translations.orEmpty(), withPlural = true)
         NameRules.ensureFree(listOf(name) + translations.map { it.name }, null, all(), "unit")
-        val suffix = input.pluralSuffix?.let(NameRules::cleanSuffix) ?: defaultPluralSuffix(name, input.kind, language)
-        val id = insert(name, input.kind, factor, suffix, translations, builtIn = false, createdAt ?: now(), updatedAt)
+        val plural = input.plural?.let(NameRules::cleanPlural) ?: defaultPlural(name, input.kind, language)
+        val id = insert(name, input.kind, factor, plural, translations, builtIn = false, createdAt ?: now(), updatedAt)
         if (!hidden) show(id)
         find(id).toDto(reader)
     }
 
-    /** A null plural ending or translation list in [input] leaves it unchanged. */
+    /** A null plural or translation list in [input] leaves it unchanged. */
     fun update(id: Long, input: UnitInput): UnitDto = db.transactionWithResult {
         val before = editable(id)
         val name = cleanName(input.name)
         val factor = validFactor(input.kind, input.baseFactor)
-        val translations = input.translations?.let { NameRules.cleanTranslations(it, withSuffix = true) }
+        val translations = input.translations?.let { NameRules.cleanTranslations(it, withPlural = true) }
         NameRules.ensureFree(listOf(name) + (translations ?: before.translations.values).map { it.name }, id, all(), "unit")
-        val suffix = input.pluralSuffix?.let(NameRules::cleanSuffix) ?: before.pluralSuffix
-        queries.updateUnit(name, normalizeName(name), input.kind.dbValue(), factor, suffix, id)
+        val plural = input.plural?.let(NameRules::cleanPlural) ?: before.plural
+        queries.updateUnit(name, normalizeName(name), input.kind.dbValue(), factor, plural, id)
         if (translations != null) writeTranslations(id, translations)
         queries.touchUnit(now(), userId, id)
         find(id).toDto(reader)
@@ -154,13 +154,13 @@ class UnitService(
         name: String,
         kind: UnitKind,
         factor: Double?,
-        suffix: String,
+        plural: String,
         translations: List<NameTranslation>,
         builtIn: Boolean,
         createdAt: Long = now(),
         updatedAt: Long? = null,
     ): Long {
-        queries.insertUnit(userId, name, normalizeName(name), kind.dbValue(), factor, suffix, builtIn, createdAt, updatedAt)
+        queries.insertUnit(userId, name, normalizeName(name), kind.dbValue(), factor, plural, builtIn, createdAt, updatedAt)
         val id = db.appUserQueries.lastInsertRowId().executeAsOne()
         writeTranslations(id, translations)
         return id
@@ -179,7 +179,7 @@ class UnitService(
 
     private fun writeTranslations(id: Long, translations: List<NameTranslation>) {
         queries.deleteUnitTranslations(id)
-        translations.forEach { queries.insertUnitTranslation(id, it.locale, it.name, normalizeName(it.name), it.pluralSuffix) }
+        translations.forEach { queries.insertUnitTranslation(id, it.locale, it.name, normalizeName(it.name), it.plural) }
     }
 
     private fun validFactor(kind: UnitKind, factor: Double?): Double? {

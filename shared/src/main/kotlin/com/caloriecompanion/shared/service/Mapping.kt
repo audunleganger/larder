@@ -43,7 +43,7 @@ internal fun SelectUnits.toDef(translations: Map<String, NameTranslation>, hidde
     kind = unitKindOf(kind),
     baseFactor = base_factor,
     hidden = hidden,
-    pluralSuffix = plural_suffix,
+    plural = plural,
     translations = translations,
     ownerId = user_id,
     ownerName = owner_name,
@@ -92,10 +92,10 @@ internal fun UnitDef.toDto(reader: Reader) = UnitDto(
     updatedAt = updatedAt,
     updatedBy = updatedByName,
     canEdit = canEdit(reader.userId, reader.isAdmin),
-    pluralSuffix = pluralSuffix,
+    plural = plural,
     translations = translations.inLanguageOrder(),
     displayName = displayName(reader.language),
-    displayPluralSuffix = displayPluralSuffix(reader.language),
+    displayPlural = displayPlural(reader.language),
     sortOrder = sortOrder,
 )
 
@@ -140,7 +140,7 @@ internal fun FoodDef.toDto(language: String?) = FoodDto(
 /** Every unit on the server, as seen by [userId]: the ones they haven't chosen to show are hidden. */
 internal fun loadUnits(db: CalorieCompanionDatabase, userId: Long): List<UnitDef> {
     val translations = db.quantityUnitQueries.selectUnitTranslations().executeAsList()
-        .groupBy({ it.unit_id }, { NameTranslation(it.locale, it.name, it.plural_suffix) })
+        .groupBy({ it.unit_id }, { NameTranslation(it.locale, it.name, it.plural) })
         .mapValues { (_, list) -> list.associateBy { it.locale } }
     val shown = db.quantityUnitQueries.selectShownUnits(userId).executeAsList().associate { it.unit_id to it.sort_order }
     return db.quantityUnitQueries.selectUnits().executeAsList().map { it.toDef(translations[it.id].orEmpty(), it.id !in shown, shown[it.id]) }

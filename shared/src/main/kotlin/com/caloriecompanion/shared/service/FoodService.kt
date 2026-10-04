@@ -75,7 +75,7 @@ class FoodService(
             val unit = catalog.units[it.unit_id]
             FoodEntryRef(
                 it.id, it.local_date, it.local_time, it.quantity, it.unit_id,
-                unit?.displayName(language) ?: "?", unit?.displayPluralSuffix(language).orEmpty(),
+                unit?.displayName(language) ?: "?", unit?.displayPlural(language).orEmpty(),
             )
         }
         val usedIn = catalog.foods.values
@@ -101,7 +101,7 @@ class FoodService(
                     foodImageVersion = part?.imageVersion,
                     unitId = ingredient.unitId,
                     unitName = unit?.displayName(language) ?: "?",
-                    unitPluralSuffix = unit?.displayPluralSuffix(language).orEmpty(),
+                    unitPlural = unit?.displayPlural(language).orEmpty(),
                     quantity = ingredient.quantity,
                     unresolved = index in composite.unresolved,
                     grams = composite.grams.getOrNull(index),
@@ -282,7 +282,7 @@ class FoodService(
 
     private fun validate(catalog: Catalog, input: FoodInput, selfId: Long?): FoodInput {
         val name = cleanName(input.name)
-        val translations = input.translations?.let { NameRules.cleanTranslations(it, withSuffix = false) }
+        val translations = input.translations?.let { NameRules.cleanTranslations(it, withPlural = false) }
         val current = selfId?.let { catalog.foods[it] }?.translations?.values.orEmpty()
         NameRules.ensureFree(listOf(name) + (translations ?: current).map { it.name }, selfId, catalog.foods.values, "food")
         if ((input.refAmount == null) != (input.refUnitId == null)) {

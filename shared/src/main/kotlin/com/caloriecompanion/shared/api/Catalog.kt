@@ -16,7 +16,7 @@ enum class UnitKind {
 // ---- Names (L-5) ----
 
 /**
- * An item's name in one language. [pluralSuffix] is only used for units (U-8).
+ * An item's name in one language. [plural] is only used for units (U-8); empty means the same as [name].
  * In responses, `name` fields of catalog items are the main name, and `displayName` is the name in
  * the reader's language; names in references (e.g. an entry's foodName) are always display names.
  */
@@ -25,7 +25,7 @@ data class NameTranslation(
     /** Language code, e.g. "nb". */
     val locale: String,
     val name: String,
-    val pluralSuffix: String = "",
+    val plural: String = "",
 )
 
 // ---- Units ----
@@ -56,12 +56,12 @@ data class UnitDto(
     val updatedBy: String?,
     /** Whether the reader may change or delete it. */
     val canEdit: Boolean,
-    /** Appended to the main name when the quantity isn't 1 (U-8). */
-    val pluralSuffix: String,
+    /** The main name's plural form, used when the quantity isn't 1 (U-8); empty: the same as the name. */
+    val plural: String,
     val translations: List<NameTranslation>,
-    /** The name and plural ending in the reader's language. */
+    /** The name and plural form in the reader's language. */
     val displayName: String,
-    val displayPluralSuffix: String,
+    val displayPlural: String,
     /** The reader's position for it (U-10); null while they haven't set an order, and for hidden units. */
     val sortOrder: Int?,
 )
@@ -77,8 +77,8 @@ data class UnitInput(
     val name: String,
     val kind: UnitKind,
     val baseFactor: Double? = null,
-    /** Null: the default for the kind and language (see defaultPluralSuffix); on update, unchanged. */
-    val pluralSuffix: String? = null,
+    /** Null: the default for the kind and language (see defaultPlural); on update, unchanged. */
+    val plural: String? = null,
     /** Null: unchanged on update (none on create). */
     val translations: List<NameTranslation>? = null,
 )
@@ -183,7 +183,7 @@ data class NutrientEntryRef(
     val unitName: String,
     /** This nutrient's amount in the entry; null when it can't be calculated. */
     val amount: Double?,
-    val unitPluralSuffix: String,
+    val unitPlural: String,
 )
 
 @Serializable
@@ -303,7 +303,7 @@ data class IngredientView(
     val foodImageVersion: Long?,
     val unitId: Long,
     val unitName: String,
-    val unitPluralSuffix: String,
+    val unitPlural: String,
     val quantity: Double,
     /** The unit has no size for that food (or the food can't be calculated); it then contributes nothing. */
     val unresolved: Boolean,
@@ -404,7 +404,7 @@ data class UsableUnit(
     val explicit: Boolean,
     /** How much of the food's reference unit one of this unit is; null if it can't be resolved. */
     val amountInRefUnit: Double?,
-    val pluralSuffix: String,
+    val plural: String,
 )
 
 @Serializable
@@ -415,7 +415,7 @@ data class FoodEntryRef(
     val quantity: Double,
     val unitId: Long,
     val unitName: String,
-    val unitPluralSuffix: String,
+    val unitPlural: String,
 )
 
 @Serializable

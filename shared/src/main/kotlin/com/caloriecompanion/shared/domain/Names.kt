@@ -31,19 +31,26 @@ fun <T> pickTranslation(translations: Map<String, T>, language: String?): T? {
 }
 
 /**
- * The plural ending a new unit name starts with (U-8). Abbreviations of standard units (g, ml) get
- * none; Norwegian names get "er" ("r" after a final e: skive → skiver); other names get "s".
- * The user can change it per unit and language.
+ * The plural form a new unit name starts with (U-8). Abbreviations of standard units (g, ml) get none
+ * (the same as the name). Norwegian names get "er" ("r" after a final e: skive → skiver). English names
+ * get "s", "es" after s, x, z, ch and sh (pinch → pinches), and "ies" for a consonant before a final y
+ * (berry → berries). The user can change it per unit and language.
  */
-fun defaultPluralSuffix(name: String, kind: UnitKind, language: String?): String = when {
-    kind.isStandard -> ""
-    Languages.isNorwegian(language) -> if (name.trim().endsWith("e", ignoreCase = true)) "r" else "er"
-    else -> "s"
+fun defaultPlural(name: String, kind: UnitKind, language: String?): String {
+    val clean = name.trim()
+    if (kind.isStandard || clean.isEmpty()) return ""
+    val lower = clean.lowercase()
+    return when {
+        Languages.isNorwegian(language) -> clean + if (lower.endsWith("e")) "r" else "er"
+        lower.length > 1 && lower.endsWith("y") && lower[lower.length - 2] !in "aeiou" -> clean.dropLast(1) + "ies"
+        listOf("s", "x", "z", "ch", "sh").any { lower.endsWith(it) } -> clean + "es"
+        else -> clean + "s"
+    }
 }
 
-/** The label for [quantity] of a unit: the plural ending is added unless the quantity is exactly 1. */
-fun unitLabel(name: String, pluralSuffix: String, quantity: Double?): String =
-    if (quantity == null || quantity == 1.0) name else name + pluralSuffix
+/** The label for [quantity] of a unit: the plural form unless the quantity is exactly 1, or when it's empty. */
+fun unitLabel(name: String, plural: String, quantity: Double?): String =
+    if (quantity == null || quantity == 1.0 || plural.isEmpty()) name else plural
 
 /** Translations in the order of [Languages.SUPPORTED]. */
 internal fun Map<String, NameTranslation>.inLanguageOrder(): List<NameTranslation> =

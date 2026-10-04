@@ -50,7 +50,7 @@ class MetadataTest {
         assertNull(made.updatedBy)
 
         clock = 2_000
-        val edited = units(admin).update(made.id, UnitInput("bowl", UnitKind.CUSTOM, pluralSuffix = "s"))
+        val edited = units(admin).update(made.id, UnitInput("bowl", UnitKind.CUSTOM, plural = "bowls"))
         assertEquals("kari", edited.createdBy)
         assertEquals(1_000L, edited.createdAt)
         assertEquals(2_000L, edited.updatedAt)
