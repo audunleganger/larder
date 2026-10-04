@@ -359,6 +359,22 @@ await step('composite food', async () => {
   if ((await page.locator('.entry-via', { hasText: 'Juice breakfast' }).count()) !== 2) throw new Error('entries not marked as from the composite')
 })
 
+await step('ingredient-only food', async () => {
+  await page.getByRole('link', { name: 'Foods', exact: true }).click()
+  await page.getByRole('link', { name: 'Orange juice' }).click()
+  await page.getByRole('heading', { name: 'Orange juice' }).waitFor()
+  await page.getByLabel('Ingredient only').check()
+  await page.getByRole('button', { name: 'Save' }).click()
+  await page.locator('h1 .badge', { hasText: 'Ingredient only' }).waitFor()
+  await shot('19-ingredient-only')
+  // Not offered when logging, but the composite that contains it still is.
+  await page.getByRole('link', { name: 'Day', exact: true }).click()
+  await page.getByPlaceholder('Search foods…').fill('juice')
+  await page.getByRole('option', { name: /Juice breakfast/ }).waitFor()
+  if ((await page.getByRole('option', { name: 'Orange juice' }).count()) !== 0) throw new Error('ingredient-only food offered when logging')
+  await page.getByPlaceholder('Search foods…').fill('')
+})
+
 await step('export and import', async () => {
   await page.getByRole('link', { name: 'Settings' }).click()
   await page.getByRole('heading', { name: 'Settings' }).waitFor()

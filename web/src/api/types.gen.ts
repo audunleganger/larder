@@ -148,6 +148,7 @@ export interface ExportFood {
   yieldUnit?: string | null
   logAsWhole?: boolean
   createdAt?: string | null
+  ingredientOnly?: boolean
 }
 
 export interface ExportFoodUnit {
@@ -217,6 +218,7 @@ export interface FoodDto {
   composite: CompositeInput | null
   createdAt: number
   createdBy: string
+  ingredientOnly: boolean
 }
 
 export interface FoodEntryRef {
@@ -244,6 +246,7 @@ export interface FoodInput {
   units?: FoodUnitLink[]
   translations?: NameTranslation[] | null
   composite?: CompositeInput | null
+  ingredientOnly?: boolean | null
 }
 
 export interface FoodMetadataInput {
@@ -275,6 +278,7 @@ export interface FoodSummary {
   nutrientCount: number
   imageVersion: number | null
   composite: boolean
+  ingredientOnly: boolean
 }
 
 export interface FoodUnitLink {

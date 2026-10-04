@@ -115,6 +115,7 @@ export function EntryForm({ date, entry, onDone }: { date: string; entry: EntryV
           <FoodPicker
             key={pickerKey}
             value={food}
+            forLogging
             autoFocus={!entry && pickerKey > 0}
             onChange={(picked) => {
               setFood(picked)

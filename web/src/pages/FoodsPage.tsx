@@ -92,7 +92,7 @@ export function FoodsPage() {
                         <Link to={`/foods/${food.id}`} className="food-link">
                           <FoodThumb foodId={food.id} version={food.imageVersion} name={food.name} />
                           {food.name}
-                        </Link> {food.composite && <Badge tone="info">{t('composite.badge')}</Badge>} {food.archived && <Badge>{t('common.archived')}</Badge>}
+                        </Link> {food.composite && <Badge tone="info">{t('composite.badge')}</Badge>} {food.ingredientOnly && <Badge tone="info">{t('foods.ingredientOnly')}</Badge>} {food.archived && <Badge>{t('common.archived')}</Badge>}
                       </td>
                       <td>
                         {food.refAmount !== null ? (
