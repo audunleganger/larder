@@ -1,6 +1,8 @@
 # Calorie Companion — Requirement Specification
 
-Version 0.6 · 2026-10-04 · Supersedes `requirements.txt`
+Version 0.7 · 2026-10-04 · Supersedes `requirements.txt`
+
+*0.7: "ingredient only" foods (F-15).*
 
 *0.6: units, nutrients and foods record who made them and when; units and nutrients also when and by whom they were last changed (U-9, F-14).*
 
@@ -67,6 +69,7 @@ The Norwegian terms are a first guess and may be changed; they live only in the 
 - **F-12 (MUST)** A new food stuff's reference amount (F-3) is **prefilled with the one last set** on a food (initially 100 g), remembered per user. Imports don't change it.
 - **F-11 (FUTURE)** Mass↔volume conversion via optional per-food density.
 - **F-14 (MUST)** A food stuff records **when it was made and by whom** (its owner), shown on its page. Admins can correct the date of their own foods (foods are private). An import keeps the date from the file for new foods; existing foods count as made when this was introduced (schema 7).
+- **F-15 (MUST)** A food stuff can be marked **ingredient only**: it isn't offered in the food picker when logging, but can be an ingredient of composite foods (F-10). A composite that contains it can still be logged, and logging it as separate items still creates entries for this food. Existing entries of the food stay as they are, and editing one keeps the food. Shown as a badge in the food list and on the food's page; export/import keep it (format version 5).
 - **F-13 (MUST)** A food stuff can have **one photo**, uploaded from a file or the camera. Clients shrink it before upload (max ~1280 px plus a square thumbnail); the server checks type (JPEG/PNG/WebP) and size and stores it in the database, so backups and export/import include it. The thumbnail is shown in the food picker, food list, entries and ingredients; the photo large on the food page.
 
 ### 3.2 Units
@@ -224,7 +227,7 @@ Tables of per-user data carry `user_id`; on units and nutrients it is the user w
 | unit_translation / nutrient_translation / food_translation | item id, locale, name, name_norm (+ plural_suffix for units) (L-5) |
 | nutrient | id, user_id (maker), name, name_norm, measure_unit, display_precision, sort_order (default), parent_id (nullable), built_in (N-2), created_at, updated_at, updated_by (U-9) |
 | shown_nutrient | user_id, nutrient_id, sort_order — the nutrients a user shows, in their order (U-9, N-3) |
-| food | id, user_id, name, name_norm, ref_amount (nullable), ref_unit_id (nullable), notes, archived, yield_amount, yield_unit_id, log_as_whole (F-10), created_at (F-14) |
+| food | id, user_id, name, name_norm, ref_amount (nullable), ref_unit_id (nullable), notes, archived, yield_amount, yield_unit_id, log_as_whole (F-10), created_at (F-14), ingredient_only (F-15) |
 | food_ingredient | food_id, position, ingredient_id, unit_id, quantity (F-10) |
 | food_image | food_id, content_type, image, thumbnail, updated_at (F-13) |
 | food_unit | food_id, unit_id, equals_amount (nullable), equals_unit_id (nullable) — "1 unit = equals_amount equals_unit" |

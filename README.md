@@ -15,7 +15,8 @@ can log a food before you know its nutrition. Fill in the numbers later, and eve
 - **Units that convert.** Nutrient values are stored per reference amount (for example per 100 g). Weight and
   volume units convert automatically. Custom units like slice, glass or serving get their size per food.
 - **Composite foods.** Build a food out of other foods, like a recipe or a meal you often eat. Its nutrients are
-  calculated from the ingredients. Logging it adds each ingredient as its own entry, or one entry if you set it to.
+  calculated from the ingredients. Logging it adds each ingredient as its own entry, or one entry if you set it to. Mark a food
+  as "ingredient only" to keep it out of the picker when logging.
 - **Live totals.** Correct a food's values, and every day it was eaten is recalculated. Entries with missing data
   are allowed and flagged.
 - **Day view with targets.** A live preview while logging, and day totals against min/max targets. Hover or tap
