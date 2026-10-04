@@ -59,7 +59,7 @@ export function EntryForm({ date, entry, onDone }: { date: string; entry: EntryV
   const formRef = useRef<HTMLFormElement>(null)
 
   const detail = useFoodDetail(food?.id ?? null)
-  const units = useUnits(false)
+  const units = useUnits(true)
   const nutrients = useNutrients(false)
   const composite = food !== null && detail.data?.food.id === food.id ? detail.data.composite : null
   // A composite food defaults to the unit of how much it makes (F-10).
@@ -81,7 +81,8 @@ export function EntryForm({ date, entry, onDone }: { date: string; entry: EntryV
 
   const usable = detail.data?.usableUnits ?? []
   const usableIds = new Set(usable.map((u) => u.unitId))
-  const otherUnits = (units.data ?? []).filter((u) => !usableIds.has(u.id))
+  // Hidden units only when the entry already uses one.
+  const otherUnits = (units.data ?? []).filter((u) => !usableIds.has(u.id) && (!u.hidden || u.id === effectiveUnitId))
   const selectedUsable = usable.find((u) => u.unitId === effectiveUnitId)
   const unitUnresolved = food !== null && effectiveUnitId !== null && (!selectedUsable || selectedUsable.amountInRefUnit === null)
 

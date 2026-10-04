@@ -4,7 +4,9 @@ import { Link } from 'react-router'
 import * as endpoints from '../api/endpoints'
 import { useApiMutation, useNutrients } from '../api/queries'
 import type { NutrientDto, NutrientInput } from '../api/types.gen'
-import { Badge, Card, ErrorText, Field, PageHeader, QueryView } from '../components/ui'
+import { Card, Empty, ErrorText, Field, PageHeader, QueryView } from '../components/ui'
+import { MadeBy, TakenHiddenNotice } from '../components/Shared'
+import { takenHidden } from '../lib/shared'
 import { flattenGroups, groupNutrients, moved, type NutrientGroup } from '../lib/nutrients'
 import { draftTranslations, toTranslations } from '../lib/names'
 import { TranslationFields } from '../components/TranslationFields'
@@ -18,7 +20,7 @@ export function NutrientFields({ initial, all, submitLabel, onSubmit, error, bus
   const [parentId, setParentId] = useState<number | ''>(initial?.parentId ?? '')
   const [translations, setTranslations] = useState(() => draftTranslations(initial?.translations))
   const hasChildren = initial !== undefined && all.some((n) => n.parentId === initial.id)
-  const parents = all.filter((n) => n.parentId === null && n.id !== initial?.id && !n.archived)
+  const parents = all.filter((n) => n.parentId === null && n.id !== initial?.id && (!n.hidden || n.id === initial?.parentId))
 
   async function submit(event: FormEvent) {
     event.preventDefault()
@@ -73,14 +75,23 @@ export function NutrientFields({ initial, all, submitLabel, onSubmit, error, bus
   )
 }
 
+/**
+ * Nutrients are shared by everyone on the server. The page lists the ones the user shows, in their
+ * own order, and the hidden ones (theirs, and other users') on request.
+ */
 export function NutrientsPage() {
   const { t } = useTranslation()
-  const [showArchived, setShowArchived] = useState(false)
+  const [showHidden, setShowHidden] = useState(false)
+  // Remounts the create form, emptying it, once a hidden item is shown instead of created.
+  const [formKey, setFormKey] = useState(0)
   const nutrients = useNutrients(true)
   const create = useApiMutation(endpoints.createNutrient)
   const reorder = useApiMutation(endpoints.reorderNutrients)
+  const toggle = useApiMutation((n: NutrientDto) => endpoints.hideNutrient(n.id, !n.hidden))
+  const taken = takenHidden(create.error, nutrients.data)
+  const hidden = nutrients.data?.filter((n) => n.hidden) ?? []
 
-  // Reorders the visible groups (or one group's sub-nutrients); hidden archived nutrients keep their place.
+  // Reorders the shown groups (or one group's sub-nutrients).
   function send(groups: NutrientGroup<NutrientDto>[]) {
     reorder.mutate(flattenGroups(groups).map((n) => n.id))
   }
@@ -90,29 +101,39 @@ export function NutrientsPage() {
       <PageHeader title={t('nutrients.title')} subtitle={t('nutrients.subtitle')} />
       <Card title={t('nutrients.new')}>
         {nutrients.data && (
-          <NutrientFields all={nutrients.data} submitLabel={t('common.create')} onSubmit={(input) => create.mutateAsync(input)} error={create.error} busy={create.isPending} />
+          <NutrientFields key={formKey} all={nutrients.data} submitLabel={t('common.create')} onSubmit={(input) => create.mutateAsync(input)} error={taken ? null : create.error} busy={create.isPending} />
         )}
+        {taken && <TakenHiddenNotice item={taken} onShow={() =>
+              toggle.mutate(taken, {
+                onSuccess: () => {
+                  create.reset()
+                  setFormKey((k) => k + 1)
+                },
+              })
+            } />}
       </Card>
       <Card
         title={t('nutrients.order')}
         actions={
-          <label className="checkbox">
-            <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} /> {t('common.showArchived')}
-          </label>
+          <button type="button" className="btn btn-small" aria-expanded={showHidden} onClick={() => setShowHidden((v) => !v)}>
+            {t('nutrients.showHidden', { count: hidden.length })}
+          </button>
         }
       >
         <p className="field-hint">{t('nutrients.orderHint')}</p>
         <QueryView query={nutrients}>
           {(data) => {
-            const groups = groupNutrients(showArchived ? data : data.filter((n) => !n.archived))
+            const groups = groupNutrients(data.filter((n) => !n.hidden))
             const row = (n: NutrientDto, up: (() => void) | null, down: (() => void) | null) => (
               <div className="order-row">
                 <span className="order-name">
                   {n.parentId !== null && <span className="muted of-which">{t('nutrients.ofWhich')} </span>}
-                  <Link to={`/nutrients/${n.id}`}>{n.displayName}</Link> <span className="muted">({n.measureUnit})</span>{' '}
-                  {n.archived && <Badge>{t('common.archived')}</Badge>}
+                  <Link to={`/nutrients/${n.id}`}>{n.displayName}</Link> <span className="muted">({n.measureUnit})</span>
                 </span>
                 <span className="order-buttons">
+                  <button type="button" className="btn btn-ghost btn-small" disabled={toggle.isPending} onClick={() => toggle.mutate(n)}>
+                    {t('common.hide')}
+                  </button>
                   <button type="button" className="btn btn-icon btn-small" aria-label={t('nutrients.moveUp', { name: n.displayName })} disabled={!up || reorder.isPending} onClick={up ?? undefined}>
                     ↑
                   </button>
@@ -148,8 +169,47 @@ export function NutrientsPage() {
             )
           }}
         </QueryView>
-        <ErrorText error={reorder.error} />
+        <ErrorText error={reorder.error ?? toggle.error} />
       </Card>
+      {showHidden && (
+        <Card title={t('nutrients.hiddenTitle')}>
+          <p className="field-hint">{t('nutrients.hiddenHint')}</p>
+          {hidden.length === 0 ? (
+            <Empty>{t('nutrients.noHidden')}</Empty>
+          ) : (
+            <div className="table-scroll">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>{t('common.name')}</th>
+                    <th>{t('nutrients.measureUnit')}</th>
+                    <th>{t('common.createdBy')}</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {hidden.map((n) => (
+                    <tr key={n.id}>
+                      <td>
+                        <Link to={`/nutrients/${n.id}`}>{n.displayName}</Link>
+                      </td>
+                      <td>{n.measureUnit}</td>
+                      <td>
+                        <MadeBy item={n} />
+                      </td>
+                      <td className="num">
+                        <button type="button" className="btn btn-ghost btn-small" disabled={toggle.isPending} onClick={() => toggle.mutate(n)}>
+                          {t('common.show')}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+      )}
     </div>
   )
 }

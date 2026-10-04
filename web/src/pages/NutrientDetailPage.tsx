@@ -7,6 +7,7 @@ import { Badge, Card, ConfirmButton, Empty, ErrorText, PageHeader, QueryView } f
 import { formatDate } from '../lib/dates'
 import { unitLabel } from '../lib/names'
 import { currentLocale, formatAmount, formatNumber, formatQuantity } from '../lib/format'
+import { ReadOnlyNote } from '../components/Shared'
 import { NutrientFields } from './NutrientsPage'
 
 export function NutrientDetailPage() {
@@ -16,7 +17,7 @@ export function NutrientDetailPage() {
   const detail = useNutrientDetail(id)
   const all = useNutrients(true)
   const update = useApiMutation((input: NutrientInput) => endpoints.updateNutrient(id, input))
-  const archive = useApiMutation((archived: boolean) => endpoints.archiveNutrient(id, archived))
+  const hide = useApiMutation((hidden: boolean) => endpoints.hideNutrient(id, hidden))
   const remove = useApiMutation(() => endpoints.deleteNutrient(id))
 
   return (
@@ -29,17 +30,18 @@ export function NutrientDetailPage() {
               <PageHeader
                 title={
                   <>
-                    {nutrient.displayName} {nutrient.archived && <Badge>{t('common.archived')}</Badge>}
+                    {nutrient.displayName} {nutrient.hidden && <Badge>{t('common.hidden')}</Badge>}
                   </>
                 }
                 subtitle={
                   <>
-                    <Link to="/nutrients">← {t('nutrients.title')}</Link> · {nutrient.measureUnit}
+                    <Link to="/nutrients">← {t('nutrients.title')}</Link> · {nutrient.measureUnit} · {t('common.createdBy')} {nutrient.createdBy}
                   </>
                 }
               />
               <Card title={t('common.edit')}>
-                {all.data && (
+                {!nutrient.canEdit && <ReadOnlyNote item={nutrient} />}
+                {nutrient.canEdit && all.data && (
                   <NutrientFields
                     key={JSON.stringify(nutrient)}
                     initial={nutrient}
@@ -117,15 +119,15 @@ export function NutrientDetailPage() {
                   {data.entriesTruncated && <p className="field-hint">{t('nutrients.truncated', { count: data.entries.length })}</p>}
                 </Card>
               </div>
-              <Card title={t('common.manage')}>
+              <Card title={nutrient.canEdit ? t('common.hideOrDelete') : t('common.hide')}>
                 <div className="form-actions">
-                  <button type="button" className="btn" onClick={() => archive.mutate(!nutrient.archived)}>
-                    {nutrient.archived ? t('common.unarchive') : t('common.archive')}
+                  <button type="button" className="btn" onClick={() => hide.mutate(!nutrient.hidden)}>
+                    {nutrient.hidden ? t('common.show') : t('common.hide')}
                   </button>
-                  <ConfirmButton onConfirm={() => remove.mutate(undefined, { onSuccess: () => navigate('/nutrients') })}>{t('common.delete')}</ConfirmButton>
+                  {nutrient.canEdit && <ConfirmButton onConfirm={() => remove.mutate(undefined, { onSuccess: () => navigate('/nutrients') })}>{t('common.delete')}</ConfirmButton>}
                 </div>
-                <p className="field-hint">{t('nutrients.archiveHint')}</p>
-                <ErrorText error={archive.error ?? remove.error} />
+                <p className="field-hint">{t('nutrients.hideHint')}</p>
+                <ErrorText error={hide.error ?? remove.error} />
               </Card>
             </>
           )

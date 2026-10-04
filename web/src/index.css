@@ -556,6 +556,19 @@ textarea.input {
   font-size: 0.9rem;
 }
 
+/* A suggestion next to a form, e.g. showing a hidden unit instead of creating it again. */
+.notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--info-text);
+  background: var(--info-bg);
+  border-radius: 8px;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.9rem;
+}
+
 .saved {
   color: var(--good-text);
   font-size: 0.9rem;

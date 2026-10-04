@@ -188,6 +188,45 @@ await step('settings and admin', async () => {
   await shot('13-admin')
 })
 
+await step('shared units and nutrients', async () => {
+  // Kari (made above) shares the units and nutrients, but only admins can change the built-in ones.
+  const kariContext = await browser.newContext({ viewport: { width: 1280, height: 900 }, locale: 'en-US' })
+  kariContext.setDefaultTimeout(6000)
+  const kari = await kariContext.newPage()
+  kari.on('pageerror', (e) => problems.push(`[pageerror kari] ${e.message}`))
+  await kari.goto(BASE)
+  await kari.getByLabel('Username').fill('kari')
+  await kari.getByLabel('Password').fill('passord123')
+  await kari.getByRole('button', { name: 'Log in' }).click()
+  await kari.getByRole('link', { name: 'Units' }).click()
+  await kari.getByRole('link', { name: 'serving', exact: true }).click()
+  await kari.getByText('Only an administrator can change it.').waitFor()
+  await kari.getByRole('button', { name: 'Hide', exact: true }).click()
+  await kari.getByText('hidden', { exact: true }).waitFor()
+
+  // Her own unit is hers to change; for others it's hidden until they show it.
+  await kari.getByRole('link', { name: '← Units' }).click()
+  await kari.getByLabel('Name', { exact: true }).fill('glass')
+  await kari.getByRole('button', { name: 'Create' }).click()
+  await kari.getByRole('link', { name: 'glass', exact: true }).waitFor()
+  // Creating a unit she has hidden offers to show it instead.
+  await kari.getByLabel('Name', { exact: true }).fill('Serving')
+  await kari.getByRole('button', { name: 'Create' }).click()
+  await kari.getByText('“serving” already exists, but it’s hidden for you.').waitFor()
+  await kari.getByRole('button', { name: 'Show it' }).click()
+  await kari.locator('.card', { hasText: 'Your units' }).getByRole('link', { name: 'serving', exact: true }).waitFor()
+  await kari.screenshot({ path: `${SHOTS}/13b-units-kari.png`, fullPage: true })
+  await kariContext.close()
+
+  await page.getByRole('link', { name: 'Units' }).click()
+  await page.getByRole('button', { name: /Hidden units \(1\)/ }).click()
+  const hiddenCard = page.locator('.card', { hasText: 'Hidden units' }).last()
+  await hiddenCard.getByRole('cell', { name: 'kari' }).waitFor()
+  await shot('13c-units-hidden')
+  await hiddenCard.getByRole('button', { name: 'Show' }).click()
+  await page.locator('.card', { hasText: 'Your units' }).getByRole('link', { name: 'glass', exact: true }).waitFor()
+})
+
 await step('food photo', async () => {
   // A small PNG; the app shrinks and re-encodes photos in the browser before uploading.
   const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAHgAAABQCAIAAABd+SbeAAAAzElEQVR4nO3QQRHAIADAMEDXNKEOgVOx8liioNd59jP43rod8BdGR4yOGB0xOmJ0xOiI0RGjI0ZHjI4YHTE6YnTE6IjREaMjRkeMjhgdMTpidMToiNERoyNGR4yOGB0xOmJ0xOiI0RGjI0ZHjI4YHTE6YnTE6IjREaMjRkeMjhgdMTpidMToiNERoyNGR4yOGB0xOmJ0xOiI0RGjI0ZHjI4YHTE6YnTE6IjREaMjRkeMjhgdMTpidMToiNERoyNGR4yOGB0xOmJ0xOjIC/b/Af6iJ0AQAAAAAElFTkSuQmCC', 'base64')

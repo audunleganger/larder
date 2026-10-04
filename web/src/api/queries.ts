@@ -2,14 +2,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import * as endpoints from './endpoints'
 
 /** Query hooks. Keys start with the resource name so related data can be refreshed together. */
-export const useUnits = (includeArchived = false) =>
-  useQuery({ queryKey: ['units', { includeArchived }], queryFn: () => endpoints.listUnits(includeArchived) })
+export const useUnits = (includeHidden = false) =>
+  useQuery({ queryKey: ['units', { includeHidden }], queryFn: () => endpoints.listUnits(includeHidden) })
 
 export const useUnitDetail = (id: number) =>
   useQuery({ queryKey: ['units', 'detail', id], queryFn: () => endpoints.unitDetail(id) })
 
-export const useNutrients = (includeArchived = false) =>
-  useQuery({ queryKey: ['nutrients', { includeArchived }], queryFn: () => endpoints.listNutrients(includeArchived) })
+export const useNutrients = (includeHidden = false) =>
+  useQuery({ queryKey: ['nutrients', { includeHidden }], queryFn: () => endpoints.listNutrients(includeHidden) })
 
 export const useNutrientDetail = (id: number) =>
   useQuery({ queryKey: ['nutrients', 'detail', id], queryFn: () => endpoints.nutrientDetail(id) })
