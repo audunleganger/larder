@@ -9,6 +9,7 @@ import { DecimalInput } from '../components/DecimalInput'
 import { Card, Empty, ErrorText, Field, PageHeader, QueryView } from '../components/ui'
 import { MadeBy, TakenHiddenNotice } from '../components/Shared'
 import { takenHidden } from '../lib/shared'
+import { moved } from '../lib/nutrients'
 import { parseDecimal, toInputValue } from '../lib/format'
 import { draftTranslations, effectiveSuffix, toTranslations } from '../lib/names'
 import { PluralSuffixField, TranslationFields } from '../components/TranslationFields'
@@ -84,8 +85,8 @@ export function UnitFields({ initial, submitLabel, onSubmit, error, busy }: { in
   )
 }
 
-/** One unit in the units list, with a button to hide or show it. */
-function UnitRow({ unit, onToggle, busy }: { unit: UnitDto; onToggle: () => void; busy: boolean }) {
+/** One unit in the units list, with a button to hide or show it, and to move it up or down ([onMove]). */
+function UnitRow({ unit, onToggle, busy, onMove }: { unit: UnitDto; onToggle: () => void; busy: boolean; onMove?: { up: (() => void) | null; down: (() => void) | null } }) {
   const { t } = useTranslation()
   return (
     <tr>
@@ -98,15 +99,28 @@ function UnitRow({ unit, onToggle, busy }: { unit: UnitDto; onToggle: () => void
         <MadeBy item={unit} />
       </td>
       <td className="num">
-        <button type="button" className="btn btn-ghost btn-small" disabled={busy} onClick={onToggle}>
-          {unit.hidden ? t('common.show') : t('common.hide')}
-        </button>
+        <span className="order-buttons">
+          <button type="button" className="btn btn-ghost btn-small" disabled={busy} onClick={onToggle}>
+            {unit.hidden ? t('common.show') : t('common.hide')}
+          </button>
+          {onMove && (
+            <>
+              <button type="button" className="btn btn-icon btn-small" aria-label={t('units.moveUp', { name: unit.displayName })} disabled={!onMove.up || busy} onClick={onMove.up ?? undefined}>
+                ↑
+              </button>
+              <button type="button" className="btn btn-icon btn-small" aria-label={t('units.moveDown', { name: unit.displayName })} disabled={!onMove.down || busy} onClick={onMove.down ?? undefined}>
+                ↓
+              </button>
+            </>
+          )}
+        </span>
       </td>
     </tr>
   )
 }
 
-function UnitTable({ units, onToggle, busy }: { units: UnitDto[]; onToggle: (unit: UnitDto) => void; busy: boolean }) {
+/** [onReorder]: lets the user move the units, sending the new order. */
+function UnitTable({ units, onToggle, busy, onReorder }: { units: UnitDto[]; onToggle: (unit: UnitDto) => void; busy: boolean; onReorder?: (ids: number[]) => void }) {
   const { t } = useTranslation()
   return (
     <div className="table-scroll">
@@ -121,9 +135,13 @@ function UnitTable({ units, onToggle, busy }: { units: UnitDto[]; onToggle: (uni
           </tr>
         </thead>
         <tbody>
-          {units.map((unit) => (
-            <UnitRow key={unit.id} unit={unit} busy={busy} onToggle={() => onToggle(unit)} />
-          ))}
+          {units.map((unit, index) => {
+            const move = (delta: number) => {
+              const next = moved(units, index, delta)
+              return next && onReorder ? () => onReorder(next.map((u) => u.id)) : null
+            }
+            return <UnitRow key={unit.id} unit={unit} busy={busy} onToggle={() => onToggle(unit)} onMove={onReorder && { up: move(-1), down: move(1) }} />
+          })}
         </tbody>
       </table>
     </div>
@@ -142,8 +160,12 @@ export function UnitsPage() {
   const units = useUnits(true)
   const create = useApiMutation(endpoints.createUnit)
   const toggle = useApiMutation((unit: UnitDto) => endpoints.hideUnit(unit.id, !unit.hidden))
+  const reorder = useApiMutation(endpoints.reorderUnits)
+  const reset = useApiMutation(endpoints.resetUnitOrder)
   const taken = takenHidden(create.error, units.data)
   const hidden = units.data?.filter((u) => u.hidden) ?? []
+  const customOrder = units.data?.some((u) => u.sortOrder !== null) ?? false
+  const busy = toggle.isPending || reorder.isPending || reset.isPending
 
   return (
     <div className="page">
@@ -162,13 +184,23 @@ export function UnitsPage() {
       <Card
         title={t('units.all')}
         actions={
-          <button type="button" className="btn btn-small" aria-expanded={showHidden} onClick={() => setShowHidden((v) => !v)}>
-            {t('units.showHidden', { count: hidden.length })}
-          </button>
+          <>
+            {customOrder && (
+              <button type="button" className="btn btn-small" disabled={busy} onClick={() => reset.mutate()}>
+                {t('units.resetOrder')}
+              </button>
+            )}
+            <button type="button" className="btn btn-small" aria-expanded={showHidden} onClick={() => setShowHidden((v) => !v)}>
+              {t('units.showHidden', { count: hidden.length })}
+            </button>
+          </>
         }
       >
-        <QueryView query={units}>{(data) => <UnitTable units={data.filter((u) => !u.hidden)} onToggle={(unit) => toggle.mutate(unit)} busy={toggle.isPending} />}</QueryView>
-        <ErrorText error={toggle.error} />
+        <p className="field-hint">{t('units.orderHint')}</p>
+        <QueryView query={units}>
+          {(data) => <UnitTable units={data.filter((u) => !u.hidden)} onToggle={(unit) => toggle.mutate(unit)} busy={busy} onReorder={(ids) => reorder.mutate(ids)} />}
+        </QueryView>
+        <ErrorText error={toggle.error ?? reorder.error ?? reset.error} />
       </Card>
       {showHidden && (
         <Card title={t('units.hiddenTitle')}>

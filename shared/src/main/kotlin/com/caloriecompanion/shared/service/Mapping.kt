@@ -35,7 +35,8 @@ internal fun unitKindOf(value: String): UnitKind = when (value) {
     else -> UnitKind.CUSTOM
 }
 
-internal fun SelectUnits.toDef(translations: Map<String, NameTranslation>, hidden: Boolean) = UnitDef(
+/** [sortOrder]: the reader's position for it, if they have set an order. */
+internal fun SelectUnits.toDef(translations: Map<String, NameTranslation>, hidden: Boolean, sortOrder: Long?) = UnitDef(
     id = id,
     name = name,
     kind = unitKindOf(kind),
@@ -49,6 +50,7 @@ internal fun SelectUnits.toDef(translations: Map<String, NameTranslation>, hidde
     createdAt = created_at,
     updatedAt = updated_at,
     updatedByName = updated_by_name,
+    sortOrder = sortOrder?.toInt(),
 )
 
 /** [sortOrder]: the reader's position for it. */
@@ -93,6 +95,7 @@ internal fun UnitDef.toDto(reader: Reader) = UnitDto(
     translations = translations.inLanguageOrder(),
     displayName = displayName(reader.language),
     displayPluralSuffix = displayPluralSuffix(reader.language),
+    sortOrder = sortOrder,
 )
 
 internal fun NutrientDef.toDto(reader: Reader) = NutrientDto(
@@ -137,8 +140,8 @@ internal fun loadUnits(db: CalorieCompanionDatabase, userId: Long): List<UnitDef
     val translations = db.quantityUnitQueries.selectUnitTranslations().executeAsList()
         .groupBy({ it.unit_id }, { NameTranslation(it.locale, it.name, it.plural_suffix) })
         .mapValues { (_, list) -> list.associateBy { it.locale } }
-    val shown = db.quantityUnitQueries.selectShownUnitIds(userId).executeAsList().toSet()
-    return db.quantityUnitQueries.selectUnits().executeAsList().map { it.toDef(translations[it.id].orEmpty(), it.id !in shown) }
+    val shown = db.quantityUnitQueries.selectShownUnits(userId).executeAsList().associate { it.unit_id to it.sort_order }
+    return db.quantityUnitQueries.selectUnits().executeAsList().map { it.toDef(translations[it.id].orEmpty(), it.id !in shown, shown[it.id]) }
 }
 
 /**

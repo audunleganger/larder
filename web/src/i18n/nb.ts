@@ -270,6 +270,10 @@ const nb: Translation<typeof en> = {
     showHidden: 'Skjulte enheter ({{count}})',
     hiddenHint: 'Enhetene deles av alle på denne serveren. Dette er de du ikke ser i listene og valglistene dine: de du har skjult, og de andre brukere har laget. Vis en for å bruke den.',
     noHidden: 'Ingen skjulte enheter.',
+    orderHint: 'Enhetene dine vises i denne rekkefølgen her og i valglistene for enheter, der matvarens egne enheter kommer først. De starter i alfabetisk rekkefølge.',
+    resetOrder: 'Tilbakestill til alfabetisk',
+    moveUp: 'Flytt {{name}} opp',
+    moveDown: 'Flytt {{name}} ned',
     kind: 'Type',
     kinds: { mass: 'Vekt', volume: 'Volum', custom: 'Egendefinert' },
     kindHints: {

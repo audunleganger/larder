@@ -73,7 +73,7 @@ object Seeder {
                 ids[normalizeName(seed.en)] = service.insert(NutrientInput(seed.en, seed.unit, seed.precision, parentId, translations), builtIn = true)
             }
         }
-        unitQueries.selectBuiltInUnitIds().executeAsList().forEach { unitQueries.showUnit(userId, it) }
+        unitQueries.selectBuiltInUnitIds().executeAsList().forEach { unitQueries.showUnit(userId, it, null) }
         nutrientQueries.selectBuiltInNutrients().executeAsList().forEach { nutrientQueries.showNutrient(userId, it.id, it.sort_order) }
     }
 }

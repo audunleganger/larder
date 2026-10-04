@@ -267,6 +267,10 @@ const en = {
     showHidden: 'Hidden units ({{count}})',
     hiddenHint: 'Units are shared by everyone on this server. These are the ones you don’t see in your lists and pickers: ones you’ve hidden, and ones other users made. Show one to use it.',
     noHidden: 'No hidden units.',
+    orderHint: 'Your units appear in this order here and in the unit pickers, where a food’s own units come first. They start in alphabetical order.',
+    resetOrder: 'Reset to alphabetical',
+    moveUp: 'Move {{name}} up',
+    moveDown: 'Move {{name}} down',
     kind: 'Kind',
     kinds: { mass: 'Weight', volume: 'Volume', custom: 'Custom' },
     kindHints: {

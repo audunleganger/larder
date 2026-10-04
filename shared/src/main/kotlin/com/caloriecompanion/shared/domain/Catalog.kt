@@ -5,6 +5,8 @@ import com.caloriecompanion.shared.api.Ingredient
 import com.caloriecompanion.shared.api.NameTranslation
 import com.caloriecompanion.shared.api.UnitKind
 import com.caloriecompanion.shared.normalizeName
+import java.text.Collator
+import java.util.Locale
 
 /** Something with a main name and optional names per language (L-5). */
 interface Named {
@@ -54,8 +56,21 @@ data class UnitDef(
     override val createdAt: Long = 0,
     override val updatedAt: Long? = null,
     override val updatedByName: String? = null,
+    /** The reader's position for it, if they have set an order; see [unitOrder]. */
+    val sortOrder: Int? = null,
 ) : Named, Owned {
     fun displayPluralSuffix(language: String?): String = pickTranslation(translations, language)?.pluralSuffix ?: pluralSuffix
+}
+
+/**
+ * Display order of units for a reader in [language]: the ones they show in their own order, or
+ * alphabetically until they set one; then the hidden ones alphabetically.
+ */
+fun unitOrder(language: String?): Comparator<UnitDef> {
+    val collator = Collator.getInstance(Locale.forLanguageTag(language ?: "en"))
+    return compareBy<UnitDef>({ it.hidden }, { it.sortOrder ?: Int.MAX_VALUE })
+        .thenComparing({ it.displayName(language) }, collator)
+        .thenBy { it.id }
 }
 
 data class NutrientDef(
