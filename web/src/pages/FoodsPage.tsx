@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router'
 import * as endpoints from '../api/endpoints'
-import { useApiMutation, useFoodRefDefault, useFoods, useUnits } from '../api/queries'
+import { useApiMutation, useFoodRefDefault, useFoods, useTags, useUnits } from '../api/queries'
 import { DecimalInput } from '../components/DecimalInput'
 import { FoodThumb } from '../components/FoodPhoto'
 import { unitLabel } from '../lib/names'
@@ -22,6 +22,8 @@ export function FoodsPage() {
   const ref = newRef ?? { amount: toInputValue(refDefault.data?.refAmount ?? null), unitId: refDefault.data?.refUnitId ?? ('' as const) }
   const foods = useFoods(useDebounced(search.trim(), 150), showArchived)
   const units = useUnits(true)
+  const tags = useTags(true)
+  const tagName = (id: number) => tags.data?.find((tag) => tag.id === id)?.displayName
   const unitName = (id: number | null, amount: number) => {
     const unit = units.data?.find((u) => u.id === id)
     return unit ? unitLabel(unit.displayName, unit.displayPluralSuffix, amount) : ''
@@ -40,7 +42,15 @@ export function FoodsPage() {
 
   return (
     <div className="page">
-      <PageHeader title={t('foods.title')} subtitle={t('foods.subtitle')} />
+      <PageHeader
+        title={t('foods.title')}
+        subtitle={t('foods.subtitle')}
+        actions={
+          <Link to="/tags" className="btn btn-small">
+            {t('tags.title')}
+          </Link>
+        }
+      />
       <Card title={t('foods.new')}>
         <form className="inline-form" onSubmit={(e) => void submit(e).catch(() => undefined)}>
           <input className="input grow" placeholder={t('foods.namePlaceholder')} aria-label={t('common.name')} value={newName} onChange={(e) => setNewName(e.target.value)} required />
@@ -93,6 +103,15 @@ export function FoodsPage() {
                           <FoodThumb foodId={food.id} version={food.imageVersion} name={food.name} />
                           {food.name}
                         </Link> {food.composite && <Badge tone="info">{t('composite.badge')}</Badge>} {food.ingredientOnly && <Badge tone="info">{t('foods.ingredientOnly')}</Badge>} {food.archived && <Badge>{t('common.archived')}</Badge>}
+                        {food.tagIds.length > 0 && (
+                          <ul className="chips food-tags">
+                            {food.tagIds.map((id) => (
+                              <li key={id} className="chip">
+                                {tagName(id)}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                       </td>
                       <td>
                         {food.refAmount !== null ? (

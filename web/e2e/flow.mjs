@@ -391,6 +391,40 @@ await step('ingredient-only food', async () => {
   await page.getByPlaceholder('Search foods…').fill('')
 })
 
+await step('tags', async () => {
+  await page.getByRole('link', { name: 'Foods', exact: true }).click()
+  await page.getByRole('main').getByRole('link', { name: 'Tags', exact: true }).click()
+  await page.getByRole('heading', { name: 'Tags', exact: true }).waitFor()
+  await page.getByPlaceholder('Name, e.g. Fruit').fill('Breakfast')
+  await page.getByRole('button', { name: 'Create' }).click()
+  await page.getByRole('link', { name: 'Breakfast' }).waitFor()
+
+  // Tag a food with an existing tag and a new one.
+  await page.getByRole('link', { name: '← Foods' }).click()
+  await page.getByRole('link', { name: 'Rye bread' }).click()
+  await page.getByRole('heading', { name: 'Rye bread' }).waitFor()
+  await page.getByLabel('Add a tag …').selectOption({ label: 'Breakfast' })
+  await page.getByLabel('New tag').fill('Bread')
+  await page.getByLabel('New tag').press('Enter')
+  await page.locator('.tags-editor .chip', { hasText: 'Bread' }).first().waitFor()
+  await page.getByRole('button', { name: 'Save' }).click()
+  await page.getByText('✓ Saved').waitFor()
+  await page.locator('.card', { has: page.locator('.tags-editor') }).screenshot({ path: `${SHOTS}/20-food-tags.png` })
+
+  // The food list shows them, and the tag's page lists the food.
+  await page.getByRole('link', { name: 'Foods', exact: true }).click()
+  const row = page.locator('tr', { hasText: 'Rye bread' })
+  await row.locator('.food-tags .chip', { hasText: 'Breakfast' }).waitFor()
+  await row.locator('.food-tags .chip', { hasText: 'Bread' }).waitFor()
+  await page.getByRole('main').getByRole('link', { name: 'Tags', exact: true }).click()
+  await page.getByRole('link', { name: 'Bread', exact: true }).click()
+  await page.getByRole('link', { name: 'Rye bread' }).waitFor()
+  // In use, so it can only be archived.
+  await page.getByRole('button', { name: 'Delete' }).click()
+  await page.getByRole('button', { name: 'Yes, do it' }).click()
+  await page.getByText(/still used by 1 food/).waitFor()
+})
+
 await step('export and import', async () => {
   await page.getByRole('link', { name: 'Settings' }).click()
   await page.getByRole('heading', { name: 'Settings' }).waitFor()
@@ -401,6 +435,7 @@ await step('export and import', async () => {
   await page.locator('input[type=file]').setInputFiles(path)
   await page.getByRole('button', { name: 'Import', exact: true }).click()
   await page.getByRole('cell', { name: 'Entries' }).waitFor()
+  if (!data.tags.length || !data.foods.some((f) => f.tags.includes('Breakfast'))) throw new Error('export has no tags')
   await page.locator('input[type=file]').setInputFiles({ name: 'bad.json', mimeType: 'application/json', buffer: Buffer.from('{"format":"nope"}') })
   await page.getByRole('button', { name: 'Import', exact: true }).click()
   await page.getByText('That file isn’t an export from Calorie Companion.').waitFor()

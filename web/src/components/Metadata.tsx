@@ -33,15 +33,18 @@ function formatTime(time: number): string {
 
 /**
  * Who made an item and when, and when and by whom it was last changed. Admins can correct it: all of it
- * for units and nutrients ([withUpdated]), only the created date for foods.
+ * for units and nutrients ([withUpdated]), only the created date for foods, and only the dates for
+ * tags ([withUpdated] without [withUsers]).
  */
 export function MetadataCard({
   item,
   withUpdated,
+  withUsers = withUpdated,
   onSave,
 }: {
   item: MetadataValues
   withUpdated: boolean
+  withUsers?: boolean
   onSave: (input: MetadataInput) => Promise<unknown>
 }) {
   const { t } = useTranslation()
@@ -60,7 +63,7 @@ export function MetadataCard({
       }
     >
       {editing ? (
-        <MetadataForm item={item} withUpdated={withUpdated} onSave={onSave} onDone={() => setEditing(false)} />
+        <MetadataForm item={item} withUpdated={withUpdated} withUsers={withUsers} onSave={onSave} onDone={() => setEditing(false)} />
       ) : (
         <ul className="link-list">
           <li>{t('metadata.created', { date: formatTime(item.createdAt), user: item.createdBy })}</li>
@@ -82,11 +85,13 @@ export function MetadataCard({
 function MetadataForm({
   item,
   withUpdated,
+  withUsers,
   onSave,
   onDone,
 }: {
   item: MetadataValues
   withUpdated: boolean
+  withUsers: boolean
   onSave: (input: MetadataInput) => Promise<unknown>
   onDone: () => void
 }) {
@@ -128,7 +133,7 @@ function MetadataForm({
         <Field label={t('metadata.createdAt')}>
           <input className="input" type="datetime-local" value={createdAt} onChange={(e) => setCreatedAt(e.target.value)} required />
         </Field>
-        {withUpdated && (
+        {withUsers && (
           <Field label={t('metadata.createdBy')}>
             <select className="input" value={createdBy} onChange={(e) => setCreatedBy(e.target.value)}>
               {options(createdBy).map((name) => (
@@ -145,19 +150,21 @@ function MetadataForm({
           <Field label={t('metadata.updatedAt')} hint={t('metadata.updatedAtHint')}>
             <input className="input" type="datetime-local" value={updatedAt} onChange={(e) => setUpdatedAt(e.target.value)} />
           </Field>
-          <Field label={t('metadata.updatedBy')}>
-            <select className="input" value={updatedBy} onChange={(e) => setUpdatedBy(e.target.value)} disabled={!updatedAt}>
-              <option value="">{t('metadata.unknown')}</option>
-              {options(updatedBy).map((name) => (
-                <option key={name} value={name}>
-                  {name}
-                </option>
-              ))}
-            </select>
-          </Field>
+          {withUsers && (
+            <Field label={t('metadata.updatedBy')}>
+              <select className="input" value={updatedBy} onChange={(e) => setUpdatedBy(e.target.value)} disabled={!updatedAt}>
+                <option value="">{t('metadata.unknown')}</option>
+                {options(updatedBy).map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          )}
         </div>
       )}
-      <p className="field-hint">{withUpdated ? t('metadata.correctHint') : t('metadata.correctFoodHint')}</p>
+      <p className="field-hint">{withUsers ? t('metadata.correctHint') : t('metadata.correctFoodHint')}</p>
       <ErrorText error={error} />
       <div className="form-actions">
         <button type="submit" className="btn btn-primary" disabled={busy}>

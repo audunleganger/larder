@@ -131,6 +131,7 @@ export interface ExportFile {
   foods: ExportFood[]
   entries: ExportEntry[]
   targets: ExportTarget[]
+  tags?: ExportTag[]
 }
 
 export interface ExportFood {
@@ -149,6 +150,7 @@ export interface ExportFood {
   logAsWhole?: boolean
   createdAt?: string | null
   ingredientOnly?: boolean
+  tags?: string[]
 }
 
 export interface ExportFoodUnit {
@@ -171,6 +173,14 @@ export interface ExportNutrient {
   hidden?: boolean
   translations?: NameTranslation[]
   archived?: boolean
+  createdAt?: string | null
+  updatedAt?: string | null
+}
+
+export interface ExportTag {
+  name: string
+  archived?: boolean
+  translations?: NameTranslation[]
   createdAt?: string | null
   updatedAt?: string | null
 }
@@ -219,6 +229,7 @@ export interface FoodDto {
   createdAt: number
   createdBy: string
   ingredientOnly: boolean
+  tagIds: number[]
 }
 
 export interface FoodEntryRef {
@@ -247,6 +258,7 @@ export interface FoodInput {
   translations?: NameTranslation[] | null
   composite?: CompositeInput | null
   ingredientOnly?: boolean | null
+  tagIds?: number[] | null
 }
 
 export interface FoodMetadataInput {
@@ -279,6 +291,7 @@ export interface FoodSummary {
   imageVersion: number | null
   composite: boolean
   ingredientOnly: boolean
+  tagIds: number[]
 }
 
 export interface FoodUnitLink {
@@ -318,6 +331,7 @@ export interface ImportResult {
   foods: ImportCounts
   entries: ImportCounts
   targets: ImportCounts
+  tags?: ImportCounts
 }
 
 export interface Ingredient {
@@ -476,6 +490,33 @@ export interface SetupInput {
 
 export interface SetupStatus {
   needsSetup: boolean
+}
+
+export interface TagDetail {
+  tag: TagDto
+  foods: FoodRef[]
+}
+
+export interface TagDto {
+  id: number
+  name: string
+  translations: NameTranslation[]
+  displayName: string
+  archived: boolean
+  foodCount: number
+  createdAt: number
+  createdBy: string
+  updatedAt: number | null
+}
+
+export interface TagInput {
+  name: string
+  translations?: NameTranslation[] | null
+}
+
+export interface TagMetadataInput {
+  createdAt: number
+  updatedAt?: number | null
 }
 
 export interface TargetDto {

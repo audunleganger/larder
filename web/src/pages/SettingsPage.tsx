@@ -62,6 +62,7 @@ function ImportResultView({ result }: { result: ImportResult }) {
   const rows = [
     ['units', result.units],
     ['nutrients', result.nutrients],
+    ['tags', result.tags ?? {}],
     ['foods', result.foods],
     ['entries', result.entries],
     ['targets', result.targets],
