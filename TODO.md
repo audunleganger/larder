@@ -55,9 +55,8 @@ Changes to stored data also need a schema migration, a new export format version
 - **Reorder units on the units page**, like nutrients (N-3): each user's own order of the units they show, with
   the same move up and down controls. A unit that's shown again goes last. Units start in alphabetical order, as
   now, and a **reset** button puts them back in alphabetical order. Needs a schema change (a `sort_order` on
-  `shown_unit`). Question to answer:
-  - Where does the order apply: only the units page, or also the unit pickers (logging, a food's units,
-    ingredients)? In a picker for a food, should the food's own units still come first?
+  `shown_unit`). The order also applies in the unit pickers (logging, a food's units, ingredients); in a picker
+  for a food, the food's own units still come first, each group in the user's order.
 - **Only a name when adding a food.** The "new food" form on the foods page asks just for the name; the reference
   amount and unit are set on the food's page, which opens right after. The new food still starts with the
   remembered reference amount (F-12): the form sends it without showing it, or the food's page prefills it. Same
