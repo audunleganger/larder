@@ -903,10 +903,10 @@ textarea.input {
 
 .target-bar {
   position: relative;
-  height: 8px;
+  height: 12px;
   margin: 0.4rem 0 0.3rem;
   background: var(--surface-2);
-  border-radius: 4px;
+  border-radius: 6px;
   overflow: hidden;
 }
 
@@ -941,7 +941,7 @@ textarea.input {
   transition: opacity 0.1s;
 }
 
-/* A taller hit area than the 4px mark. */
+/* A taller hit area than the 8px mark. */
 .segment::before {
   content: '';
   position: absolute;
