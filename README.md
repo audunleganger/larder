@@ -26,7 +26,8 @@ can log a food before you know its nutrition. Fill in the numbers later, and eve
 - **Day view with targets.** A live preview while logging, and day totals against min/max targets. Hover or tap
   a total to see which foods it came from.
 - **History.** Daily charts with a 7-day average and targets, plus summaries per nutrient.
-- **Photos.** One per food, shown in the picker, the lists and the day view.
+- **Photos.** One per food, shown in the picker, the lists and the day view. Upload one, or paste an image or a
+  link to one.
 - **English and Norwegian (bokmål).** Foods, units and nutrients can have a name in each language, with plural
   forms ("2 slices", "2 geese", "2 skiver").
 - **Multi-user.** First-run setup, accounts managed by an admin, separate foods and diary per user, JSON
@@ -92,6 +93,7 @@ The server reads these environment variables:
 | `CC_WEB_DIR` | *(unset; set in the Docker image)* | Directory with the built web GUI. Unset means API only |
 | `CC_TOKEN_LIFETIME_DAYS` | `30` | How long a login lasts without use |
 | `CC_VERSION` | *(set in published images)* | The version `/api/health` and Settings show. Unset means the version in the source |
+| `CC_PHOTO_FETCH_ALLOW_PRIVATE` | `false` | Lets photo links point at the local network (loopback, private, link-local and VPN addresses). Off, so the server can't be used to reach it |
 
 ### Backups
 
@@ -239,6 +241,7 @@ All endpoints except health, setup and login need `Authorization: Bearer <token>
 | | `PUT /{id}/metadata` (admins): correct who made it and when, and for units and nutrients when and by whom it was last changed. For foods only the date, on the admin's own foods |
 | `GET /api/v1/foods/ref-default` | The reference amount a new food starts with |
 | `GET/PUT/DELETE /api/v1/foods/{id}/image` | A food's photo (`?size=thumbnail`; `?v=<imageVersion>` for permanent caching). PUT takes base64 JSON |
+| `POST /api/v1/photo-links/fetch` | Downloads the image at `{"url"}` and answers with the file, for the client to shrink and upload. Errors: `LINK_REFUSED` (not http(s), or the local network), `LINK_FAILED`, `LINK_NOT_IMAGE`, `LINK_TOO_LARGE` |
 | `PUT /api/v1/nutrients/order` | Display order |
 | `/api/v1/tags` | Tags, per user like foods, made from a food (below): list `?includeArchived`, `GET /{id}` (with its foods), `PUT /{id}`, `PUT /{id}/color` (`red`, `orange`, `yellow`, `green`, `teal`, `blue`, `indigo`, `purple`, `pink`, `brown` or null), `POST /{id}/archive`, `/unarchive`, `PUT /{id}/metadata` (admins: the dates), `DELETE /{id}` (removes it from its foods). `PUT /api/v1/foods/{id}/tags` sets a food's tags and `POST /api/v1/foods/{id}/tags` gives it a tag by name, made if new; a tag no food has any more is deleted |
 | `PUT /api/v1/units/order`, `DELETE /units/order` | Display order of the units; DELETE puts them back in alphabetical order |

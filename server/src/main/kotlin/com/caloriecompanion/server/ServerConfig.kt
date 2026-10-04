@@ -15,6 +15,8 @@ data class ServerConfig(
     val bcryptCost: Int = 12,
     /** Reported by `/api/health` (DEP-5). The Docker image sets it to the release or commit it was built from. */
     val version: String = AppInfo.VERSION,
+    /** Lets photo links (F-13) point at the local network; off, so the server can't be used to reach it. */
+    val photoFetchAllowPrivate: Boolean = false,
 ) {
     companion object {
         fun fromEnv(env: Map<String, String> = System.getenv()) = ServerConfig(
@@ -24,6 +26,7 @@ data class ServerConfig(
             webDir = env["CC_WEB_DIR"]?.let(::Path),
             tokenLifetimeDays = env["CC_TOKEN_LIFETIME_DAYS"]?.toLong() ?: 30,
             version = env["CC_VERSION"]?.takeIf { it.isNotBlank() } ?: AppInfo.VERSION,
+            photoFetchAllowPrivate = env["CC_PHOTO_FETCH_ALLOW_PRIVATE"]?.toBoolean() ?: false,
         )
     }
 }

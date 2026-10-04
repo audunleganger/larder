@@ -1,6 +1,7 @@
 // End-to-end walkthrough of the web GUI against a fresh server (see e2e/run.sh).
 // Screenshots go to $E2E_SHOTS (default: e2e/screenshots). Exits non-zero if any step fails.
 import { mkdirSync, readFileSync } from 'node:fs'
+import { createServer } from 'node:http'
 import { chromium } from 'playwright-core'
 
 const BASE = process.env.E2E_BASE_URL ?? 'http://localhost:18090'
@@ -14,6 +15,8 @@ const page = await context.newPage()
 const problems = []
 page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') problems.push(`[${m.type()}] ${m.text()}`) })
 page.on('pageerror', (e) => problems.push(`[pageerror] ${e.message}`))
+// A small PNG; the app shrinks and re-encodes photos in the browser before uploading.
+const PHOTO_PNG = 'iVBORw0KGgoAAAANSUhEUgAAAHgAAABQCAIAAABd+SbeAAAAzElEQVR4nO3QQRHAIADAMEDXNKEOgVOx8liioNd59jP43rod8BdGR4yOGB0xOmJ0xOiI0RGjI0ZHjI4YHTE6YnTE6IjREaMjRkeMjhgdMTpidMToiNERoyNGR4yOGB0xOmJ0xOiI0RGjI0ZHjI4YHTE6YnTE6IjREaMjRkeMjhgdMTpidMToiNERoyNGR4yOGB0xOmJ0xOiI0RGjI0ZHjI4YHTE6YnTE6IjREaMjRkeMjhgdMTpidMToiNERoyNGR4yOGB0xOmJ0xOjIC/b/Af6iJ0AQAAAAAElFTkSuQmCC'
 const shot = (name) => page.screenshot({ path: `${SHOTS}/${name}.png`, fullPage: true })
 const step = async (name, fn) => {
   try { await fn(); console.log('ok  ', name) }
@@ -275,8 +278,7 @@ await step('who made it and when', async () => {
 })
 
 await step('food photo', async () => {
-  // A small PNG; the app shrinks and re-encodes photos in the browser before uploading.
-  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAHgAAABQCAIAAABd+SbeAAAAzElEQVR4nO3QQRHAIADAMEDXNKEOgVOx8liioNd59jP43rod8BdGR4yOGB0xOmJ0xOiI0RGjI0ZHjI4YHTE6YnTE6IjREaMjRkeMjhgdMTpidMToiNERoyNGR4yOGB0xOmJ0xOiI0RGjI0ZHjI4YHTE6YnTE6IjREaMjRkeMjhgdMTpidMToiNERoyNGR4yOGB0xOmJ0xOiI0RGjI0ZHjI4YHTE6YnTE6IjREaMjRkeMjhgdMTpidMToiNERoyNGR4yOGB0xOmJ0xOjIC/b/Af6iJ0AQAAAAAElFTkSuQmCC', 'base64')
+  const png = Buffer.from(PHOTO_PNG, 'base64')
   await page.getByRole('link', { name: 'Foods', exact: true }).click()
   await page.getByRole('link', { name: 'Rye bread' }).click()
   await page.locator('input[type=file]').setInputFiles({ name: 'bread.png', mimeType: 'image/png', buffer: png })
@@ -288,6 +290,53 @@ await step('food photo', async () => {
   await page.locator('a.food-link', { hasText: 'Rye bread' }).locator('img.food-thumb').waitFor()
   await page.getByRole('link', { name: 'Day', exact: true }).click()
   await page.locator('.entry a.food-link', { hasText: 'Rye bread' }).locator('img.food-thumb').waitFor()
+})
+
+await step('photo from a paste or a link', async () => {
+  // A stand-in for a web site with an image and a page, on localhost (the server is told to allow that).
+  const image = Buffer.from(PHOTO_PNG, 'base64')
+  const site = createServer((req, res) => {
+    if (req.url === '/bread.png') res.writeHead(200, { 'Content-Type': 'image/png' }).end(image)
+    else if (req.url === '/redirect') res.writeHead(302, { Location: '/bread.png' }).end()
+    else res.writeHead(200, { 'Content-Type': 'text/html' }).end('<!doctype html><title>Shop</title>')
+  })
+  await new Promise((resolve) => site.listen(0, '127.0.0.1', resolve))
+  const siteUrl = `http://127.0.0.1:${site.address().port}`
+  const paste = (selector, { text, png }) =>
+    page.evaluate(
+      ({ selector, text, png }) => {
+        const data = new DataTransfer()
+        if (text) data.setData('text/plain', text)
+        if (png) data.items.add(new File([Uint8Array.from(atob(png), (c) => c.charCodeAt(0))], 'pasted.png', { type: 'image/png' }))
+        document.querySelector(selector).dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }))
+      },
+      { selector, text, png },
+    )
+  try {
+    await page.getByRole('link', { name: 'Foods', exact: true }).click()
+    await page.locator('.food-table a.food-link', { hasText: 'Mystery soup' }).click()
+    await page.getByRole('heading', { name: 'Mystery soup' }).waitFor()
+    const field = page.getByLabel('Paste an image or a link to one')
+    // A link to a web page isn't an image.
+    await field.fill(`${siteUrl}/shop`)
+    await page.getByRole('button', { name: 'Get photo' }).click()
+    await page.getByText('That link isn’t to an image.', { exact: false }).waitFor()
+    // A pasted link is downloaded at once, following redirects.
+    await field.fill('')
+    await paste('.photo-link input', { text: `${siteUrl}/redirect` })
+    await page.getByRole('img', { name: 'Photo of Mystery soup' }).waitFor()
+    await page.getByText('That link isn’t to an image.', { exact: false }).waitFor({ state: 'detached' })
+    await shot('23-photo-link')
+
+    // A pasted image works anywhere on the page outside a field.
+    await page.getByRole('button', { name: 'Remove photo' }).click()
+    await page.getByRole('button', { name: 'Yes, do it' }).click()
+    await page.getByText('No photo yet').waitFor()
+    await paste('body', { png: PHOTO_PNG })
+    await page.getByRole('img', { name: 'Photo of Mystery soup' }).waitFor()
+  } finally {
+    site.close()
+  }
 })
 
 await step('names in other languages', async () => {

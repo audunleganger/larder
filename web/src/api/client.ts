@@ -93,21 +93,39 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
     data = undefined
   }
 
-  if (!response.ok) {
-    const error = data as Partial<ErrorResponse> | undefined
-    if (!error?.error && [502, 503, 504].includes(response.status)) {
-      // A proxy in front of a stopped server.
-      throw new ApiError(response.status, NETWORK_ERROR, 'Server unreachable')
-    }
-    if (response.status === 401 && error?.error === 'UNAUTHORIZED') unauthorizedHandler?.()
-    throw new ApiError(
-      response.status,
-      error?.error ?? `HTTP_${response.status}`,
-      error?.message ?? response.statusText,
-      error?.details ?? {},
-    )
-  }
+  if (!response.ok) throw failure(response, data)
   return data as T
+}
+
+/** The error for a failed [response] whose body parsed as [data]. */
+function failure(response: Response, data: unknown): ApiError {
+  const error = data as Partial<ErrorResponse> | undefined
+  if (!error?.error && [502, 503, 504].includes(response.status)) {
+    // A proxy in front of a stopped server.
+    return new ApiError(response.status, NETWORK_ERROR, 'Server unreachable')
+  }
+  if (response.status === 401 && error?.error === 'UNAUTHORIZED') unauthorizedHandler?.()
+  return new ApiError(response.status, error?.error ?? `HTTP_${response.status}`, error?.message ?? response.statusText, error?.details ?? {})
+}
+
+/** POSTs [body] to the versioned API and returns the binary answer, e.g. a downloaded photo. */
+export async function apiBlob(path: string, body: unknown): Promise<Blob> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json', 'Accept-Language': i18n.language }
+  if (token) headers.Authorization = `Bearer ${token}`
+  let response: Response
+  try {
+    response = await fetch(`/api/v1${path}`, { method: 'POST', headers, body: JSON.stringify(body) })
+  } catch {
+    throw new ApiError(0, NETWORK_ERROR, 'Server unreachable')
+  }
+  if (response.ok) return response.blob()
+  let data: unknown = undefined
+  try {
+    data = await response.json()
+  } catch {
+    data = undefined
+  }
+  throw failure(response, data)
 }
 
 /** A binary resource from the versioned API as a data: URL, e.g. a photo for an <img>, which can't send the token itself. */

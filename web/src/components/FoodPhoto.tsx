@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import * as endpoints from '../api/endpoints'
 import { useApiMutation } from '../api/queries'
 import type { FoodDto, FoodImageData } from '../api/types.gen'
 import { preparePhoto } from '../lib/images'
+import { imageIn, isTextField, linkIn } from '../lib/paste'
 import { ConfirmButton, ErrorText } from './ui'
 
 /** A food's photo as a data URL; versioned, so once loaded it never needs refetching (F-13). */
@@ -32,19 +33,27 @@ export function FoodThumb({ foodId, version, name, size = 'small' }: { foodId: n
   )
 }
 
-/** The food page's photo, with upload, replace and remove (F-13). */
+/**
+ * The food page's photo, with upload, replace and remove (F-13). A photo can also be pasted, as an image or
+ * a link to one, into the field below it or anywhere on the page outside other fields; a link is
+ * downloaded by the server, and either is then shrunk and uploaded like a chosen file.
+ */
 export function FoodPhotoEditor({ food }: { food: FoodDto }) {
   const { t } = useTranslation()
   const input = useRef<HTMLInputElement>(null)
   const image = useFoodImage(food.id, food.imageVersion, 'full')
   const [preparing, setPreparing] = useState(false)
   const [readError, setReadError] = useState<string | null>(null)
+  const [link, setLink] = useState('')
+  const [linkError, setLinkError] = useState<unknown>(null)
   const upload = useApiMutation((data: FoodImageData) => endpoints.setFoodImage(food.id, data))
   const remove = useApiMutation(() => endpoints.deleteFoodImage(food.id))
+  const busy = preparing || upload.isPending || remove.isPending
 
-  async function choose(file: File | undefined) {
+  async function setPhoto(file: Blob | undefined) {
     if (!file) return
     setReadError(null)
+    setLinkError(null)
     setPreparing(true)
     try {
       const data = await preparePhoto(file).catch(() => null)
@@ -57,7 +66,53 @@ export function FoodPhotoEditor({ food }: { food: FoodDto }) {
     }
   }
 
-  const busy = preparing || upload.isPending || remove.isPending
+  async function photoFromLink(url: string) {
+    setReadError(null)
+    setLinkError(null)
+    setPreparing(true)
+    let blob: Blob
+    try {
+      blob = await endpoints.fetchPhotoLink(url)
+    } catch (e) {
+      setLinkError(e)
+      return
+    } finally {
+      setPreparing(false)
+    }
+    await setPhoto(blob)
+    setLink('')
+  }
+
+  /** Uses a pasted image or link; false if the paste holds neither. */
+  function paste(data: DataTransfer | null): boolean {
+    const pasted = imageIn(data)
+    if (pasted) {
+      void setPhoto(pasted)
+      return true
+    }
+    const url = linkIn(data?.getData('text') ?? '')
+    if (!url) return false
+    setLink(url)
+    void photoFromLink(url)
+    return true
+  }
+
+  // Pasting anywhere on the page, outside a field, also sets the photo.
+  const pasteRef = useRef(paste)
+  const busyRef = useRef(busy)
+  useEffect(() => {
+    pasteRef.current = paste
+    busyRef.current = busy
+  })
+  useEffect(() => {
+    function onPaste(event: ClipboardEvent) {
+      if (busyRef.current || isTextField(event.target)) return
+      if (pasteRef.current(event.clipboardData)) event.preventDefault()
+    }
+    document.addEventListener('paste', onPaste)
+    return () => document.removeEventListener('paste', onPaste)
+  }, [])
+
   return (
     <div className="photo-editor">
       {food.imageVersion !== null ? (
@@ -84,11 +139,34 @@ export function FoodPhotoEditor({ food }: { food: FoodDto }) {
             {t('photo.remove')}
           </ConfirmButton>
         )}
-        <input ref={input} type="file" accept="image/*" hidden aria-label={t('photo.add')} onChange={(e) => void choose(e.target.files?.[0])} />
+        <input ref={input} type="file" accept="image/*" hidden aria-label={t('photo.add')} onChange={(e) => void setPhoto(e.target.files?.[0])} />
+      </div>
+      <div className="form-row photo-link">
+        <input
+          className="input grow"
+          inputMode="url"
+          aria-label={t('photo.paste')}
+          placeholder={t('photo.paste')}
+          value={link}
+          disabled={busy}
+          onChange={(e) => setLink(e.target.value)}
+          onPaste={(e) => {
+            if (paste(e.clipboardData)) e.preventDefault()
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              if (link.trim()) void photoFromLink(link.trim())
+            }
+          }}
+        />
+        <button type="button" className="btn" disabled={busy || !link.trim()} onClick={() => void photoFromLink(link.trim())}>
+          {t('photo.fetch')}
+        </button>
       </div>
       <p className="field-hint">{t('photo.hint')}</p>
       {readError && <p className="error-text">{readError}</p>}
-      <ErrorText error={upload.error ?? remove.error} />
+      <ErrorText error={linkError ?? upload.error ?? remove.error} />
     </div>
   )
 }

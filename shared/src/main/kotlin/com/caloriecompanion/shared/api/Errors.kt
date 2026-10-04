@@ -16,6 +16,18 @@ object ErrorCodes {
     const val LAST_ADMIN = "LAST_ADMIN"
     const val WEAK_PASSWORD = "WEAK_PASSWORD"
     const val INVALID_IMPORT = "INVALID_IMPORT"
+
+    /** A photo link (F-13) that may not be fetched: not http(s), or on the local network. */
+    const val LINK_REFUSED = "LINK_REFUSED"
+
+    /** A photo link that couldn't be downloaded: not found, unreachable, an HTTP error or too slow. */
+    const val LINK_FAILED = "LINK_FAILED"
+
+    /** A photo link to something other than an image, such as a web page. */
+    const val LINK_NOT_IMAGE = "LINK_NOT_IMAGE"
+
+    /** A photo link to an image larger than the server downloads. */
+    const val LINK_TOO_LARGE = "LINK_TOO_LARGE"
 }
 
 @Serializable

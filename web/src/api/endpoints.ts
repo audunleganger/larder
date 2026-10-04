@@ -1,4 +1,4 @@
-import { api, apiDataUrl, request } from './client'
+import { api, apiBlob, apiDataUrl, request } from './client'
 import type {
   AdminUserCreate,
   AdminUserUpdate,
@@ -25,6 +25,7 @@ import type {
   NutrientDetail,
   NutrientDto,
   NutrientInput,
+  PhotoLinkInput,
   PreviewInput,
   PreviewResult,
   SetupInput,
@@ -104,6 +105,8 @@ export const foodDetail = (id: number) => api<FoodDetail>(`/foods/${id}`)
 export const createFood = (input: FoodInput) => api<FoodDto>('/foods', { method: 'POST', body: input })
 export const updateFood = (id: number, input: FoodInput) => api<FoodDto>(`/foods/${id}`, { method: 'PUT', body: input })
 /** Saved at once; a tag no food has any more goes. */
+/** Downloads the photo at a link through the server (F-13), which refuses local addresses and non-images. */
+export const fetchPhotoLink = (url: string) => apiBlob('/photo-links/fetch', { url } satisfies PhotoLinkInput)
 export const setFoodTags = (id: number, tagIds: number[]) => api<FoodDto>(`/foods/${id}/tags`, { method: 'PUT', body: { tagIds } satisfies FoodTagsInput })
 /** Gives the food the tag with that name, made if new. */
 export const addFoodTag = (id: number, input: TagInput) => api<FoodDto>(`/foods/${id}/tags`, { method: 'POST', body: input })

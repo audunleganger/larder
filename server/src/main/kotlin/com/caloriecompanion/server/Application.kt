@@ -65,6 +65,7 @@ fun Application.module(config: ServerConfig) {
     val database = Database(config.dataDir)
     monitor.subscribe(ApplicationStopped) { database.close() }
     val auth = Auth(config)
+    val photoFetcher = if (config.photoFetchAllowPrivate) PhotoFetcher(allowed = { _, _ -> true }) else PhotoFetcher()
 
     install(ContentNegotiation) { json(apiJson) }
     install(CallLogging) {
@@ -96,7 +97,7 @@ fun Application.module(config: ServerConfig) {
             route("/v1") {
                 accountRoutes(database, auth)
                 adminRoutes(database, auth)
-                catalogRoutes(database, auth)
+                catalogRoutes(database, auth, photoFetcher)
                 diaryRoutes(database, auth)
             }
             // Unknown API paths must 404 rather than fall through to the web GUI's index.html.

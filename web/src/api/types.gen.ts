@@ -16,6 +16,10 @@ export const ErrorCodes = {
   LAST_ADMIN: 'LAST_ADMIN',
   WEAK_PASSWORD: 'WEAK_PASSWORD',
   INVALID_IMPORT: 'INVALID_IMPORT',
+  LINK_REFUSED: 'LINK_REFUSED',
+  LINK_FAILED: 'LINK_FAILED',
+  LINK_NOT_IMAGE: 'LINK_NOT_IMAGE',
+  LINK_TOO_LARGE: 'LINK_TOO_LARGE',
 } as const
 
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes]
@@ -483,6 +487,10 @@ export interface NutrientTotal {
 export interface PasswordChangeInput {
   currentPassword: string
   newPassword: string
+}
+
+export interface PhotoLinkInput {
+  url: string
 }
 
 export interface PreviewInput {
