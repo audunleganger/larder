@@ -13,7 +13,8 @@ import { TagChip } from './TagChip'
  * A food's tags (F-16): the chosen ones as chips, a list to add an existing tag, and a field to make a
  * new one. Changes are saved at once, without the food's Save button; a tag no food has any more goes.
  * Archived tags stay on foods that have them, but aren't offered. [value]: the food's tags as loaded,
- * not a copy, so a tag deleted elsewhere is never sent back.
+ * not a copy. Changes start from the tags that still exist, so a tag deleted elsewhere is never sent
+ * back, even while the food shows a cached copy from before.
  */
 export function TagsEditor({ foodId, value }: { foodId: number; value: number[] }) {
   const { t } = useTranslation()
@@ -25,6 +26,7 @@ export function TagsEditor({ foodId, value }: { foodId: number; value: number[] 
   const busy = set.isPending || add.isPending
   const all = tags.data ?? []
   const chosen = tagsByName(value, all, currentLocale())
+  const current = chosen.map((tag) => tag.id)
   const offered = tagsByName(
     all.filter((tag) => !tag.archived && !value.includes(tag.id)).map((tag) => tag.id),
     all,
@@ -62,7 +64,7 @@ export function TagsEditor({ foodId, value }: { foodId: number; value: number[] 
                 className="chip-remove"
                 aria-label={t('tags.remove', { name: tag.displayName })}
                 disabled={busy}
-                onClick={() => void save(value.filter((id) => id !== tag.id)).catch(() => undefined)}
+                onClick={() => void save(current.filter((id) => id !== tag.id)).catch(() => undefined)}
               >
                 ×
               </button>
@@ -78,7 +80,7 @@ export function TagsEditor({ foodId, value }: { foodId: number; value: number[] 
             value=""
             disabled={busy}
             onChange={(e) => {
-              if (e.target.value) void save([...value, Number(e.target.value)]).catch(() => undefined)
+              if (e.target.value) void save([...current, Number(e.target.value)]).catch(() => undefined)
             }}
           >
             <option value="">{t('tags.add')}</option>

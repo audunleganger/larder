@@ -280,7 +280,8 @@ await step('food photo', async () => {
   await page.getByRole('link', { name: 'Foods', exact: true }).click()
   await page.getByRole('link', { name: 'Rye bread' }).click()
   await page.locator('input[type=file]').setInputFiles({ name: 'bread.png', mimeType: 'image/png', buffer: png })
-  await page.getByRole('img', { name: 'Photo of Rye bread' }).waitFor()
+  // Shrinking the photo can take a while on a slow CI machine.
+  await page.getByRole('img', { name: 'Photo of Rye bread' }).waitFor({ timeout: 20000 })
   await page.getByRole('button', { name: 'Replace photo' }).waitFor()
   // The thumbnail shows in the food list and next to the food's entries.
   await page.getByRole('link', { name: 'Foods', exact: true }).click()
@@ -455,19 +456,20 @@ await step('tags', async () => {
   await page.getByRole('button', { name: 'Yes, do it' }).click()
   await page.getByRole('heading', { name: 'Tags', exact: true }).waitFor()
   await page.getByRole('link', { name: 'Breakfast', exact: true }).waitFor()
-  if (await page.getByRole('link', { name: 'Snack', exact: true }).count()) throw new Error('deleted tag still listed')
+  // The list may show its cached copy first; wait for the fresh one.
+  await page.getByRole('link', { name: 'Snack', exact: true }).waitFor({ state: 'detached' })
 
   // A tag no food has any more goes.
   await page.getByRole('link', { name: '← Foods' }).click()
   await page.locator('.food-table a.food-link', { hasText: 'Rye bread' }).click()
   await page.getByRole('heading', { name: 'Rye bread' }).waitFor()
-  if (await editor.locator('.chip', { hasText: 'Snack' }).count()) throw new Error('deleted tag still on the food')
+  await editor.locator('.chip', { hasText: 'Snack' }).waitFor({ state: 'detached' })
   await page.getByRole('button', { name: 'Remove Bread' }).click()
   await editor.locator('.chip', { hasText: 'Bread' }).filter({ hasNotText: 'Breakfast' }).waitFor({ state: 'detached' })
   await page.getByRole('link', { name: 'Foods', exact: true }).click()
   await page.getByRole('main').getByRole('link', { name: 'Tags', exact: true }).click()
   await page.getByRole('link', { name: 'Breakfast', exact: true }).waitFor()
-  if (await page.getByRole('link', { name: 'Bread', exact: true }).count()) throw new Error('unused tag still listed')
+  await page.getByRole('link', { name: 'Bread', exact: true }).waitFor({ state: 'detached' })
 })
 
 await step('food list filters and table', async () => {
