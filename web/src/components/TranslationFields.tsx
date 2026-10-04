@@ -1,22 +1,22 @@
 import { useTranslation } from 'react-i18next'
 import type { UnitKind } from '../api/types.gen'
 import { LANGUAGES } from '../i18n'
-import { effectiveSuffix, unitLabel, type TranslationDraft } from '../lib/names'
+import { effectivePlural, unitLabel, type TranslationDraft } from '../lib/names'
 import { Field } from './ui'
 
-/** Plural ending input with a live example ("2 slices"). */
-export function PluralSuffixField({ name, value, onChange, disabled }: { name: string; value: string; onChange: (value: string) => void; disabled?: boolean }) {
+/** Plural form input with a live example ("2 geese"); empty means the same as the name (U-8). */
+export function PluralField({ name, value, onChange, disabled }: { name: string; value: string; onChange: (value: string) => void; disabled?: boolean }) {
   const { t } = useTranslation()
   return (
-    <Field label={t('names.pluralSuffix')} hint={name.trim() ? t('names.pluralExample', { example: unitLabel(name.trim(), value, 2) }) : undefined} className="suffix">
-      <input className="input" value={value} disabled={disabled} maxLength={20} onChange={(e) => onChange(e.target.value)} />
+    <Field label={t('names.plural')} hint={name.trim() ? t('names.pluralExample', { example: `2 ${unitLabel(name.trim(), value.trim(), 2)}` }) : undefined} className="plural">
+      <input className="input" value={value} placeholder={name.trim()} disabled={disabled} maxLength={100} onChange={(e) => onChange(e.target.value)} />
     </Field>
   )
 }
 
 /**
  * Optional names per language for a food, unit or nutrient (L-5); for units also their plural
- * endings (U-8). Collapsed unless the item already has a translation.
+ * forms (U-8). Collapsed unless the item already has a translation.
  */
 export function TranslationFields({ draft, onChange, mainName, kind }: { draft: TranslationDraft; onChange: (draft: TranslationDraft) => void; mainName: string; kind?: UnitKind }) {
   const { t } = useTranslation()
@@ -34,11 +34,11 @@ export function TranslationFields({ draft, onChange, mainName, kind }: { draft: 
               <input className="input" lang={language} value={row.name} placeholder={mainName} onChange={(e) => set({ name: e.target.value })} />
             </Field>
             {kind && (
-              <PluralSuffixField
+              <PluralField
                 name={row.name}
-                value={effectiveSuffix(row.name, row.pluralSuffix, row.suffixEdited, kind, language)}
+                value={effectivePlural(row.name, row.plural, row.pluralEdited, kind, language)}
                 disabled={!row.name.trim()}
-                onChange={(pluralSuffix) => set({ pluralSuffix, suffixEdited: true })}
+                onChange={(plural) => set({ plural, pluralEdited: true })}
               />
             )}
           </div>

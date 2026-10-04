@@ -109,7 +109,7 @@ export function NutrientDetailPage() {
                             <td>
                               {e.foodName}{' '}
                               <span className="muted">
-                                {formatQuantity(e.quantity)} {unitLabel(e.unitName, e.unitPluralSuffix, e.quantity)}
+                                {formatQuantity(e.quantity)} {unitLabel(e.unitName, e.unitPlural, e.quantity)}
                               </span>
                             </td>
                             <td className="num">{formatAmount(e.amount, nutrient)}</td>

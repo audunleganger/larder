@@ -54,7 +54,7 @@ class TagService(
     /** [createdAt] and [updatedAt]: as in an imported file; by default it's made now and never changed. */
     fun create(input: TagInput, archived: Boolean = false, createdAt: Long? = null, updatedAt: Long? = null): TagDto = db.transactionWithResult {
         val name = cleanName(input.name)
-        val translations = NameRules.cleanTranslations(input.translations.orEmpty(), withSuffix = false)
+        val translations = NameRules.cleanTranslations(input.translations.orEmpty(), withPlural = false)
         NameRules.ensureFree(listOf(name) + translations.map { it.name }, null, all(), "tag")
         queries.insertTag(userId, name, normalizeName(name), archived, createdAt ?: now(), updatedAt)
         val id = db.appUserQueries.lastInsertRowId().executeAsOne()
@@ -66,7 +66,7 @@ class TagService(
     fun update(id: Long, input: TagInput): TagDto = db.transactionWithResult {
         val before = find(id)
         val name = cleanName(input.name)
-        val translations = input.translations?.let { NameRules.cleanTranslations(it, withSuffix = false) }
+        val translations = input.translations?.let { NameRules.cleanTranslations(it, withPlural = false) }
         NameRules.ensureFree(listOf(name) + (translations ?: before.translations.values).map { it.name }, id, all(), "tag")
         queries.updateTag(name, normalizeName(name), now(), id, userId)
         translations?.let { writeTranslations(id, it) }

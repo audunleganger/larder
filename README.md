@@ -18,6 +18,8 @@ can log a food before you know its nutrition. Fill in the numbers later, and eve
   calculated from the ingredients. Logging it adds each ingredient as its own entry, or one entry if you set it to. Mark a food
   as "ingredient only" to keep it out of the picker when logging.
 - **Tags.** Group your foods with tags like fruit or breakfast, with names in each language.
+- **Food table.** The food list shows a column per nutrient, with filters by tag, composite, ingredient only and
+  missing values.
 - **Live totals.** Correct a food's values, and every day it was eaten is recalculated. Entries with missing data
   are allowed and flagged.
 - **Day view with targets.** A live preview while logging, and day totals against min/max targets. Hover or tap
@@ -25,7 +27,7 @@ can log a food before you know its nutrition. Fill in the numbers later, and eve
 - **History.** Daily charts with a 7-day average and targets, plus summaries per nutrient.
 - **Photos.** One per food, shown in the picker, the lists and the day view.
 - **English and Norwegian (bokmål).** Foods, units and nutrients can have a name in each language, with plural
-  endings ("2 slices", "2 skiver").
+  forms ("2 slices", "2 geese", "2 skiver").
 - **Multi-user.** First-run setup, accounts managed by an admin, separate foods and diary per user, JSON
   export/import and built-in backups.
 - Light and dark mode, and a layout that works on phones.
@@ -114,7 +116,7 @@ or a reverse proxy with TLS (Caddy, nginx, Traefik).
 
 ## Android app
 
-> The Android app is behind the web GUI: it doesn't show composite foods, photos, translations, plural endings or
+> The Android app is behind the web GUI: it doesn't show composite foods, photos, translations, plurals or
 > split totals yet. It still works with data that uses them.
 
 On first launch the app asks how to run:

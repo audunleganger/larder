@@ -11,8 +11,8 @@ import { MadeBy, TakenHiddenNotice } from '../components/Shared'
 import { takenHidden } from '../lib/shared'
 import { moved } from '../lib/nutrients'
 import { parseDecimal, toInputValue } from '../lib/format'
-import { draftTranslations, effectiveSuffix, toTranslations } from '../lib/names'
-import { PluralSuffixField, TranslationFields } from '../components/TranslationFields'
+import { draftTranslations, effectivePlural, toTranslations } from '../lib/names'
+import { PluralField, TranslationFields } from '../components/TranslationFields'
 
 /** Name, kind and size fields shared by the create and edit forms (U-1, U-2). */
 export function UnitFields({ initial, submitLabel, onSubmit, error, busy }: { initial?: UnitDto; submitLabel: string; onSubmit: (input: UnitInput) => Promise<unknown>; error: unknown; busy: boolean }) {
@@ -20,12 +20,12 @@ export function UnitFields({ initial, submitLabel, onSubmit, error, busy }: { in
   const [name, setName] = useState(initial?.name ?? '')
   const [kind, setKind] = useState<UnitKind>(initial?.kind ?? 'custom')
   const [factor, setFactor] = useState(toInputValue(initial?.baseFactor))
-  // A new unit's plural ending follows the default for its name until the user edits it (U-8).
-  const [suffix, setSuffix] = useState(initial?.pluralSuffix ?? '')
-  const [suffixEdited, setSuffixEdited] = useState(initial !== undefined)
+  // A new unit's plural follows the default for its name until the user edits it (U-8).
+  const [pluralDraft, setPluralDraft] = useState(initial?.plural ?? '')
+  const [pluralEdited, setPluralEdited] = useState(initial !== undefined)
   const [translations, setTranslations] = useState(() => draftTranslations(initial?.translations))
   const [formError, setFormError] = useState<string | null>(null)
-  const pluralSuffix = effectiveSuffix(name, suffix, suffixEdited, kind, i18n.language)
+  const plural = effectivePlural(name, pluralDraft, pluralEdited, kind, i18n.language)
 
   async function submit(event: FormEvent) {
     event.preventDefault()
@@ -35,12 +35,12 @@ export function UnitFields({ initial, submitLabel, onSubmit, error, busy }: { in
       setFormError(t('units.errors.size', { base: BASE_UNIT[kind] }))
       return
     }
-    await onSubmit({ name, kind, baseFactor: kind === 'custom' ? null : value, pluralSuffix, translations: toTranslations(translations, kind) })
+    await onSubmit({ name, kind, baseFactor: kind === 'custom' ? null : value, plural: plural.trim(), translations: toTranslations(translations, kind) })
     if (!initial) {
       setName('')
       setFactor('')
-      setSuffix('')
-      setSuffixEdited(false)
+      setPluralDraft('')
+      setPluralEdited(false)
       setTranslations(draftTranslations([]))
     }
   }
@@ -51,12 +51,12 @@ export function UnitFields({ initial, submitLabel, onSubmit, error, busy }: { in
         <Field label={t('common.name')} className="grow">
           <input className="input" value={name} onChange={(e) => setName(e.target.value)} required />
         </Field>
-        <PluralSuffixField
+        <PluralField
           name={name}
-          value={pluralSuffix}
+          value={plural}
           onChange={(value) => {
-            setSuffix(value)
-            setSuffixEdited(true)
+            setPluralDraft(value)
+            setPluralEdited(true)
           }}
         />
         <Field label={t('units.kind')}>

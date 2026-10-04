@@ -13,7 +13,7 @@ import com.caloriecompanion.shared.normalizeName
  * English main names and Norwegian translations (L-5), and owned by the first user, normally the admin.
  */
 object Seeder {
-    private data class SeedUnit(val en: String, val nb: String, val kind: UnitKind, val factor: Double?, val enSuffix: String = "", val nbSuffix: String = "")
+    private data class SeedUnit(val en: String, val nb: String, val kind: UnitKind, val factor: Double?, val enPlural: String = "", val nbPlural: String = "")
     private data class SeedNutrient(val en: String, val nb: String, val unit: String, val precision: Int, val parent: String? = null)
 
     private val units = listOf(
@@ -27,9 +27,9 @@ object Seeder {
         SeedUnit("l", "l", UnitKind.VOLUME, 1000.0),
         SeedUnit("tsp", "ts", UnitKind.VOLUME, 5.0),
         SeedUnit("tbsp", "ss", UnitKind.VOLUME, 15.0),
-        SeedUnit("cup", "kopp", UnitKind.VOLUME, 250.0, "s", "er"),
-        SeedUnit("serving", "porsjon", UnitKind.CUSTOM, null, "s", "er"),
-        SeedUnit("piece", "stk", UnitKind.CUSTOM, null, "s", ""),
+        SeedUnit("cup", "kopp", UnitKind.VOLUME, 250.0, "cups", "kopper"),
+        SeedUnit("serving", "porsjon", UnitKind.CUSTOM, null, "servings", "porsjoner"),
+        SeedUnit("piece", "stk", UnitKind.CUSTOM, null, "pieces"),
     )
 
     private val nutrients = listOf(
@@ -57,8 +57,8 @@ object Seeder {
             val taken = loadUnits(db, userId).flatMapTo(HashSet()) { it.allNames() }
             for (seed in units) {
                 if (normalizeName(seed.en) in taken || normalizeName(seed.nb) in taken) continue
-                val translations = if (seed.nb != seed.en) listOf(NameTranslation("nb", seed.nb, seed.nbSuffix)) else emptyList()
-                service.insert(seed.en, seed.kind, seed.factor, seed.enSuffix, translations, builtIn = true)
+                val translations = if (seed.nb != seed.en) listOf(NameTranslation("nb", seed.nb, seed.nbPlural)) else emptyList()
+                service.insert(seed.en, seed.kind, seed.factor, seed.enPlural, translations, builtIn = true)
             }
         }
         if (nutrientQueries.selectBuiltInNutrients().executeAsList().isEmpty()) {

@@ -70,7 +70,7 @@ class NutrientService(
                 quantity = entry.quantity,
                 unitName = unit?.displayName(language) ?: "?",
                 amount = if (factor != null && value != null) factor * value else null,
-                unitPluralSuffix = unit?.displayPluralSuffix(language).orEmpty(),
+                unitPlural = unit?.displayPlural(language).orEmpty(),
             )
         }
         return NutrientDetail(nutrient.toDto(reader), foods, entries, entriesTruncated = rows.size > entryLimit)
@@ -193,7 +193,7 @@ class NutrientService(
 
     internal fun validate(input: NutrientInput, selfId: Long?): NutrientInput {
         val name = cleanName(input.name)
-        val translations = input.translations?.let { NameRules.cleanTranslations(it, withSuffix = false) }
+        val translations = input.translations?.let { NameRules.cleanTranslations(it, withPlural = false) }
         val current = selfId?.let { id -> all().firstOrNull { it.id == id } }?.translations?.values.orEmpty()
         NameRules.ensureFree(listOf(name) + (translations ?: current).map { it.name }, selfId, all(), "nutrient")
         val measureUnit = input.measureUnit.trim()

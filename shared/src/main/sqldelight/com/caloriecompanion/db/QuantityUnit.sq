@@ -13,7 +13,7 @@ CREATE TABLE quantity_unit (
     base_factor REAL,
     -- Unused since units can be hidden per user (schema 6); kept because older SQLite can't drop columns.
     archived INTEGER AS Boolean NOT NULL DEFAULT 0,
-    -- Appended to the name when the quantity isn't 1 (U-8): "slice" + "s".
+    -- Unused since full plural forms (schema 11); kept because older SQLite can't drop columns.
     plural_suffix TEXT NOT NULL DEFAULT '',
     -- One of the standard units every user starts with (U-3); only admins can change these.
     built_in INTEGER AS Boolean NOT NULL DEFAULT 0,
@@ -22,6 +22,8 @@ CREATE TABLE quantity_unit (
     created_at INTEGER NOT NULL DEFAULT 0,
     updated_at INTEGER,
     updated_by INTEGER REFERENCES app_user(id) ON DELETE SET NULL,
+    -- The name used when the quantity isn't 1 (U-8): "slice" / "slices". Empty: the same as the name.
+    plural TEXT NOT NULL DEFAULT '',
     UNIQUE (user_id, name_norm)
 );
 
@@ -33,7 +35,9 @@ CREATE TABLE unit_translation (
     locale TEXT NOT NULL,
     name TEXT NOT NULL,
     name_norm TEXT NOT NULL,
+    -- Unused since schema 11, see quantity_unit.
     plural_suffix TEXT NOT NULL DEFAULT '',
+    plural TEXT NOT NULL DEFAULT '',
     PRIMARY KEY (unit_id, locale)
 );
 
@@ -60,11 +64,11 @@ selectBuiltInUnitIds:
 SELECT id FROM quantity_unit WHERE built_in = 1;
 
 insertUnit:
-INSERT INTO quantity_unit(user_id, name, name_norm, kind, base_factor, plural_suffix, built_in, created_at, updated_at)
+INSERT INTO quantity_unit(user_id, name, name_norm, kind, base_factor, plural, built_in, created_at, updated_at)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 updateUnit:
-UPDATE quantity_unit SET name = ?, name_norm = ?, kind = ?, base_factor = ?, plural_suffix = ? WHERE id = ?;
+UPDATE quantity_unit SET name = ?, name_norm = ?, kind = ?, base_factor = ?, plural = ? WHERE id = ?;
 
 touchUnit:
 UPDATE quantity_unit SET updated_at = ?, updated_by = ? WHERE id = ?;
@@ -76,7 +80,7 @@ selectUnitTranslations:
 SELECT * FROM unit_translation;
 
 insertUnitTranslation:
-INSERT INTO unit_translation(unit_id, locale, name, name_norm, plural_suffix) VALUES (?, ?, ?, ?, ?);
+INSERT INTO unit_translation(unit_id, locale, name, name_norm, plural) VALUES (?, ?, ?, ?, ?);
 
 deleteUnitTranslations:
 DELETE FROM unit_translation WHERE unit_id = ?;

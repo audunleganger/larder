@@ -1330,8 +1330,8 @@ textarea.input {
   margin-bottom: 0.25rem;
 }
 
-.field.suffix {
-  flex: 0 0 9rem;
+.field.plural {
+  flex: 1 1 10rem;
 }
 
 /* ---------- Food editor ---------- */
@@ -1682,4 +1682,60 @@ form > .card + .card {
     display: flex;
     flex-direction: column;
   }
+}
+
+/* ---------- Food list: filters and nutrient columns (F-17) ---------- */
+
+.food-filters {
+  margin: 0.75rem 0 0.5rem;
+}
+
+.food-filters .checkbox {
+  padding-bottom: 0.45rem;
+}
+
+.inline-controls {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.column-toggles {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.toggle-chip {
+  font: inherit;
+  font-size: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-2);
+  padding: 0.15rem 0.65rem;
+  cursor: pointer;
+}
+
+.toggle-chip[aria-pressed='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+.food-table th.num,
+.nowrap {
+  white-space: nowrap;
+}
+
+.missing-value {
+  color: var(--critical-text);
+  font-weight: 600;
+}
+
+.food-table .measure-unit {
+  text-transform: none;
+  font-weight: normal;
 }

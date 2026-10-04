@@ -13,6 +13,7 @@ import com.caloriecompanion.shared.api.ExportNutrient
 import com.caloriecompanion.shared.api.ExportTag
 import com.caloriecompanion.shared.api.ExportTarget
 import com.caloriecompanion.shared.api.ExportUnit
+import com.caloriecompanion.shared.api.ExportUnitTranslation
 import com.caloriecompanion.shared.api.FoodInput
 import com.caloriecompanion.shared.api.FoodNutrientValue
 import com.caloriecompanion.shared.api.FoodUnitLink
@@ -67,7 +68,8 @@ class TransferService(
             exportedAt = Instant.ofEpochMilli(now()).toString(),
             units = catalog.units.values.filter { !it.hidden || it.id in usedUnits }.sortedBy { it.id }.map {
                 ExportUnit(
-                    it.name, it.kind, it.baseFactor, it.hidden, it.pluralSuffix, it.translations.inLanguageOrder(),
+                    it.name, it.kind, it.baseFactor, it.hidden, it.plural,
+                    it.translations.inLanguageOrder().map { t -> ExportUnitTranslation(t.locale, t.name, t.plural) },
                     createdAt = MetadataRules.formatTime(it.createdAt), updatedAt = MetadataRules.formatTime(it.updatedAt),
                 )
             },
@@ -154,10 +156,11 @@ class TransferService(
             val key = normalizeName(unit.name)
             val existing = unitIds[key]
             val hidden = if (file.version >= 3) unit.hidden else unit.archived
-            val translations = freeTranslations(unit.translations, existing, unit.name, withSuffix = true) { loadCatalog(db, userId).units.values }
-            // Version 1 files have no plural endings: keep existing ones, use the default for new units.
-            val suffix = if (file.version >= 2) unit.pluralSuffix else null
-            val input = UnitInput(unit.name, unit.kind, unit.baseFactor, suffix, translations)
+            val names = unit.translations.map { NameTranslation(it.locale, it.name, filePlural(file, it.name, it.plural, it.pluralSuffix)) }
+            val translations = freeTranslations(names, existing, unit.name, withPlural = true) { loadCatalog(db, userId).units.values }
+            // Version 1 files have no plurals: keep existing ones, use the default for new units.
+            val plural = if (file.version >= 2) filePlural(file, unit.name, unit.plural, unit.pluralSuffix) else null
+            val input = UnitInput(unit.name, unit.kind, unit.baseFactor, plural, translations)
             unitCounts = when {
                 existing == null -> {
                     unitIds[key] = unitService.create(input, hidden, MetadataRules.parseTime(unit.createdAt), MetadataRules.parseTime(unit.updatedAt)).id
@@ -189,7 +192,7 @@ class TransferService(
             val key = normalizeName(nutrient.name)
             val existing = nutrientIds[key]
             val hidden = if (file.version >= 3) nutrient.hidden else nutrient.archived
-            val translations = freeTranslations(nutrient.translations, existing, nutrient.name, withSuffix = false) { loadCatalog(db, userId).nutrients }
+            val translations = freeTranslations(nutrient.translations, existing, nutrient.name, withPlural = false) { loadCatalog(db, userId).nutrients }
             val input = NutrientInput(nutrient.name, nutrient.measureUnit, nutrient.displayPrecision, translations = translations)
             nutrientCounts = when {
                 existing == null -> {
@@ -230,7 +233,7 @@ class TransferService(
         for (tag in file.tags) {
             val names = listOf(tag.name) + tag.translations.map { it.name }
             val existing = names.firstNotNullOfOrNull { tagIds[normalizeName(it)] }
-            val translations = freeTranslations(tag.translations, existing, tag.name, withSuffix = false) { loadTags(db, userId) }
+            val translations = freeTranslations(tag.translations, existing, tag.name, withPlural = false) { loadTags(db, userId) }
             tagCounts = when {
                 existing == null -> {
                     val created = tagService.create(TagInput(tag.name, translations), tag.archived, MetadataRules.parseTime(tag.createdAt), MetadataRules.parseTime(tag.updatedAt))
@@ -258,7 +261,7 @@ class TransferService(
         for (food in file.foods) {
             val key = normalizeName(food.name)
             val existing = foodIds[key]
-            val translations = freeTranslations(food.translations, existing, food.name, withSuffix = false) { loadCatalog(db, userId).foods.values }
+            val translations = freeTranslations(food.translations, existing, food.name, withPlural = false) { loadCatalog(db, userId).foods.values }
             val input = FoodInput(
                 name = food.name,
                 refAmount = food.refAmount,
@@ -350,6 +353,10 @@ class TransferService(
         return ImportResult(unitCounts, nutrientCounts, foodCounts, entryCounts, targetCounts, tagCounts)
     }
 
+    /** A unit name's plural form from [file]: before version 7 it's stored as an ending (U-8). */
+    private fun filePlural(file: ExportFile, name: String, plural: String, suffix: String): String =
+        if (file.version >= 7) plural else if (suffix.isBlank()) "" else name + suffix.trim()
+
     /**
      * The imported translations of an item, minus any whose name already belongs to another item:
      * translations are optional, so a clash drops the translation instead of failing the import.
@@ -358,11 +365,11 @@ class TransferService(
         translations: List<NameTranslation>,
         selfId: Long?,
         mainName: String,
-        withSuffix: Boolean,
+        withPlural: Boolean,
         items: () -> Collection<Named>,
     ): List<NameTranslation> {
         if (translations.isEmpty()) return emptyList()
-        val clean = NameRules.cleanTranslations(translations.filter { Languages.of(it.locale) in Languages.SUPPORTED }, withSuffix)
+        val clean = NameRules.cleanTranslations(translations.filter { Languages.of(it.locale) in Languages.SUPPORTED }, withPlural)
         return NameRules.withoutClashes(clean, selfId, items().filter { normalizeName(it.name) != normalizeName(mainName) }, mainName)
     }
 

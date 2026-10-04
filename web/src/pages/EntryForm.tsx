@@ -33,7 +33,7 @@ function CompositeNote({ composite, share }: { composite: CompositeDetail; share
             const quantity = ingredient.quantity * share
             return (
               <li key={index} className="chip">
-                {ingredient.foodName} · {formatQuantity(quantity)} {unitLabel(ingredient.unitName, ingredient.unitPluralSuffix, quantity)}
+                {ingredient.foodName} · {formatQuantity(quantity)} {unitLabel(ingredient.unitName, ingredient.unitPlural, quantity)}
               </li>
             )
           })}
@@ -150,7 +150,7 @@ export function EntryForm({ date, entry, onDone }: { date: string; entry: EntryV
               <optgroup label={t('entry.unitsForFood')}>
                 {usable.map((u) => (
                   <option key={u.unitId} value={u.unitId}>
-                    {unitLabel(u.name, u.pluralSuffix, validQty)}
+                    {unitLabel(u.name, u.plural, validQty)}
                     {u.amountInRefUnit === null ? ' ⚠' : ''}
                   </option>
                 ))}
@@ -160,7 +160,7 @@ export function EntryForm({ date, entry, onDone }: { date: string; entry: EntryV
               <optgroup label={t('entry.otherUnits')}>
                 {otherUnits.map((u) => (
                   <option key={u.id} value={u.id}>
-                    {unitLabel(u.displayName, u.displayPluralSuffix, validQty)}
+                    {unitLabel(u.displayName, u.displayPlural, validQty)}
                   </option>
                 ))}
               </optgroup>

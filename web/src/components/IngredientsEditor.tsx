@@ -48,7 +48,7 @@ function IngredientRowEditor({ row, units, saved, exclude, onPatch, onRemove }: 
           <optgroup label={t('entry.unitsForFood')}>
             {usable.map((u) => (
               <option key={u.unitId} value={u.unitId}>
-                {unitLabel(u.name, u.pluralSuffix, qty)}
+                {unitLabel(u.name, u.plural, qty)}
                 {u.amountInRefUnit === null ? ' ⚠' : ''}
               </option>
             ))}
@@ -58,7 +58,7 @@ function IngredientRowEditor({ row, units, saved, exclude, onPatch, onRemove }: 
           <optgroup label={t('entry.otherUnits')}>
             {otherUnits.map((u) => (
               <option key={u.id} value={u.id}>
-                {unitLabel(u.displayName, u.displayPluralSuffix, qty)}
+                {unitLabel(u.displayName, u.displayPlural, qty)}
               </option>
             ))}
           </optgroup>
@@ -147,7 +147,7 @@ export function IngredientsEditor({ foodId, draft, onChange, units, saved }: { f
                 <option value="">{t('foods.chooseUnit')}</option>
                 {yieldUnits.map((u) => (
                   <option key={u.id} value={u.id}>
-                    {unitLabel(u.displayName, u.displayPluralSuffix, yieldQty)}
+                    {unitLabel(u.displayName, u.displayPlural, yieldQty)}
                   </option>
                 ))}
               </select>

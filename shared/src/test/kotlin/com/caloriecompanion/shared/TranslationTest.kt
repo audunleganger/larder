@@ -3,6 +3,8 @@ package com.caloriecompanion.shared
 import com.caloriecompanion.shared.api.ConflictStrategy
 import com.caloriecompanion.shared.api.EntryInput
 import com.caloriecompanion.shared.api.ErrorCodes
+import com.caloriecompanion.shared.api.ExportUnit
+import com.caloriecompanion.shared.api.ExportUnitTranslation
 import com.caloriecompanion.shared.api.FoodInput
 import com.caloriecompanion.shared.api.NameTranslation
 import com.caloriecompanion.shared.api.NutrientInput
@@ -10,7 +12,7 @@ import com.caloriecompanion.shared.api.UnitInput
 import com.caloriecompanion.shared.api.UnitKind
 import com.caloriecompanion.shared.domain.AppException
 import com.caloriecompanion.shared.domain.Languages
-import com.caloriecompanion.shared.domain.defaultPluralSuffix
+import com.caloriecompanion.shared.domain.defaultPlural
 import com.caloriecompanion.shared.domain.unitLabel
 import com.caloriecompanion.shared.service.EntryService
 import com.caloriecompanion.shared.service.FoodService
@@ -43,10 +45,10 @@ class TranslationTest {
     @Test
     fun `built-in names come in both languages`() {
         val serving = unit("serving")
-        assertEquals(listOf(NameTranslation("nb", "porsjon", "er")), serving.translations)
-        assertEquals("s", serving.pluralSuffix)
+        assertEquals(listOf(NameTranslation("nb", "porsjon", "porsjoner")), serving.translations)
+        assertEquals("servings", serving.plural)
         assertEquals("porsjon", units("nb").get(serving.id).displayName)
-        assertEquals("er", units("nb").get(serving.id).displayPluralSuffix)
+        assertEquals("porsjoner", units("nb").get(serving.id).displayPlural)
         assertEquals("serving", units("en").get(serving.id).displayName)
         // Same in both languages: no translation.
         assertEquals(emptyList(), unit("g").translations)
@@ -57,7 +59,7 @@ class TranslationTest {
     fun `built-in names are English with Norwegian translations, whatever the first user's language`() {
         val nb = TestDb("nb")
         val serving = UnitService(nb.db, nb.userId, "nb").list().first { it.name == "serving" }
-        assertEquals(listOf(NameTranslation("nb", "porsjon", "er")), serving.translations)
+        assertEquals(listOf(NameTranslation("nb", "porsjon", "porsjoner")), serving.translations)
         assertEquals("porsjon", serving.displayName)
     }
 
@@ -114,37 +116,66 @@ class TranslationTest {
         assertEquals(emptyList(), foods().get(food.id).translations)
         val serving = unit("serving")
         units().update(serving.id, UnitInput("serving", UnitKind.CUSTOM))
-        assertEquals("s", unit("serving").pluralSuffix)
+        assertEquals("servings", unit("serving").plural)
         assertEquals("porsjon", unit("serving").translations.single().name)
     }
 
     @Test
-    fun `plural endings default by language and kind`() {
-        assertEquals("s", defaultPluralSuffix("slice", UnitKind.CUSTOM, "en"))
-        assertEquals("r", defaultPluralSuffix("skive", UnitKind.CUSTOM, "nb"))
-        assertEquals("er", defaultPluralSuffix("bit", UnitKind.CUSTOM, "nb"))
-        assertEquals("", defaultPluralSuffix("oz", UnitKind.MASS, "en"))
-        assertEquals("s", units("en").create(UnitInput("slice", UnitKind.CUSTOM)).pluralSuffix)
-        assertEquals("r", units("nb").create(UnitInput("skive", UnitKind.CUSTOM)).pluralSuffix)
-        assertEquals("", units("en").create(UnitInput("glass", UnitKind.CUSTOM, pluralSuffix = "")).pluralSuffix)
-        assertEquals("slices", unitLabel("slice", "s", 2.0))
-        assertEquals("slices", unitLabel("slice", "s", 0.5))
-        assertEquals("slice", unitLabel("slice", "s", 1.0))
+    fun `plurals default by language and kind`() {
+        assertEquals("slices", defaultPlural("slice", UnitKind.CUSTOM, "en"))
+        assertEquals("pinches", defaultPlural("pinch", UnitKind.CUSTOM, "en"))
+        assertEquals("glasses", defaultPlural("glass", UnitKind.CUSTOM, "en"))
+        assertEquals("berries", defaultPlural("berry", UnitKind.CUSTOM, "en"))
+        assertEquals("trays", defaultPlural("tray", UnitKind.CUSTOM, "en"))
+        assertEquals("skiver", defaultPlural("skive", UnitKind.CUSTOM, "nb"))
+        assertEquals("biter", defaultPlural("bit", UnitKind.CUSTOM, "nb"))
+        assertEquals("", defaultPlural("oz", UnitKind.MASS, "en"))
+        assertEquals("slices", units("en").create(UnitInput("slice", UnitKind.CUSTOM)).plural)
+        assertEquals("skiver", units("nb").create(UnitInput("skive", UnitKind.CUSTOM)).plural)
+        assertEquals("", units("en").create(UnitInput("sheep", UnitKind.CUSTOM, plural = "")).plural)
+        assertEquals("geese", units("en").create(UnitInput("goose", UnitKind.CUSTOM, plural = " geese ")).plural)
     }
 
     @Test
-    fun `translations and plural endings survive export and import`() {
+    fun `labels use the plural unless the quantity is 1 or there is none`() {
+        assertEquals("slices", unitLabel("slice", "slices", 2.0))
+        assertEquals("slices", unitLabel("slice", "slices", 0.5))
+        assertEquals("slice", unitLabel("slice", "slices", 1.0))
+        assertEquals("geese", unitLabel("goose", "geese", 3.0))
+        assertEquals("sheep", unitLabel("sheep", "", 3.0))
+    }
+
+    @Test
+    fun `translations and plurals survive export and import`() {
         foods().create(FoodInput("Rye bread", translations = listOf(NameTranslation("nb", "Rugbrød"))))
-        units().create(UnitInput("slice", UnitKind.CUSTOM, pluralSuffix = "s", translations = listOf(NameTranslation("nb", "skive", "r"))))
+        units().create(UnitInput("goose", UnitKind.CUSTOM, plural = "geese", translations = listOf(NameTranslation("nb", "gås", "gjess"))))
         NutrientService(t.db, t.userId).create(NutrientInput("Vitamin C", "mg", translations = listOf(NameTranslation("nb", "C-vitamin"))))
         val file = TransferService(t.db, t.userId).export()
 
         val other = TestDb()
         TransferService(other.db, other.userId).import(file, ConflictStrategy.OVERWRITE)
         assertEquals("Rugbrød", FoodService(other.db, other.userId, "nb").list().single().name)
-        val slice = UnitService(other.db, other.userId).list().first { it.name == "slice" }
-        assertEquals(listOf(NameTranslation("nb", "skive", "r")), slice.translations)
+        val goose = UnitService(other.db, other.userId).list().first { it.name == "goose" }
+        assertEquals("geese", goose.plural)
+        assertEquals(listOf(NameTranslation("nb", "gås", "gjess")), goose.translations)
         assertEquals("C-vitamin", NutrientService(other.db, other.userId, "nb").list().first { it.name == "Vitamin C" }.displayName)
+    }
+
+    @Test
+    fun `plural endings in older files are read as name and ending`() {
+        val file = TransferService(t.db, t.userId).export()
+        val old = file.copy(
+            version = 6,
+            units = file.units + ExportUnit(
+                "slice", UnitKind.CUSTOM, pluralSuffix = "s",
+                translations = listOf(ExportUnitTranslation("nb", "skive", pluralSuffix = "r")),
+            ) + ExportUnit("glass", UnitKind.CUSTOM),
+        )
+        TransferService(t.db, t.userId).import(old, ConflictStrategy.OVERWRITE)
+        val slice = unit("slice")
+        assertEquals("slices", slice.plural)
+        assertEquals(listOf(NameTranslation("nb", "skive", "skiver")), slice.translations)
+        assertEquals("", unit("glass").plural, "no ending: the same as the name")
     }
 
     @Test

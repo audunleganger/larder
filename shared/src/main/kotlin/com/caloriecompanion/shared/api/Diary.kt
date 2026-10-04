@@ -44,7 +44,7 @@ data class EntryView(
     val foodImageVersion: Long?,
     val unitId: Long,
     val unitName: String,
-    val unitPluralSuffix: String,
+    val unitPlural: String,
     val quantity: Double,
     val date: String,
     val time: String,

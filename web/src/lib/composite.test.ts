@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { FoodDto, UnitDto } from '../api/types.gen'
 import { compositeDraft, toCompositeInput } from './composite'
 
-const serving = { id: 7, name: 'serving', kind: 'custom', hidden: false, translations: [{ locale: 'nb', name: 'porsjon', pluralSuffix: 'er' }] } as unknown as UnitDto
+const serving = { id: 7, name: 'serving', kind: 'custom', hidden: false, translations: [{ locale: 'nb', name: 'porsjon', plural: 'porsjoner' }] } as unknown as UnitDto
 const plain = { composite: null } as unknown as FoodDto
 
 describe('composite drafts', () => {

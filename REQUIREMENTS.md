@@ -1,6 +1,10 @@
 # Calorie Companion — Requirement Specification
 
-Version 0.9 · 2026-10-04 · Supersedes `requirements.txt`
+Version 0.11 · 2026-10-04 · Supersedes `requirements.txt`
+
+*0.11: filters and nutrient columns in the food list (F-17).*
+
+*0.10: full plural forms of unit names instead of a plural ending (U-8).*
 
 *0.9: tags for foods (F-16).*
 
@@ -74,7 +78,8 @@ The Norwegian terms are a first guess and may be changed; they live only in the 
 - **F-11 (FUTURE)** Mass↔volume conversion via optional per-food density.
 - **F-14 (MUST)** A food stuff records **when it was made and by whom** (its owner), shown on its page. Admins can correct the date of their own foods (foods are private). An import keeps the date from the file for new foods; existing foods count as made when this was introduced (schema 7).
 - **F-15 (MUST)** A food stuff can be marked **ingredient only**: it isn't offered in the food picker when logging, but can be an ingredient of composite foods (F-10). A composite that contains it can still be logged, and logging it as separate items still creates entries for this food. Existing entries of the food stay as they are, and editing one keeps the food. Shown as a badge in the food list and on the food's page; export/import keep it (format version 5).
-- **F-16 (MUST)** **Tags** group a user's food stuffs (e.g. "fruit", "breakfast"). A tag has a main name and a name per language (L-5), unique among the user's tags; tags are per user, like food stuffs. A food can have several tags, chosen on its page, where a new tag can also be made. The food list shows each food's tags; a tag's page lists its foods. Tags are archived instead of deleted while a food has them: archived tags aren't offered when tagging, but foods keep them. A tag records when it was made and last changed (its names); admins can correct both for their own tags. Export/import include tags and each food's tags by name (format version 6). Used by the food list filters (planned).
+- **F-16 (MUST)** **Tags** group a user's food stuffs (e.g. "fruit", "breakfast"). A tag has a main name and a name per language (L-5), unique among the user's tags; tags are per user, like food stuffs. A food can have several tags, chosen on its page, where a new tag can also be made. The food list shows each food's tags; a tag's page lists its foods. Tags are archived instead of deleted while a food has them: archived tags aren't offered when tagging, but foods keep them. A tag records when it was made and last changed (its names); admins can correct both for their own tags. Export/import include tags and each food's tags by name (format version 6). Used by the food list filters (F-17).
+- **F-17 (SHOULD)** The **food list** is a table with a column per nutrient, showing each food's values per its reference amount (calculated for composite foods); a missing value shows as a red dash. Toggles above the table choose the nutrient columns, remembered per browser; with none chosen, the table shows how many nutrients each food has. **Filters** narrow the list by tag, composite only, ingredient only, and has or lacks a value for a given nutrient; they combine with each other and the search, and are kept in the page address so they survive opening a food and going back. On phones the table scrolls sideways.
 - **F-13 (MUST)** A food stuff can have **one photo**, uploaded from a file or the camera. Clients shrink it before upload (max ~1280 px plus a square thumbnail); the server checks type (JPEG/PNG/WebP) and size and stores it in the database, so backups and export/import include it. The thumbnail is shown in the food picker, food list, entries and ingredients; the photo large on the food page.
 
 ### 3.2 Units
@@ -90,7 +95,7 @@ The Norwegian terms are a first guess and may be changed; they live only in the 
   - all **food stuffs** that have this unit linked (or can use it via U-4 — shown separately as "implicit")
   - all **dates** on which at least one entry used this unit.
 - **U-7 (MUST)** Units are hidden instead of archived (U-9). Delete is only allowed when nothing, for any user, references the unit.
-- **U-8 (MUST)** A unit name has an editable **plural ending**, added when the quantity isn't exactly 1 ("1 slice", "2 slices", "0.5 slices"). Default: "s"; Norwegian "er" ("r" after a final e); none for standard units (g, ml). Each translation (L-5) has its own. *Kept as a suffix for now; the rule lives in one helper per client so it can become full plural forms later.*
+- **U-8 (MUST)** A unit name has an editable **plural form**, used when the quantity isn't exactly 1 ("1 slice", "2 slices", "0.5 slices"), so irregular plurals work ("goose", "geese"). Empty means the same as the name. A new name's plural starts as a default until it's edited: English adds "s" ("es" after s, x, z, ch and sh; "ies" for a consonant before a final y), Norwegian "er" ("r" after a final e); none for standard units (g, ml). Each translation (L-5) has its own. Plurals aren't names: they aren't searched and needn't be unique. *Until 0.10 this was a plural ending; existing endings became name + ending.*
 - **U-9 (MUST)** Units and nutrients are **shared by all users of a server**. Names are unique across the server in every language; creating a taken name offers to show the existing one.
   - Each user chooses which ones they **show**; the rest are **hidden** for them and listed in a "Hidden" section on the units and nutrients pages. A new unit or nutrient is shown for its maker and hidden for everyone else.
   - Hiding only declutters lists and pickers. A hidden unit that a food uses stays usable for that food (offered when logging it, shown in its entries); a hidden nutrient keeps its values in foods but leaves the user's totals and history.
@@ -229,9 +234,9 @@ Tables of per-user data carry `user_id`; on units and nutrients it is the user w
 | Entity | Fields |
 |---|---|
 | user | id, username, password_hash, is_admin, is_disabled, locale, created_at, food_ref_amount, food_ref_unit_id (F-12) |
-| quantity_unit | id, user_id (maker), name, name_norm, kind (mass/volume/custom), base_factor (nullable; for mass/volume), plural_suffix, built_in (U-3), created_at, updated_at, updated_by (U-9) |
+| quantity_unit | id, user_id (maker), name, name_norm, kind (mass/volume/custom), base_factor (nullable; for mass/volume), plural (U-8), built_in (U-3), created_at, updated_at, updated_by (U-9) |
 | shown_unit | user_id, unit_id, sort_order (nullable: alphabetical) — the units a user shows, in their order (U-9, U-10) |
-| unit_translation / nutrient_translation / food_translation / tag_translation | item id, locale, name, name_norm (+ plural_suffix for units) (L-5) |
+| unit_translation / nutrient_translation / food_translation / tag_translation | item id, locale, name, name_norm (+ plural for units) (L-5) |
 | nutrient | id, user_id (maker), name, name_norm, measure_unit, display_precision, sort_order (default), parent_id (nullable), built_in (N-2), created_at, updated_at, updated_by (U-9) |
 | shown_nutrient | user_id, nutrient_id, sort_order — the nutrients a user shows, in their order (U-9, N-3) |
 | food | id, user_id, name, name_norm, ref_amount (nullable), ref_unit_id (nullable), notes, archived, yield_amount, yield_unit_id, log_as_whole (F-10), created_at (F-14), ingredient_only (F-15) |
@@ -309,7 +314,7 @@ None at the moment.
 | Photos | One per food; small in picker and lists, large on the food page |
 | Split totals | Per entry (same food = same colour), chronological; colours only while hovered, target colours otherwise; history bars the same |
 | Translations | For every catalog item in every UI language; selected language, else the main name; English preferred for languages without translations |
-| Plural | Editable suffix per name, kept separate so it can change later |
+| Plural | Full plural form per name and translation, defaulted from the name until edited |
 | Nutrient groups | One level; headings are nutrients |
 | Clients | Web first; Android catches up later |
 | Repository | Stays one repository (shared module used by server and Android local mode) |

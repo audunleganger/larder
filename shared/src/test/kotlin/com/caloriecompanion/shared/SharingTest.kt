@@ -172,17 +172,17 @@ class SharingTest {
 
     @Test
     fun `importing matches the server's units by any name and never changes others' units`() {
-        val slice = units(kari).create(UnitInput("slice", UnitKind.CUSTOM, pluralSuffix = "s"))
+        val slice = units(kari).create(UnitInput("slice", UnitKind.CUSTOM, plural = "slices"))
         FoodService(t.db, kari).create(FoodInput("Bread", 100.0, unitId("g"), units = listOf(FoodUnitLink(slice.id, 35.0, unitId("g")))))
         val export = TransferService(t.db, kari).export()
         val changed = export.copy(
-            units = export.units.map { if (it.name == "slice") it.copy(pluralSuffix = "z") else it } +
+            units = export.units.map { if (it.name == "slice") it.copy(plural = "slicez") else it } +
                 ExportUnit("porsjon", UnitKind.CUSTOM),
         )
 
         val result = TransferService(t.db, ola).import(changed, ConflictStrategy.OVERWRITE)
         assertEquals(0, result.units.created, "'porsjon' is the built-in serving")
-        assertEquals("s", units(ola).get(slice.id).pluralSuffix, "kari's unit isn't overwritten by ola")
+        assertEquals("slices", units(ola).get(slice.id).plural, "kari's unit isn't overwritten by ola")
         assertFalse(units(ola).get(slice.id).hidden, "but ola now shows it, like in the file")
         assertEquals(1, FoodService(t.db, ola).list().size)
     }

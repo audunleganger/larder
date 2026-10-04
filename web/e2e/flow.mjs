@@ -57,7 +57,7 @@ await step('log entry from day view', async () => {
   await picker.fill('rye')
   await page.getByRole('option', { name: 'Rye bread' }).click()
   await page.getByLabel('Quantity').first().fill('2')
-  // Unit names take their plural ending when the quantity isn't 1.
+  // Unit names take their plural form when the quantity isn't 1.
   await page.locator('.entry-form select').selectOption({ label: 'servings' })
   await page.locator('.preview .chip').first().waitFor()
   await shot('04-day-preview')
@@ -155,6 +155,22 @@ await step('unit order', async () => {
   await page.getByRole('button', { name: 'Reset to alphabetical' }).click()
   await page.getByRole('button', { name: 'Reset to alphabetical' }).waitFor({ state: 'detached' })
   if ((await rows.allInnerTexts()).join() !== before.join()) throw new Error('reset did not restore alphabetical order')
+})
+
+await step('plural forms', async () => {
+  // A new unit's plural follows the default for its name until it's edited; irregular plurals work.
+  await page.getByRole('link', { name: 'Units', exact: true }).click()
+  await page.getByLabel('Name', { exact: true }).fill('loaf')
+  const plural = page.getByLabel('Plural', { exact: true }).first()
+  if ((await plural.inputValue()) !== 'loafs') throw new Error(`default plural was: ${await plural.inputValue()}`)
+  await plural.fill('loaves')
+  await page.getByText('e.g. “2 loaves”').waitFor()
+  await page.getByRole('button', { name: 'Create' }).click()
+  await page.getByRole('link', { name: 'loaf', exact: true }).click()
+  await page.getByRole('heading', { name: 'loaf', exact: true }).waitFor()
+  const saved = page.getByLabel('Plural', { exact: true }).first()
+  if ((await saved.inputValue()) !== 'loaves') throw new Error(`saved plural was: ${await saved.inputValue()}`)
+  await shot('08c-unit-plural')
 })
 
 await step('nutrients pages', async () => {
@@ -423,6 +439,46 @@ await step('tags', async () => {
   await page.getByRole('button', { name: 'Delete' }).click()
   await page.getByRole('button', { name: 'Yes, do it' }).click()
   await page.getByText(/still used by 1 food/).waitFor()
+})
+
+await step('food list filters and table', async () => {
+  await page.getByRole('link', { name: 'Foods', exact: true }).click()
+  const table = page.locator('.food-table')
+  const rows = table.locator('tbody tr')
+  // The link holds the photo (or its initial) and the name; the name is the last line.
+  const names = async () => (await rows.locator('td:first-child a').allInnerTexts()).map((n) => n.trim().split('\n').pop().trim())
+  // A column per nutrient, values per reference amount, and a red dash where a value is missing.
+  await table.getByRole('columnheader', { name: /Energy/ }).waitFor()
+  await rows.filter({ hasText: 'Rye bread' }).getByRole('cell', { name: '250', exact: true }).waitFor()
+  await rows.filter({ hasText: 'Orange juice' }).locator('.missing-value').first().waitFor()
+  await shot('21-food-table')
+
+  await page.getByLabel('Tag', { exact: true }).selectOption({ label: 'Breakfast' })
+  await page.getByText(/Showing 1 of \d+ foods/).waitFor()
+  if ((await names()).join() !== 'Rye bread') throw new Error(`tag filter showed: ${await names()}`)
+  await page.getByRole('button', { name: 'Clear filters' }).click()
+  await page.getByLabel('Composite', { exact: true }).check()
+  await page.getByText(/Showing 1 of/).waitFor()
+  if ((await names()).join() !== 'Juice breakfast') throw new Error(`composite filter showed: ${await names()}`)
+  await page.getByRole('button', { name: 'Clear filters' }).click()
+  await page.getByLabel('Nutrient', { exact: true }).selectOption({ label: 'Energy' })
+  await page.getByLabel('Has or lacks a value').selectOption({ label: 'lacks a value' })
+  await page.getByText(/Showing \d+ of/).waitFor()
+  const lacking = await names()
+  if (!lacking.includes('Orange juice') || lacking.includes('Rye bread')) throw new Error(`lacks filter showed: ${lacking}`)
+  // The filters are in the address, so they survive going to a food and back.
+  await page.getByRole('link', { name: 'Orange juice' }).click()
+  await page.getByRole('heading', { name: 'Orange juice' }).waitFor()
+  await page.goBack()
+  await page.getByText(/Showing \d+ of/).waitFor()
+  await page.getByRole('button', { name: 'Clear filters' }).click()
+
+  // Column toggles are remembered in this browser.
+  await page.getByRole('button', { name: 'Energy', exact: true, pressed: true }).click()
+  await table.getByRole('columnheader', { name: /Energy/ }).waitFor({ state: 'detached' })
+  await page.reload()
+  await page.getByRole('button', { name: 'Energy', exact: true, pressed: false }).click()
+  await table.getByRole('columnheader', { name: /Energy/ }).waitFor()
 })
 
 await step('export and import', async () => {

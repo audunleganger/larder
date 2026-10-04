@@ -95,7 +95,7 @@ export interface EntryView {
   foodImageVersion: number | null
   unitId: number
   unitName: string
-  unitPluralSuffix: string
+  unitPlural: string
   quantity: number
   date: string
   time: string
@@ -197,11 +197,19 @@ export interface ExportUnit {
   kind: UnitKind
   baseFactor?: number | null
   hidden?: boolean
+  plural?: string
+  translations?: ExportUnitTranslation[]
   pluralSuffix?: string
-  translations?: NameTranslation[]
   archived?: boolean
   createdAt?: string | null
   updatedAt?: string | null
+}
+
+export interface ExportUnitTranslation {
+  locale: string
+  name: string
+  plural?: string
+  pluralSuffix?: string
 }
 
 export interface FoodDetail {
@@ -239,7 +247,7 @@ export interface FoodEntryRef {
   quantity: number
   unitId: number
   unitName: string
-  unitPluralSuffix: string
+  unitPlural: string
 }
 
 export interface FoodImageData {
@@ -292,6 +300,7 @@ export interface FoodSummary {
   composite: boolean
   ingredientOnly: boolean
   tagIds: number[]
+  nutrients: Record<string, number>
 }
 
 export interface FoodUnitLink {
@@ -346,7 +355,7 @@ export interface IngredientView {
   foodImageVersion: number | null
   unitId: number
   unitName: string
-  unitPluralSuffix: string
+  unitPlural: string
   quantity: number
   unresolved: boolean
   grams: number | null
@@ -376,7 +385,7 @@ export interface MetadataInput {
 export interface NameTranslation {
   locale: string
   name: string
-  pluralSuffix?: string
+  plural?: string
 }
 
 export interface NutrientAmount {
@@ -423,7 +432,7 @@ export interface NutrientEntryRef {
   quantity: number
   unitName: string
   amount: number | null
-  unitPluralSuffix: string
+  unitPlural: string
 }
 
 export interface NutrientFoodValue {
@@ -555,10 +564,10 @@ export interface UnitDto {
   updatedAt: number | null
   updatedBy: string | null
   canEdit: boolean
-  pluralSuffix: string
+  plural: string
   translations: NameTranslation[]
   displayName: string
-  displayPluralSuffix: string
+  displayPlural: string
   sortOrder: number | null
 }
 
@@ -566,7 +575,7 @@ export interface UnitInput {
   name: string
   kind: UnitKind
   baseFactor?: number | null
-  pluralSuffix?: string | null
+  plural?: string | null
   translations?: NameTranslation[] | null
 }
 
@@ -582,7 +591,7 @@ export interface UsableUnit {
   kind: UnitKind
   explicit: boolean
   amountInRefUnit: number | null
-  pluralSuffix: string
+  plural: string
 }
 
 export interface UserDto {

@@ -49,10 +49,10 @@ class MigrationTest {
         assertEquals(1L, driver.long("SELECT count(*) FROM food"))
         // v2: no remembered reference yet, so new foods start at 100 g.
         assertEquals(100.0, FoodService(db, 1).refDefault().refAmount)
-        // v3: plural endings and the built-in names in the other language.
+        // v3: plural endings and the built-in names in the other language; v11: the endings become full plurals.
         val units = UnitService(db, 1, "nb").list()
-        assertEquals("s", units.first { it.name == "slice" }.pluralSuffix)
-        assertEquals("", units.first { it.name == "g" }.pluralSuffix)
+        assertEquals("slices", units.first { it.name == "slice" }.plural)
+        assertEquals("", units.first { it.name == "g" }.plural)
         assertEquals(listOf("Energi", "Karbohydrater", "Sukkerarter"), NutrientService(db, 1, "nb").list().map { it.displayName })
         // v7: existing items count as made at the upgrade, by their owner, and never changed.
         val upgradedAt = System.currentTimeMillis()
@@ -92,6 +92,10 @@ class MigrationTest {
         assertFalse(units.first { it.name == "glass" }.hidden)
         assertFalse(units.first { it.name == "glass" }.builtIn)
         assertEquals("kari", units.first { it.name == "glass" }.createdBy)
+        // v11: plural endings of names and translations become full plurals.
+        val cup = UnitService(db, 1, "nb").list(includeHidden = true).first { it.name == "cup" }
+        assertEquals("cups", cup.plural)
+        assertEquals("kopper", cup.displayPlural)
 
         // Nutrients: one Energy; Kari keeps her order and her target.
         assertEquals(1L, driver.long("SELECT count(*) FROM nutrient WHERE name_norm = 'energy'"))
