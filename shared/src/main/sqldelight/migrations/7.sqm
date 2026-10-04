@@ -1,0 +1,3 @@
+-- v7 -> v8: "ingredient only" foods, left out of the food picker when logging but usable as ingredients.
+
+ALTER TABLE food ADD COLUMN ingredient_only INTEGER NOT NULL DEFAULT 0;

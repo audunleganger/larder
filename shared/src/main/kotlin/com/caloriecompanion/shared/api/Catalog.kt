@@ -215,6 +215,8 @@ data class FoodSummary(
     val imageVersion: Long?,
     /** Made of other foods (F-10). refAmount/refUnitId are then how much it makes. */
     val composite: Boolean,
+    /** Left out of the food picker when logging, but usable as an ingredient (F-15). */
+    val ingredientOnly: Boolean,
 )
 
 // ---- Composite foods (F-10) ----
@@ -296,6 +298,8 @@ data class FoodDto(
     val createdAt: Long,
     /** Username of the user who made it (and owns it). */
     val createdBy: String,
+    /** Left out of the food picker when logging, but usable as an ingredient (F-15). */
+    val ingredientOnly: Boolean,
 )
 
 /**
@@ -322,6 +326,8 @@ data class FoodInput(
     val translations: List<NameTranslation>? = null,
     /** Null: unchanged on update (not composite on create). */
     val composite: CompositeInput? = null,
+    /** Left out of the food picker when logging (F-15). Null: unchanged on update (false on create). */
+    val ingredientOnly: Boolean? = null,
 )
 
 /** What a new food's reference amount is prefilled with (F-12). Both null when there is no suitable unit. */
