@@ -32,6 +32,16 @@ Changes to stored data also need a schema migration, a new export format version
     photo upload, transitions between pages, bars growing into place?
   - Is the setting saved per user (on the server, follows them between devices) or per browser?
   - Should it be off by default for systems set to reduce motion?
+- **Install the web GUI as an app (PWA)** on phones, with its own icon and window. Start with a manifest only:
+  the app still loads from the server on each launch, so a new version shows the next time it's opened, and it
+  doesn't work without a connection. Questions to answer:
+  - Also add a service worker that keeps a copy of the app on the phone? It starts faster, but a new version then
+    takes effect one launch late, or right away through an "Update available — reload" prompt. Real offline use
+    (logging without a connection and syncing later) is a separate, much larger feature.
+  - Should an app left open for days notice a new deploy, by checking when it comes back to the foreground, and
+    ask to reload? `/api/health` returns `AppInfo.VERSION`, which is a fixed `0.1.0`, so it would need a value
+    that changes with each build, such as the commit hash.
+  - The icon: wait for the Larder rename, which needs a new icon anyway?
 - **The food list as a table.** One row per food and a column per nutrient, showing the values per reference
   amount (with the reference amount in its own column). Toggles above the table choose the nutrient columns. A
   missing value shows as a red dash (–). Composite foods show their calculated values. On phones the table
