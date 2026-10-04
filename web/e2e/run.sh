@@ -10,7 +10,8 @@ DATA="$(mktemp -d)"
 (cd "$ROOT" && ./gradlew -q :server:buildFatJar)
 (cd "$ROOT/web" && npm run build >/dev/null)
 
-CC_PORT="$PORT" CC_DATA_DIR="$DATA" CC_WEB_DIR="$ROOT/web/dist" java -jar "$ROOT/server/build/libs/calorie-companion-server.jar" >"$DATA/server.log" 2>&1 &
+# Photo links point at the walkthrough's own image server on localhost.
+CC_PHOTO_FETCH_ALLOW_PRIVATE=true CC_PORT="$PORT" CC_DATA_DIR="$DATA" CC_WEB_DIR="$ROOT/web/dist" java -jar "$ROOT/server/build/libs/calorie-companion-server.jar" >"$DATA/server.log" 2>&1 &
 SERVER=$!
 trap 'kill $SERVER 2>/dev/null; rm -rf "$DATA"' EXIT
 for _ in $(seq 60); do curl -sf "http://localhost:$PORT/api/health" >/dev/null && break; sleep 0.5; done

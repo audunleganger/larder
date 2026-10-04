@@ -1168,6 +1168,17 @@ textarea.input {
   align-items: flex-start;
 }
 
+.photo-link {
+  align-self: stretch;
+  max-width: 40rem;
+  flex-wrap: nowrap;
+  margin-bottom: 0;
+}
+
+.photo-link .input {
+  min-width: 0;
+}
+
 .food-photo {
   position: relative;
   display: block;
