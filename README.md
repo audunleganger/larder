@@ -17,6 +17,7 @@ can log a food before you know its nutrition. Fill in the numbers later, and eve
 - **Composite foods.** Build a food out of other foods, like a recipe or a meal you often eat. Its nutrients are
   calculated from the ingredients. Logging it adds each ingredient as its own entry, or one entry if you set it to. Mark a food
   as "ingredient only" to keep it out of the picker when logging.
+- **Tags.** Group your foods with tags like fruit or breakfast, with names in each language.
 - **Live totals.** Correct a food's values, and every day it was eaten is recalculated. Entries with missing data
   are allowed and flagged.
 - **Day view with targets.** A live preview while logging, and day totals against min/max targets. Hover or tap
@@ -216,6 +217,7 @@ All endpoints except health, setup and login need `Authorization: Bearer <token>
 | `GET /api/v1/foods/ref-default` | The reference amount a new food starts with |
 | `GET/PUT/DELETE /api/v1/foods/{id}/image` | A food's photo (`?size=thumbnail`; `?v=<imageVersion>` for permanent caching). PUT takes base64 JSON |
 | `PUT /api/v1/nutrients/order` | Display order |
+| `/api/v1/tags` | Tags, per user like foods: list `?includeArchived`, create, `GET /{id}` (with its foods), `PUT /{id}`, `POST /{id}/archive`, `/unarchive`, `PUT /{id}/metadata` (admins: the dates), `DELETE /{id}` (409 `REFERENCED` if a food has it). Foods take `tagIds` |
 | `PUT /api/v1/units/order`, `DELETE /units/order` | Display order of the units; DELETE puts them back in alphabetical order |
 | `GET /api/v1/days/{date}` | Day view: entries with calculated nutrients, totals, target status |
 | `POST /api/v1/entries`, `POST /entries/preview`, `GET/PUT/DELETE /entries/{id}` | Entries. Logging a composite food creates one entry per ingredient and returns the first |
