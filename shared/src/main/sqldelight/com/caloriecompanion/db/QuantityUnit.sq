@@ -1,18 +1,25 @@
 import kotlin.Boolean;
 
+-- Units are shared by all users of a server; each user picks which ones they see (shown_unit).
 -- kind: 'mass' / 'volume' have a global base_factor (to g / ml); 'custom' is sized per food (U-2).
 CREATE TABLE quantity_unit (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    -- The user who made the unit; only they and admins can change it.
     user_id INTEGER NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     name_norm TEXT NOT NULL,
     kind TEXT NOT NULL CHECK (kind IN ('mass', 'volume', 'custom')),
     base_factor REAL,
+    -- Unused since units can be hidden per user (schema 6); kept because older SQLite can't drop columns.
     archived INTEGER AS Boolean NOT NULL DEFAULT 0,
     -- Appended to the name when the quantity isn't 1 (U-8): "slice" + "s".
     plural_suffix TEXT NOT NULL DEFAULT '',
+    -- One of the standard units every user starts with (U-3); only admins can change these.
+    built_in INTEGER AS Boolean NOT NULL DEFAULT 0,
     UNIQUE (user_id, name_norm)
 );
+
+CREATE UNIQUE INDEX quantity_unit_name ON quantity_unit(name_norm);
 
 -- The unit's name in other languages (L-5); the main name is the fallback.
 CREATE TABLE unit_translation (
@@ -24,20 +31,31 @@ CREATE TABLE unit_translation (
     PRIMARY KEY (unit_id, locale)
 );
 
-selectUnits:
-SELECT * FROM quantity_unit WHERE user_id = ? ORDER BY name_norm;
+-- The units a user sees in lists and pickers. The rest are hidden for them, but still work where
+-- they're already used.
+CREATE TABLE shown_unit (
+    user_id INTEGER NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
+    unit_id INTEGER NOT NULL REFERENCES quantity_unit(id) ON DELETE CASCADE,
+    PRIMARY KEY (user_id, unit_id)
+);
 
-selectUnitByNorm:
-SELECT * FROM quantity_unit WHERE user_id = ? AND name_norm = ?;
+selectUnits:
+SELECT u.*, a.username AS owner_name FROM quantity_unit u JOIN app_user a ON a.id = u.user_id ORDER BY u.name_norm;
+
+selectShownUnitIds:
+SELECT unit_id FROM shown_unit WHERE user_id = ?;
+
+selectBuiltInUnitIds:
+SELECT id FROM quantity_unit WHERE built_in = 1;
 
 insertUnit:
-INSERT INTO quantity_unit(user_id, name, name_norm, kind, base_factor, archived, plural_suffix) VALUES (?, ?, ?, ?, ?, ?, ?);
+INSERT INTO quantity_unit(user_id, name, name_norm, kind, base_factor, plural_suffix, built_in) VALUES (?, ?, ?, ?, ?, ?, ?);
 
 updateUnit:
-UPDATE quantity_unit SET name = ?, name_norm = ?, kind = ?, base_factor = ?, plural_suffix = ? WHERE id = ? AND user_id = ?;
+UPDATE quantity_unit SET name = ?, name_norm = ?, kind = ?, base_factor = ?, plural_suffix = ? WHERE id = ?;
 
 selectUnitTranslations:
-SELECT t.* FROM unit_translation t JOIN quantity_unit u ON u.id = t.unit_id WHERE u.user_id = ?;
+SELECT * FROM unit_translation;
 
 insertUnitTranslation:
 INSERT INTO unit_translation(unit_id, locale, name, name_norm, plural_suffix) VALUES (?, ?, ?, ?, ?);
@@ -45,11 +63,14 @@ INSERT INTO unit_translation(unit_id, locale, name, name_norm, plural_suffix) VA
 deleteUnitTranslations:
 DELETE FROM unit_translation WHERE unit_id = ?;
 
-setUnitArchived:
-UPDATE quantity_unit SET archived = ? WHERE id = ? AND user_id = ?;
+showUnit:
+INSERT OR IGNORE INTO shown_unit(user_id, unit_id) VALUES (?, ?);
+
+hideUnit:
+DELETE FROM shown_unit WHERE user_id = ? AND unit_id = ?;
 
 deleteUnit:
-DELETE FROM quantity_unit WHERE id = ? AND user_id = ?;
+DELETE FROM quantity_unit WHERE id = ?;
 
 countUnitEntryRefs:
 SELECT count(*) FROM entry WHERE unit_id = :unitId;
