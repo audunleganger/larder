@@ -8,7 +8,9 @@ import { DecimalInput } from '../components/DecimalInput'
 import { FoodThumb } from '../components/FoodPhoto'
 import { unitLabel } from '../lib/names'
 import { Badge, Card, Empty, ErrorText, PageHeader, QueryView } from '../components/ui'
-import { formatNumber, parseDecimal, toInputValue } from '../lib/format'
+import { currentLocale, formatNumber, parseDecimal, toInputValue } from '../lib/format'
+import { tagsByName } from '../lib/tags'
+import { TagChip } from '../components/TagChip'
 import { useDebounced } from '../lib/useDebounced'
 import { filterParams, isFiltered, matchesFilter, NO_FILTER, parseFilter, type FoodFilter } from '../lib/foodFilters'
 
@@ -81,7 +83,6 @@ export function FoodsPage() {
   const nutrients = useNutrients()
   const shownNutrients = (nutrients.data ?? []).filter((n) => !n.hidden)
   const columns = shownNutrients.filter((n) => !hiddenColumns.has(n.id))
-  const tagName = (id: number) => tags.data?.find((tag) => tag.id === id)?.displayName
   const unitName = (id: number | null, amount: number) => {
     const unit = units.data?.find((u) => u.id === id)
     return unit ? unitLabel(unit.displayName, unit.displayPlural, amount) : ''
@@ -225,10 +226,8 @@ export function FoodsPage() {
                             </Link> {food.composite && <Badge tone="info">{t('composite.badge')}</Badge>} {food.ingredientOnly && <Badge tone="info">{t('foods.ingredientOnly')}</Badge>} {food.archived && <Badge>{t('common.archived')}</Badge>}
                             {food.tagIds.length > 0 && (
                               <ul className="chips food-tags">
-                                {food.tagIds.map((id) => (
-                                  <li key={id} className="chip">
-                                    {tagName(id)}
-                                  </li>
+                                {tagsByName(food.tagIds, tags.data ?? [], currentLocale()).map((tag) => (
+                                  <TagChip key={tag.id} tag={tag} />
                                 ))}
                               </ul>
                             )}

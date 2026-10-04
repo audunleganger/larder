@@ -1,43 +1,52 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import * as endpoints from '../api/endpoints'
-import { useTags } from '../api/queries'
-import { errorMessage } from '../lib/errors'
+import { useApiMutation, useTags } from '../api/queries'
+import type { FoodDetail, FoodDto, TagInput } from '../api/types.gen'
+import { currentLocale } from '../lib/format'
+import { tagsByName } from '../lib/tags'
+import { ErrorText } from './ui'
+import { TagChip } from './TagChip'
 
 /**
  * A food's tags (F-16): the chosen ones as chips, a list to add an existing tag, and a field to make a
- * new one. Archived tags stay on foods that have them, but aren't offered.
+ * new one. Changes are saved at once, without the food's Save button; a tag no food has any more goes.
+ * Archived tags stay on foods that have them, but aren't offered. [value]: the food's tags as loaded,
+ * not a copy, so a tag deleted elsewhere is never sent back.
  */
-export function TagsEditor({ value, onChange }: { value: number[]; onChange: (ids: number[]) => void }) {
+export function TagsEditor({ foodId, value }: { foodId: number; value: number[] }) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const tags = useTags(true)
   const [name, setName] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
+  const set = useApiMutation((ids: number[]) => endpoints.setFoodTags(foodId, ids))
+  const add = useApiMutation((input: TagInput) => endpoints.addFoodTag(foodId, input))
+  const busy = set.isPending || add.isPending
   const all = tags.data ?? []
-  const chosen = value.map((id) => all.find((tag) => tag.id === id)).filter((tag) => tag !== undefined)
-  const offered = all.filter((tag) => !tag.archived && !value.includes(tag.id))
+  const chosen = tagsByName(value, all, currentLocale())
+  const offered = tagsByName(
+    all.filter((tag) => !tag.archived && !value.includes(tag.id)).map((tag) => tag.id),
+    all,
+    currentLocale(),
+  )
+
+  // Shown at once; the refresh that follows every change brings the rest.
+  function saved(food: FoodDto) {
+    queryClient.setQueryData<FoodDetail>(['foods', 'detail', foodId], (detail) => detail && { ...detail, food })
+  }
+
+  async function save(ids: number[]) {
+    add.reset()
+    saved(await set.mutateAsync(ids))
+  }
 
   async function create() {
     const clean = name.trim()
     if (!clean) return
-    setError(null)
-    setBusy(true)
-    try {
-      // An existing tag with that name (in any language) is added instead.
-      const existing = all.find((tag) => [tag.name, ...tag.translations.map((tr) => tr.name)].some((n) => n.toLowerCase() === clean.toLowerCase()))
-      const id = existing?.id ?? (await endpoints.createTag({ name: clean })).id
-      if (!existing) await queryClient.invalidateQueries({ queryKey: ['tags'] })
-      if (!value.includes(id)) onChange([...value, id])
-      setName('')
-    } catch (e) {
-      setError(errorMessage(e))
-    } finally {
-      setBusy(false)
-    }
+    set.reset()
+    saved(await add.mutateAsync({ name: clean }))
+    setName('')
   }
 
   return (
@@ -47,12 +56,17 @@ export function TagsEditor({ value, onChange }: { value: number[]; onChange: (id
       ) : (
         <ul className="chips">
           {chosen.map((tag) => (
-            <li key={tag.id} className={`chip ${tag.archived ? 'chip-muted' : ''}`}>
-              <Link to={`/tags/${tag.id}`}>{tag.displayName}</Link>
-              <button type="button" className="chip-remove" aria-label={t('tags.remove', { name: tag.displayName })} onClick={() => onChange(value.filter((id) => id !== tag.id))}>
+            <TagChip key={tag.id} tag={tag}>
+              <button
+                type="button"
+                className="chip-remove"
+                aria-label={t('tags.remove', { name: tag.displayName })}
+                disabled={busy}
+                onClick={() => void save(value.filter((id) => id !== tag.id)).catch(() => undefined)}
+              >
                 ×
               </button>
-            </li>
+            </TagChip>
           ))}
         </ul>
       )}
@@ -62,8 +76,9 @@ export function TagsEditor({ value, onChange }: { value: number[]; onChange: (id
             className="input"
             aria-label={t('tags.add')}
             value=""
+            disabled={busy}
             onChange={(e) => {
-              if (e.target.value) onChange([...value, Number(e.target.value)])
+              if (e.target.value) void save([...value, Number(e.target.value)]).catch(() => undefined)
             }}
           >
             <option value="">{t('tags.add')}</option>
@@ -84,15 +99,16 @@ export function TagsEditor({ value, onChange }: { value: number[]; onChange: (id
             // Enter makes the tag instead of saving the food.
             if (e.key === 'Enter') {
               e.preventDefault()
-              void create()
+              void create().catch(() => undefined)
             }
           }}
         />
-        <button type="button" className="btn" disabled={busy || !name.trim()} onClick={() => void create()}>
+        <button type="button" className="btn" disabled={busy || !name.trim()} onClick={() => void create().catch(() => undefined)}>
           {t('tags.create')}
         </button>
       </div>
-      {error && <p className="error-text">{error}</p>}
+      <p className="field-hint">{t('tags.savedAtOnce')}</p>
+      <ErrorText error={set.error ?? add.error} />
     </div>
   )
 }

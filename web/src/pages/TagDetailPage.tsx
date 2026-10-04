@@ -6,6 +6,7 @@ import type { TagInput } from '../api/types.gen'
 import { MetadataCard } from '../components/Metadata'
 import { Badge, Card, ConfirmButton, Empty, ErrorText, PageHeader, QueryView } from '../components/ui'
 import { TagFields } from './TagsPage'
+import { TAG_COLORS, tagColorClass } from '../lib/tags'
 
 export function TagDetailPage() {
   const { t } = useTranslation()
@@ -15,6 +16,7 @@ export function TagDetailPage() {
   const update = useApiMutation((input: TagInput) => endpoints.updateTag(id, input))
   const archive = useApiMutation((archived: boolean) => endpoints.archiveTag(id, archived))
   const remove = useApiMutation(() => endpoints.deleteTag(id))
+  const color = useApiMutation((value: string | null) => endpoints.setTagColor(id, value))
   const correct = useApiMutation((input: { createdAt: number; updatedAt?: number | null }) => endpoints.setTagMetadata(id, input))
 
   return (
@@ -25,13 +27,30 @@ export function TagDetailPage() {
             <PageHeader
               title={
                 <>
-                  {data.tag.displayName} {data.tag.archived && <Badge>{t('common.archived')}</Badge>}
+                  <span className={`tag-title ${tagColorClass(data.tag.color)}`}>{data.tag.displayName}</span> {data.tag.archived && <Badge>{t('common.archived')}</Badge>}
                 </>
               }
               subtitle={<Link to="/tags">← {t('tags.title')}</Link>}
             />
             <Card title={t('common.edit')}>
               <TagFields key={JSON.stringify(data.tag)} initial={data.tag} submitLabel={t('common.save')} onSubmit={(input) => update.mutateAsync(input)} error={update.error} busy={update.isPending} />
+            </Card>
+            <Card title={t('tags.color')}>
+              <div className="tag-colors" role="group" aria-label={t('tags.color')}>
+                {[null, ...TAG_COLORS].map((value) => (
+                  <button
+                    key={value ?? 'none'}
+                    type="button"
+                    className={`chip tag-swatch ${tagColorClass(value)}`}
+                    aria-pressed={data.tag.color === value}
+                    disabled={color.isPending}
+                    onClick={() => color.mutate(value)}
+                  >
+                    {t(`tags.colors.${value ?? 'none'}`)}
+                  </button>
+                ))}
+              </div>
+              <ErrorText error={color.error} />
             </Card>
             <Card title={t('tags.foods')}>
               {data.foods.length === 0 ? (
@@ -60,7 +79,7 @@ export function TagDetailPage() {
                 </button>
                 <ConfirmButton onConfirm={() => remove.mutate(undefined, { onSuccess: () => navigate('/tags') })}>{t('common.delete')}</ConfirmButton>
               </div>
-              <p className="field-hint">{t('tags.archiveHint')}</p>
+              <p className="field-hint">{t('tags.archiveHint', { count: data.foods.length })}</p>
               <ErrorText error={archive.error ?? remove.error} />
             </Card>
           </>

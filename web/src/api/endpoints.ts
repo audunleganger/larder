@@ -15,6 +15,7 @@ import type {
   FoodMetadataInput,
   FoodRefDefault,
   FoodSummary,
+  FoodTagsInput,
   HealthResponse,
   HistoryView,
   ImportResult,
@@ -30,6 +31,7 @@ import type {
   SetupStatus,
   TargetDto,
   TargetInput,
+  TagColorInput,
   TagDetail,
   TagDto,
   TagInput,
@@ -72,10 +74,10 @@ export const hideUnit = (id: number, hidden: boolean) => api<UnitDto>(`/units/${
 export const setUnitMetadata = (id: number, input: MetadataInput) => api<UnitDto>(`/units/${id}/metadata`, { method: 'PUT', body: input })
 export const deleteUnit = (id: number) => api<void>(`/units/${id}`, { method: 'DELETE' })
 
-// Tags (F-16): per user, like foods.
+// Tags (F-16): per user, like foods. They're made from a food (addFoodTag).
 export const listTags = (includeArchived = false) => api<TagDto[]>('/tags', { query: { includeArchived } })
 export const tagDetail = (id: number) => api<TagDetail>(`/tags/${id}`)
-export const createTag = (input: TagInput) => api<TagDto>('/tags', { method: 'POST', body: input })
+export const setTagColor = (id: number, color: string | null) => api<TagDto>(`/tags/${id}/color`, { method: 'PUT', body: { color } satisfies TagColorInput })
 export const updateTag = (id: number, input: TagInput) => api<TagDto>(`/tags/${id}`, { method: 'PUT', body: input })
 export const archiveTag = (id: number, archived: boolean) => api<TagDto>(`/tags/${id}/${archived ? 'archive' : 'unarchive'}`, { method: 'POST' })
 export const setTagMetadata = (id: number, input: TagMetadataInput) => api<TagDto>(`/tags/${id}/metadata`, { method: 'PUT', body: input })
@@ -101,6 +103,10 @@ export const foodRefDefault = () => api<FoodRefDefault>('/foods/ref-default')
 export const foodDetail = (id: number) => api<FoodDetail>(`/foods/${id}`)
 export const createFood = (input: FoodInput) => api<FoodDto>('/foods', { method: 'POST', body: input })
 export const updateFood = (id: number, input: FoodInput) => api<FoodDto>(`/foods/${id}`, { method: 'PUT', body: input })
+/** Saved at once; a tag no food has any more goes. */
+export const setFoodTags = (id: number, tagIds: number[]) => api<FoodDto>(`/foods/${id}/tags`, { method: 'PUT', body: { tagIds } satisfies FoodTagsInput })
+/** Gives the food the tag with that name, made if new. */
+export const addFoodTag = (id: number, input: TagInput) => api<FoodDto>(`/foods/${id}/tags`, { method: 'POST', body: input })
 export const archiveFood = (id: number, archived: boolean) =>
   api<FoodDto>(`/foods/${id}/${archived ? 'archive' : 'unarchive'}`, { method: 'POST' })
 /** Admins only, and only the created date. */

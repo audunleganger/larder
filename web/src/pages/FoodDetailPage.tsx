@@ -35,7 +35,6 @@ function FoodEditor({ detail, units, nutrients }: { detail: FoodDetail; units: U
   const [refUnitId, setRefUnitId] = useState<number | ''>(food.refUnitId ?? '')
   const [notes, setNotes] = useState(food.notes ?? '')
   const [ingredientOnly, setIngredientOnly] = useState(food.ingredientOnly)
-  const [tagIds, setTagIds] = useState(food.tagIds)
   const [values, setValues] = useState<Record<number, string>>(() =>
     Object.fromEntries(food.nutrients.map((v) => [v.nutrientId, toInputValue(v.amount)])),
   )
@@ -104,7 +103,7 @@ function FoodEditor({ detail, units, nutrients }: { detail: FoodDetail; units: U
       refUnitId: refUnitId === '' ? null : refUnitId,
       notes: notes.trim() || null,
       ingredientOnly,
-      tagIds,
+      // Tags are saved at once by TagsEditor; left out, they stay as they are.
       nutrients: nutrientValues,
       units: unitLinks,
     }
@@ -188,13 +187,7 @@ function FoodEditor({ detail, units, nutrients }: { detail: FoodDetail; units: U
       </Card>
 
       <Card title={t('tags.title')}>
-        <TagsEditor
-          value={tagIds}
-          onChange={(ids) => {
-            setTagIds(ids)
-            setSaved(false)
-          }}
-        />
+        <TagsEditor foodId={food.id} value={food.tagIds} />
       </Card>
 
       <Card title={t('composite.title')}>
