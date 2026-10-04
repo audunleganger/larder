@@ -225,6 +225,51 @@ data class FoodSummary(
     val composite: Boolean,
     /** Left out of the food picker when logging, but usable as an ingredient (F-15). */
     val ingredientOnly: Boolean,
+    /** Its tags (F-16). */
+    val tagIds: List<Long>,
+)
+
+// ---- Tags (F-16) ----
+
+@Serializable
+data class TagDto(
+    val id: Long,
+    /** Main name. */
+    val name: String,
+    val translations: List<NameTranslation>,
+    /** The name in the reader's language. */
+    val displayName: String,
+    /** Not offered when tagging a food; foods keep it. */
+    val archived: Boolean,
+    /** Number of foods with this tag, archived ones included. */
+    val foodCount: Int,
+    /** When it was made, in ms since 1970. */
+    val createdAt: Long,
+    /** Username of the user who made it (and owns it). */
+    val createdBy: String,
+    /** When its names were last changed, in ms since 1970; null if never. */
+    val updatedAt: Long?,
+)
+
+@Serializable
+data class TagInput(
+    val name: String,
+    /** Null: unchanged on update (none on create). */
+    val translations: List<NameTranslation>? = null,
+)
+
+@Serializable
+data class TagDetail(
+    val tag: TagDto,
+    /** The foods with this tag, by display name. */
+    val foods: List<FoodRef>,
+)
+
+/** Corrects when a tag was made and last changed; admins only, for their own tags. */
+@Serializable
+data class TagMetadataInput(
+    val createdAt: Long,
+    val updatedAt: Long? = null,
 )
 
 // ---- Composite foods (F-10) ----
@@ -308,6 +353,8 @@ data class FoodDto(
     val createdBy: String,
     /** Left out of the food picker when logging, but usable as an ingredient (F-15). */
     val ingredientOnly: Boolean,
+    /** Its tags (F-16). */
+    val tagIds: List<Long>,
 )
 
 /**
@@ -336,6 +383,8 @@ data class FoodInput(
     val composite: CompositeInput? = null,
     /** Left out of the food picker when logging (F-15). Null: unchanged on update (false on create). */
     val ingredientOnly: Boolean? = null,
+    /** Its tags (F-16). Null: unchanged on update (none on create). */
+    val tagIds: List<Long>? = null,
 )
 
 /** What a new food's reference amount is prefilled with (F-12). Both null when there is no suitable unit. */

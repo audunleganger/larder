@@ -60,6 +60,7 @@ class FoodService(
                     food.id, food.displayName(language), food.archived, food.refAmount, food.refUnitId,
                     food.nutrients.size, food.imageVersion, composite = food.composite != null,
                     ingredientOnly = food.ingredientOnly,
+                    tagIds = food.tagIds,
                 )
             }
             .toList()
@@ -140,6 +141,7 @@ class FoodService(
         val id = db.appUserQueries.lastInsertRowId().executeAsOne()
         writeRelations(id, clean)
         writeTranslations(id, clean.translations.orEmpty())
+        writeTags(id, clean.tagIds.orEmpty())
         clean.composite?.let { writeComposite(id, it) }
         if (rememberRef) rememberRef(clean)
         get(id)
@@ -159,6 +161,7 @@ class FoodService(
         queries.deleteFoodNutrients(id)
         writeRelations(id, clean)
         clean.translations?.let { writeTranslations(id, it) }
+        clean.tagIds?.let { writeTags(id, it) }
         clean.composite?.let { writeComposite(id, it) }
         get(id)
     }
@@ -267,6 +270,11 @@ class FoodService(
         translations.forEach { queries.insertFoodTranslation(id, it.locale, it.name, normalizeName(it.name)) }
     }
 
+    private fun writeTags(id: Long, tagIds: List<Long>) {
+        db.tagQueries.deleteFoodTags(id)
+        tagIds.forEach { db.tagQueries.insertFoodTag(id, it) }
+    }
+
     private fun writeRelations(foodId: Long, input: FoodInput) {
         input.units.forEach { queries.insertFoodUnit(foodId, it.unitId, it.equalsAmount, it.equalsUnitId) }
         input.nutrients.forEach { queries.insertFoodNutrient(foodId, it.nutrientId, it.amount) }
@@ -303,8 +311,13 @@ class FoodService(
             if (!seenNutrients.add(value.nutrientId)) validation("A nutrient is given more than once")
             requireNonNegative(value.amount, "Nutrient amount")
         }
+        input.tagIds?.let { ids ->
+            val tags = loadTags(db, userId).mapTo(HashSet()) { it.id }
+            if (ids.any { it !in tags }) notFound("Tag")
+        }
         return input.copy(
             name = name,
+            tagIds = input.tagIds?.distinct(),
             notes = cleanOptionalText(input.notes),
             translations = translations,
             composite = input.composite?.let { validateComposite(catalog, it, selfId) },

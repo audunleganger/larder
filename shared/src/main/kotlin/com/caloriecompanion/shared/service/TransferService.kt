@@ -10,6 +10,7 @@ import com.caloriecompanion.shared.api.CompositeInput
 import com.caloriecompanion.shared.api.ExportFoodUnit
 import com.caloriecompanion.shared.api.ExportIngredient
 import com.caloriecompanion.shared.api.ExportNutrient
+import com.caloriecompanion.shared.api.ExportTag
 import com.caloriecompanion.shared.api.ExportTarget
 import com.caloriecompanion.shared.api.ExportUnit
 import com.caloriecompanion.shared.api.FoodInput
@@ -20,6 +21,7 @@ import com.caloriecompanion.shared.api.Ingredient
 import com.caloriecompanion.shared.api.ImportResult
 import com.caloriecompanion.shared.api.NameTranslation
 import com.caloriecompanion.shared.api.NutrientInput
+import com.caloriecompanion.shared.api.TagInput
 import com.caloriecompanion.shared.api.TargetInput
 import com.caloriecompanion.shared.api.UnitInput
 import com.caloriecompanion.shared.domain.AppException
@@ -43,6 +45,8 @@ class TransferService(
         val nutrientName = { id: Long -> catalog.nutrientsById.getValue(id).name }
         val entryRows = db.entryQueries.selectAllEntries(userId).executeAsList()
         val targets = TargetService(db, userId).list()
+        val tags = loadTags(db, userId).sortedBy { it.id }
+        val tagName = { id: Long -> tags.first { it.id == id }.name }
 
         // The units and nutrients the user's data uses or the user shows; the other users' are left out.
         val usedUnits = HashSet<Long>()
@@ -96,6 +100,7 @@ class TransferService(
                     logAsWhole = composite?.logAsWhole ?: false,
                     createdAt = MetadataRules.formatTime(food.createdAt),
                     ingredientOnly = food.ingredientOnly,
+                    tags = food.tagIds.map { tagName(it) },
                 )
             },
             entries = entryRows.map {
@@ -105,6 +110,12 @@ class TransferService(
                 )
             },
             targets = targets.map { ExportTarget(nutrientName(it.nutrientId), it.min, it.max, it.effectiveFrom) },
+            tags = tags.map {
+                ExportTag(
+                    it.name, it.archived, it.translations.inLanguageOrder(),
+                    MetadataRules.formatTime(it.createdAt), MetadataRules.formatTime(it.updatedAt),
+                )
+            },
         )
     }
 
@@ -209,6 +220,37 @@ class TransferService(
             nutrientService.update(id, NutrientInput(nutrientService.get(id).name, nutrient.measureUnit, nutrient.displayPrecision, nutrientId(parent)), touch = false)
         }
 
+        // Tags (version 6), matched by any of their names. One matched by a name in another language keeps
+        // its own names when overwritten.
+        var tagCounts = ImportCounts()
+        val tagService = TagService(db, userId)
+        val tagIds = HashMap<String, Long>()
+        fun indexTag(id: Long, names: List<String>) = names.forEach { tagIds[normalizeName(it)] = id }
+        loadTags(db, userId).forEach { tag -> indexTag(tag.id, listOf(tag.name) + tag.translations.values.map { it.name }) }
+        for (tag in file.tags) {
+            val names = listOf(tag.name) + tag.translations.map { it.name }
+            val existing = names.firstNotNullOfOrNull { tagIds[normalizeName(it)] }
+            val translations = freeTranslations(tag.translations, existing, tag.name, withSuffix = false) { loadTags(db, userId) }
+            tagCounts = when {
+                existing == null -> {
+                    val created = tagService.create(TagInput(tag.name, translations), tag.archived, MetadataRules.parseTime(tag.createdAt), MetadataRules.parseTime(tag.updatedAt))
+                    indexTag(created.id, names)
+                    tagCounts.copy(created = tagCounts.created + 1)
+                }
+                overwrite -> {
+                    if (tagIds[normalizeName(tag.name)] == existing) tagService.update(existing, TagInput(tag.name, translations))
+                    tagService.setArchived(existing, tag.archived)
+                    indexTag(existing, names)
+                    tagCounts.copy(updated = tagCounts.updated + 1)
+                }
+                else -> {
+                    indexTag(existing, names)
+                    tagCounts.copy(skipped = tagCounts.skipped + 1)
+                }
+            }
+        }
+        fun tagId(name: String) = tagIds[normalizeName(name)] ?: invalid("Unknown tag '$name'")
+
         // Foods
         var foodCounts = ImportCounts()
         val touchedFoods = HashSet<String>()
@@ -230,6 +272,7 @@ class TransferService(
                 composite = if (food.ingredients.isEmpty() && file.version >= 2) CompositeInput(emptyList()) else null,
                 // Older files don't know the flag, so an overwritten food keeps its own.
                 ingredientOnly = food.ingredientOnly.takeIf { file.version >= 5 },
+                tagIds = if (file.version >= 6) food.tags.map(::tagId).distinct() else null,
             )
             if (existing == null || overwrite) touchedFoods += key
             foodCounts = when {
@@ -304,7 +347,7 @@ class TransferService(
             else targetCounts.copy(created = targetCounts.created + 1)
         }
 
-        return ImportResult(unitCounts, nutrientCounts, foodCounts, entryCounts, targetCounts)
+        return ImportResult(unitCounts, nutrientCounts, foodCounts, entryCounts, targetCounts, tagCounts)
     }
 
     /**

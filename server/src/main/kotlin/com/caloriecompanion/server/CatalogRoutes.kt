@@ -6,11 +6,14 @@ import com.caloriecompanion.shared.api.FoodMetadataInput
 import com.caloriecompanion.shared.api.MetadataInput
 import com.caloriecompanion.shared.api.NutrientInput
 import com.caloriecompanion.shared.api.NutrientOrderInput
+import com.caloriecompanion.shared.api.TagInput
+import com.caloriecompanion.shared.api.TagMetadataInput
 import com.caloriecompanion.shared.api.UnitOrderInput
 import com.caloriecompanion.shared.api.UnitInput
 import com.caloriecompanion.shared.domain.notFound
 import com.caloriecompanion.shared.service.FoodService
 import com.caloriecompanion.shared.service.NutrientService
+import com.caloriecompanion.shared.service.TagService
 import com.caloriecompanion.shared.service.UnitService
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
@@ -175,6 +178,46 @@ fun Route.catalogRoutes(database: Database, auth: Auth) {
         delete("/{id}") {
             val id = call.idParam()
             call.withUserLanguage(database, auth) { db, user, language -> FoodService(db, user, language).delete(id) }
+            call.respond(HttpStatusCode.NoContent)
+        }
+    }
+
+    // Tags (F-16): per user, like foods.
+    route("/tags") {
+        get {
+            val all = call.flag("includeArchived")
+            call.respond(call.withUserLanguage(database, auth) { db, user, language -> TagService(db, user, language).list(all) })
+        }
+        post {
+            val input = call.receive<TagInput>()
+            call.respond(HttpStatusCode.Created, call.withUserLanguage(database, auth) { db, user, language -> TagService(db, user, language).create(input) })
+        }
+        get("/{id}") {
+            val id = call.idParam()
+            call.respond(call.withUserLanguage(database, auth) { db, user, language -> TagService(db, user, language).detail(id) })
+        }
+        put("/{id}") {
+            val id = call.idParam()
+            val input = call.receive<TagInput>()
+            call.respond(call.withUserLanguage(database, auth) { db, user, language -> TagService(db, user, language).update(id, input) })
+        }
+        // Admins only, for their own tags.
+        put("/{id}/metadata") {
+            val id = call.idParam()
+            val input = call.receive<TagMetadataInput>()
+            call.respond(call.withUserLanguage(database, auth) { db, user, language -> TagService(db, user, language).setMetadata(id, input) })
+        }
+        post("/{id}/archive") {
+            val id = call.idParam()
+            call.respond(call.withUserLanguage(database, auth) { db, user, language -> TagService(db, user, language).setArchived(id, true) })
+        }
+        post("/{id}/unarchive") {
+            val id = call.idParam()
+            call.respond(call.withUserLanguage(database, auth) { db, user, language -> TagService(db, user, language).setArchived(id, false) })
+        }
+        delete("/{id}") {
+            val id = call.idParam()
+            call.withUserLanguage(database, auth) { db, user, language -> TagService(db, user, language).delete(id) }
             call.respond(HttpStatusCode.NoContent)
         }
     }

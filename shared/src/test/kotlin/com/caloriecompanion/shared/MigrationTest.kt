@@ -8,6 +8,7 @@ import com.caloriecompanion.shared.api.TargetStatus
 import com.caloriecompanion.shared.service.EntryService
 import com.caloriecompanion.shared.service.FoodService
 import com.caloriecompanion.shared.service.NutrientService
+import com.caloriecompanion.shared.service.TagService
 import com.caloriecompanion.shared.service.UnitService
 import java.io.File
 import java.util.Properties
@@ -63,6 +64,8 @@ class MigrationTest {
         assertTrue(FoodService(db, 1).list().none { it.ingredientOnly })
         // v9: no unit order of their own yet, so the units are alphabetical.
         assertTrue(units.all { it.sortOrder == null })
+        // v10: tags, none yet.
+        assertTrue(TagService(db, 1).list(includeArchived = true).isEmpty())
     }
 
     @Test

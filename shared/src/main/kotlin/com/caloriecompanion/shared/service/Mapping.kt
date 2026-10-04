@@ -19,6 +19,7 @@ import com.caloriecompanion.shared.domain.CompositeDef
 import com.caloriecompanion.shared.domain.Composites
 import com.caloriecompanion.shared.domain.FoodDef
 import com.caloriecompanion.shared.domain.NutrientDef
+import com.caloriecompanion.shared.domain.TagDef
 import com.caloriecompanion.shared.domain.UnitDef
 import com.caloriecompanion.shared.domain.inDisplayOrder
 import com.caloriecompanion.shared.domain.inLanguageOrder
@@ -133,6 +134,7 @@ internal fun FoodDef.toDto(language: String?) = FoodDto(
     createdAt = createdAt,
     createdBy = ownerName,
     ingredientOnly = ingredientOnly,
+    tagIds = tagIds,
 )
 
 /** Every unit on the server, as seen by [userId]: the ones they haven't chosen to show are hidden. */
@@ -177,6 +179,7 @@ fun loadCatalog(db: CalorieCompanionDatabase, userId: Long): Catalog {
     val links = db.foodQueries.selectFoodUnits(userId).executeAsList().groupBy { it.food_id }
     val values = db.foodQueries.selectFoodNutrients(userId).executeAsList().groupBy { it.food_id }
     val ownerName = db.appUserQueries.selectById(userId).executeAsOneOrNull()?.username.orEmpty()
+    val tags = db.tagQueries.selectFoodTags(userId).executeAsList().groupBy({ it.food_id }, { it.tag_id })
     val foods = db.foodQueries.selectFoods(userId).executeAsList().map { food: Food ->
         val manualNutrients = values[food.id].orEmpty().associate { it.nutrient_id to it.amount }
         FoodDef(
@@ -196,7 +199,17 @@ fun loadCatalog(db: CalorieCompanionDatabase, userId: Long): Catalog {
             createdAt = food.created_at,
             ownerName = ownerName,
             ingredientOnly = food.ingredient_only,
+            tagIds = tags[food.id].orEmpty().sorted(),
         )
     }
     return Catalog(units, nutrients, Composites.derive(units, nutrients, foods))
+}
+
+/** The user's tags (F-16), in no particular order. */
+internal fun loadTags(db: CalorieCompanionDatabase, userId: Long): List<TagDef> {
+    val translations = db.tagQueries.selectTagTranslations(userId).executeAsList()
+        .groupBy({ it.tag_id }, { NameTranslation(it.locale, it.name) })
+    return db.tagQueries.selectTags(userId).executeAsList().map {
+        TagDef(it.id, it.name, translations[it.id].orEmpty().associateBy { t -> t.locale }, it.archived, it.created_at, it.updated_at)
+    }
 }
