@@ -54,10 +54,6 @@ Changes to stored data also need a schema migration, a new export format version
   amount and unit are set on the food's page, which opens right after. The new food still starts with the
   remembered reference amount (F-12): the form sends it without showing it, or the food's page prefills it. Same
   change in the Android app.
-- **Full plural forms instead of a suffix**, so irregular plurals work (goose → geese). Each name and each
-  translation gets its own plural form. Existing units migrate to name + suffix. The rule lives in `unitLabel`,
-  in `web/src/lib/names.ts` and in `Names.kt` in the shared module, and new units get their default ending from
-  `defaultPluralSuffix` (U-8).
 - **Amounts in "Used in".** On a food's page, each composite food in the "Used in" list also shows how much of
   this food it contains, in the ingredient's unit, such as "Breakfast · 2 slices". If a composite has the food
   more than once, show each amount.

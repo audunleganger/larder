@@ -25,7 +25,7 @@ can log a food before you know its nutrition. Fill in the numbers later, and eve
 - **History.** Daily charts with a 7-day average and targets, plus summaries per nutrient.
 - **Photos.** One per food, shown in the picker, the lists and the day view.
 - **English and Norwegian (bokmål).** Foods, units and nutrients can have a name in each language, with plural
-  endings ("2 slices", "2 skiver").
+  forms ("2 slices", "2 geese", "2 skiver").
 - **Multi-user.** First-run setup, accounts managed by an admin, separate foods and diary per user, JSON
   export/import and built-in backups.
 - Light and dark mode, and a layout that works on phones.
@@ -114,7 +114,7 @@ or a reverse proxy with TLS (Caddy, nginx, Traefik).
 
 ## Android app
 
-> The Android app is behind the web GUI: it doesn't show composite foods, photos, translations, plural endings or
+> The Android app is behind the web GUI: it doesn't show composite foods, photos, translations, plurals or
 > split totals yet. It still works with data that uses them.
 
 On first launch the app asks how to run:

@@ -1,6 +1,8 @@
 # Calorie Companion — Requirement Specification
 
-Version 0.9 · 2026-10-04 · Supersedes `requirements.txt`
+Version 0.10 · 2026-10-04 · Supersedes `requirements.txt`
+
+*0.10: full plural forms of unit names instead of a plural ending (U-8).*
 
 *0.9: tags for foods (F-16).*
 
@@ -90,7 +92,7 @@ The Norwegian terms are a first guess and may be changed; they live only in the 
   - all **food stuffs** that have this unit linked (or can use it via U-4 — shown separately as "implicit")
   - all **dates** on which at least one entry used this unit.
 - **U-7 (MUST)** Units are hidden instead of archived (U-9). Delete is only allowed when nothing, for any user, references the unit.
-- **U-8 (MUST)** A unit name has an editable **plural ending**, added when the quantity isn't exactly 1 ("1 slice", "2 slices", "0.5 slices"). Default: "s"; Norwegian "er" ("r" after a final e); none for standard units (g, ml). Each translation (L-5) has its own. *Kept as a suffix for now; the rule lives in one helper per client so it can become full plural forms later.*
+- **U-8 (MUST)** A unit name has an editable **plural form**, used when the quantity isn't exactly 1 ("1 slice", "2 slices", "0.5 slices"), so irregular plurals work ("goose", "geese"). Empty means the same as the name. A new name's plural starts as a default until it's edited: English adds "s" ("es" after s, x, z, ch and sh; "ies" for a consonant before a final y), Norwegian "er" ("r" after a final e); none for standard units (g, ml). Each translation (L-5) has its own. Plurals aren't names: they aren't searched and needn't be unique. *Until 0.10 this was a plural ending; existing endings became name + ending.*
 - **U-9 (MUST)** Units and nutrients are **shared by all users of a server**. Names are unique across the server in every language; creating a taken name offers to show the existing one.
   - Each user chooses which ones they **show**; the rest are **hidden** for them and listed in a "Hidden" section on the units and nutrients pages. A new unit or nutrient is shown for its maker and hidden for everyone else.
   - Hiding only declutters lists and pickers. A hidden unit that a food uses stays usable for that food (offered when logging it, shown in its entries); a hidden nutrient keeps its values in foods but leaves the user's totals and history.
@@ -229,9 +231,9 @@ Tables of per-user data carry `user_id`; on units and nutrients it is the user w
 | Entity | Fields |
 |---|---|
 | user | id, username, password_hash, is_admin, is_disabled, locale, created_at, food_ref_amount, food_ref_unit_id (F-12) |
-| quantity_unit | id, user_id (maker), name, name_norm, kind (mass/volume/custom), base_factor (nullable; for mass/volume), plural_suffix, built_in (U-3), created_at, updated_at, updated_by (U-9) |
+| quantity_unit | id, user_id (maker), name, name_norm, kind (mass/volume/custom), base_factor (nullable; for mass/volume), plural (U-8), built_in (U-3), created_at, updated_at, updated_by (U-9) |
 | shown_unit | user_id, unit_id, sort_order (nullable: alphabetical) — the units a user shows, in their order (U-9, U-10) |
-| unit_translation / nutrient_translation / food_translation / tag_translation | item id, locale, name, name_norm (+ plural_suffix for units) (L-5) |
+| unit_translation / nutrient_translation / food_translation / tag_translation | item id, locale, name, name_norm (+ plural for units) (L-5) |
 | nutrient | id, user_id (maker), name, name_norm, measure_unit, display_precision, sort_order (default), parent_id (nullable), built_in (N-2), created_at, updated_at, updated_by (U-9) |
 | shown_nutrient | user_id, nutrient_id, sort_order — the nutrients a user shows, in their order (U-9, N-3) |
 | food | id, user_id, name, name_norm, ref_amount (nullable), ref_unit_id (nullable), notes, archived, yield_amount, yield_unit_id, log_as_whole (F-10), created_at (F-14), ingredient_only (F-15) |
@@ -309,7 +311,7 @@ None at the moment.
 | Photos | One per food; small in picker and lists, large on the food page |
 | Split totals | Per entry (same food = same colour), chronological; colours only while hovered, target colours otherwise; history bars the same |
 | Translations | For every catalog item in every UI language; selected language, else the main name; English preferred for languages without translations |
-| Plural | Editable suffix per name, kept separate so it can change later |
+| Plural | Full plural form per name and translation, defaulted from the name until edited |
 | Nutrient groups | One level; headings are nutrients |
 | Clients | Web first; Android catches up later |
 | Repository | Stays one repository (shared module used by server and Android local mode) |
