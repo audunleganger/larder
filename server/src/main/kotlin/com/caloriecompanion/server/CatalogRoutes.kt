@@ -23,11 +23,11 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 
-/** Units, nutrients and food stuffs (F-*, U-*, N-*). */
+/** Units and nutrients (shared by all users, each hidden or shown per user) and food stuffs (F-*, U-*, N-*). */
 fun Route.catalogRoutes(database: Database, auth: Auth) {
     route("/units") {
         get {
-            val all = call.flag("includeArchived")
+            val all = call.flag("includeHidden")
             call.respond(call.withUserLanguage(database, auth) { db, user, language -> UnitService(db, user, language).list(all) })
         }
         post {
@@ -43,13 +43,13 @@ fun Route.catalogRoutes(database: Database, auth: Auth) {
             val input = call.receive<UnitInput>()
             call.respond(call.withUserLanguage(database, auth) { db, user, language -> UnitService(db, user, language).update(id, input) })
         }
-        post("/{id}/archive") {
+        post("/{id}/hide") {
             val id = call.idParam()
-            call.respond(call.withUserLanguage(database, auth) { db, user, language -> UnitService(db, user, language).setArchived(id, true) })
+            call.respond(call.withUserLanguage(database, auth) { db, user, language -> UnitService(db, user, language).setHidden(id, true) })
         }
-        post("/{id}/unarchive") {
+        post("/{id}/show") {
             val id = call.idParam()
-            call.respond(call.withUserLanguage(database, auth) { db, user, language -> UnitService(db, user, language).setArchived(id, false) })
+            call.respond(call.withUserLanguage(database, auth) { db, user, language -> UnitService(db, user, language).setHidden(id, false) })
         }
         delete("/{id}") {
             val id = call.idParam()
@@ -60,7 +60,7 @@ fun Route.catalogRoutes(database: Database, auth: Auth) {
 
     route("/nutrients") {
         get {
-            val all = call.flag("includeArchived")
+            val all = call.flag("includeHidden")
             call.respond(call.withUserLanguage(database, auth) { db, user, language -> NutrientService(db, user, language).list(all) })
         }
         post {
@@ -80,13 +80,13 @@ fun Route.catalogRoutes(database: Database, auth: Auth) {
             val input = call.receive<NutrientInput>()
             call.respond(call.withUserLanguage(database, auth) { db, user, language -> NutrientService(db, user, language).update(id, input) })
         }
-        post("/{id}/archive") {
+        post("/{id}/hide") {
             val id = call.idParam()
-            call.respond(call.withUserLanguage(database, auth) { db, user, language -> NutrientService(db, user, language).setArchived(id, true) })
+            call.respond(call.withUserLanguage(database, auth) { db, user, language -> NutrientService(db, user, language).setHidden(id, true) })
         }
-        post("/{id}/unarchive") {
+        post("/{id}/show") {
             val id = call.idParam()
-            call.respond(call.withUserLanguage(database, auth) { db, user, language -> NutrientService(db, user, language).setArchived(id, false) })
+            call.respond(call.withUserLanguage(database, auth) { db, user, language -> NutrientService(db, user, language).setHidden(id, false) })
         }
         delete("/{id}") {
             val id = call.idParam()

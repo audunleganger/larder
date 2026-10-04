@@ -25,6 +25,7 @@ import com.caloriecompanion.shared.api.SetupInput
 import com.caloriecompanion.shared.api.SetupStatus
 import com.caloriecompanion.shared.api.TargetInput
 import com.caloriecompanion.shared.api.TargetStatus
+import com.caloriecompanion.shared.api.NutrientInput
 import com.caloriecompanion.shared.api.UnitDto
 import com.caloriecompanion.shared.api.UnitInput
 import com.caloriecompanion.shared.api.UnitKind
@@ -178,7 +179,7 @@ class ApiTest {
     }
 
     @Test
-    fun `admin manages users, users have separate catalogs`() = testApplication {
+    fun `admin manages users, users have their own foods but share units and nutrients`() = testApplication {
         val client = jsonClient()
         val admin = client.setup()
         val created = client.post("/api/v1/admin/users") { bearerAuth(admin); json(AdminUserCreate("kari", "passord123", locale = "nb")) }
@@ -186,12 +187,25 @@ class ApiTest {
         val kari = created.body<UserDto>()
 
         val kariToken = client.post("/api/v1/auth/login") { json(LoginInput("kari", "passord123")) }.body<LoginResult>().token
-        // Seeded in Norwegian
-        assertTrue(client.get("/api/v1/nutrients") { bearerAuth(kariToken) }.body<List<NutrientDto>>().any { it.name == "Energi" })
+        // The shared built-in nutrients, named in her language
+        val nutrients = client.get("/api/v1/nutrients") { bearerAuth(kariToken) }.body<List<NutrientDto>>()
+        assertEquals(client.get("/api/v1/nutrients") { bearerAuth(admin) }.body<List<NutrientDto>>().map { it.id }, nutrients.map { it.id })
+        val energy = nutrients.first { it.name == "Energy" }
+        assertEquals("Energi", energy.displayName)
+        // She can hide them for herself, but only admins can change them
+        assertEquals(HttpStatusCode.Forbidden, client.put("/api/v1/nutrients/${energy.id}") { bearerAuth(kariToken); json(NutrientInput("Kalorier", "kcal")) }.status)
+        assertTrue(client.post("/api/v1/nutrients/${energy.id}/hide") { bearerAuth(kariToken) }.body<NutrientDto>().hidden)
+        assertTrue(client.get("/api/v1/nutrients") { bearerAuth(kariToken) }.body<List<NutrientDto>>().none { it.id == energy.id })
+        assertTrue(client.get("/api/v1/nutrients?includeHidden=true") { bearerAuth(kariToken) }.body<List<NutrientDto>>().any { it.id == energy.id })
+        assertTrue(client.get("/api/v1/nutrients") { bearerAuth(admin) }.body<List<NutrientDto>>().any { it.id == energy.id })
+        // A name that's taken comes with the id of the unit that has it
+        val taken = client.post("/api/v1/units") { bearerAuth(kariToken); json(UnitInput("Porsjon", UnitKind.CUSTOM)) }.error()
+        assertEquals(ErrorCodes.NAME_TAKEN, taken.error)
+        assertEquals(client.get("/api/v1/units") { bearerAuth(kariToken) }.body<List<UnitDto>>().first { it.name == "serving" }.id, taken.details["id"])
         // Non-admins can't manage users
         assertEquals(HttpStatusCode.Forbidden, client.get("/api/v1/admin/users") { bearerAuth(kariToken) }.status)
 
-        // Separate catalogs: kari's food isn't visible to admin
+        // Foods are her own: kari's food isn't visible to admin
         client.post("/api/v1/foods") { bearerAuth(kariToken); json(FoodInput("Brunost")) }
         assertTrue(client.get("/api/v1/foods") { bearerAuth(admin) }.body<List<FoodSummary>>().isEmpty())
 
