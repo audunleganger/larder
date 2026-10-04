@@ -386,7 +386,8 @@ await step('ingredient-only food', async () => {
   await page.getByRole('link', { name: 'Day', exact: true }).click()
   await page.getByPlaceholder('Search foods…').fill('juice')
   await page.getByRole('option', { name: /Juice breakfast/ }).waitFor()
-  if ((await page.getByRole('option', { name: 'Orange juice' }).count()) !== 0) throw new Error('ingredient-only food offered when logging')
+  // The list can briefly show search results cached from before the change; wait for the fresh ones.
+  await page.getByRole('option', { name: 'Orange juice' }).waitFor({ state: 'detached' })
   await page.getByPlaceholder('Search foods…').fill('')
 })
 
