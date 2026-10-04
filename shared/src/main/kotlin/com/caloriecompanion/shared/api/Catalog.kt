@@ -62,6 +62,14 @@ data class UnitDto(
     /** The name and plural ending in the reader's language. */
     val displayName: String,
     val displayPluralSuffix: String,
+    /** The reader's position for it (U-10); null while they haven't set an order, and for hidden units. */
+    val sortOrder: Int?,
+)
+
+/** The reader's order of the units they show (U-10), by id; shown units not listed follow in their current order. */
+@Serializable
+data class UnitOrderInput(
+    val ids: List<Long>,
 )
 
 @Serializable
