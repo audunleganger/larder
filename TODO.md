@@ -88,9 +88,8 @@ own size. Wait with the implementation until a design is settled. Questions to a
 
 ## Project
 
-- **CI and a published Docker image.** A GitHub Actions workflow runs `./gradlew build` and the web tests and
-  lint on every push, and publishes an image to ghcr.io for each version tag. Deploying then means pulling a tag
-  instead of building from a checkout.
+- **A published Docker image.** The CI workflow (`.github/workflows/ci.yml`) also publishes an image to ghcr.io
+  for each version tag. Deploying then means pulling a tag instead of building from a checkout.
 
 ### Rename to Larder
 

@@ -167,6 +167,11 @@ npm run e2e                        # browser walkthrough against a fresh server 
 ./gradlew :android:assembleDebug   # android/build/outputs/apk/debug/android-debug.apk
 ```
 
+### Continuous integration
+
+`.github/workflows/ci.yml` runs on every pull request and every push to `main`: `./gradlew build` (with the
+Android app), the web lint, tests and build, and the browser walkthrough. The results show on the pull request.
+
 ### API types
 
 The Kotlin classes in `shared/src/main/kotlin/com/caloriecompanion/shared/api` define the API.
