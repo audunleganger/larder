@@ -150,7 +150,7 @@ private fun EntryRow(entry: EntryView, nutrients: Map<Long, NutrientDto>, onClic
 @Composable
 fun DayScreen(date: LocalDate, nav: Navigator) {
     val day = rememberLoad(date) { day(date.toString()) }
-    val nutrients = rememberLoad { nutrients(includeArchived = true) }
+    val nutrients = rememberLoad { nutrients(includeHidden = true) }
     val byId = (nutrients.first as? LoadState.Loaded)?.data?.associateBy { it.id }.orEmpty()
     val today = LocalDate.now()
 

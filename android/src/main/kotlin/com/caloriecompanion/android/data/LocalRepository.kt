@@ -46,19 +46,19 @@ class LocalRepository private constructor(
         }
     }
 
-    override suspend fun units(includeArchived: Boolean) = run { UnitService(db, it).list(includeArchived) }
+    override suspend fun units(includeHidden: Boolean) = run { UnitService(db, it).list(includeHidden) }
     override suspend fun unitDetail(id: Long) = run { UnitService(db, it).detail(id) }
     override suspend fun createUnit(input: UnitInput) = run { UnitService(db, it).create(input) }
     override suspend fun updateUnit(id: Long, input: UnitInput) = run { UnitService(db, it).update(id, input) }
-    override suspend fun archiveUnit(id: Long, archived: Boolean) = run { UnitService(db, it).setArchived(id, archived) }
+    override suspend fun hideUnit(id: Long, hidden: Boolean) = run { UnitService(db, it).setHidden(id, hidden) }
     override suspend fun deleteUnit(id: Long) = run { UnitService(db, it).delete(id) }
 
-    override suspend fun nutrients(includeArchived: Boolean) = run { NutrientService(db, it).list(includeArchived) }
+    override suspend fun nutrients(includeHidden: Boolean) = run { NutrientService(db, it).list(includeHidden) }
     override suspend fun nutrientDetail(id: Long) = run { NutrientService(db, it).detail(id) }
     override suspend fun createNutrient(input: NutrientInput) = run { NutrientService(db, it).create(input) }
     override suspend fun updateNutrient(id: Long, input: NutrientInput) = run { NutrientService(db, it).update(id, input) }
     override suspend fun reorderNutrients(ids: List<Long>) = run { NutrientService(db, it).reorder(ids) }
-    override suspend fun archiveNutrient(id: Long, archived: Boolean) = run { NutrientService(db, it).setArchived(id, archived) }
+    override suspend fun hideNutrient(id: Long, hidden: Boolean) = run { NutrientService(db, it).setHidden(id, hidden) }
     override suspend fun deleteNutrient(id: Long) = run { NutrientService(db, it).delete(id) }
 
     override suspend fun foods(query: String?, includeArchived: Boolean) = run { FoodService(db, it).list(query, includeArchived) }

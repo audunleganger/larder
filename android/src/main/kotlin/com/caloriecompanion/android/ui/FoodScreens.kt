@@ -52,7 +52,7 @@ fun FoodsScreen(nav: Navigator) {
     var showArchived by remember { mutableStateOf(false) }
     var creating by remember { mutableStateOf(false) }
     val foods = rememberLoad(query, showArchived) { foods(query, showArchived) }
-    val units = (rememberLoad { units(includeArchived = true) }.first as? LoadState.Loaded)?.data.orEmpty()
+    val units = (rememberLoad { units(includeHidden = true) }.first as? LoadState.Loaded)?.data.orEmpty()
 
     Screen(
         title = stringResource(R.string.foods_title),
@@ -131,7 +131,9 @@ private fun FoodForm(detail: FoodDetail, units: List<UnitDto>, nutrients: List<N
     var saved by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
     val mutator = rememberMutator { error = it }
-    val unitChoices = units.map { Choice(it.id, it.name + if (it.archived) " (${stringResource(R.string.archived)})" else "") }
+    // Hidden units only where the food already uses them.
+    val used = food.units.flatMap { listOfNotNull(it.unitId, it.equalsUnitId) }.toSet() + listOfNotNull(food.refUnitId)
+    val unitChoices = units.filter { !it.hidden || it.id in used }.map { Choice(it.id, it.name) }
     val notSet = stringResource(R.string.foods_not_set)
     val errRef = stringResource(R.string.foods_error_ref)
     val errNumber = stringResource(R.string.foods_error_number)
@@ -169,7 +171,7 @@ private fun FoodForm(detail: FoodDetail, units: List<UnitDto>, nutrients: List<N
         }
         val refUnitName = units.firstOrNull { it.id == refUnitId }?.name
         SectionCard(if (refUnitName != null && refAmount.isNotBlank()) stringResource(R.string.foods_nutrients_per, refAmount, refUnitName) else stringResource(R.string.foods_nutrients)) {
-            nutrients.filter { !it.archived || values.containsKey(it.id) }.forEach { n ->
+            nutrients.filter { !it.hidden || values.containsKey(it.id) }.forEach { n ->
                 DecimalField(
                     values[n.id] ?: "",
                     { values[n.id] = it; saved = false },
@@ -246,8 +248,8 @@ private fun FoodForm(detail: FoodDetail, units: List<UnitDto>, nutrients: List<N
 @Composable
 fun FoodEditorScreen(id: Long, nav: Navigator) {
     val detail = rememberLoad(id) { foodDetail(id) }
-    val units = rememberLoad { units(includeArchived = true) }
-    val nutrients = rememberLoad { nutrients(includeArchived = true) }
+    val units = rememberLoad { units(includeHidden = true) }
+    val nutrients = rememberLoad { nutrients(includeHidden = true) }
     val title = (detail.first as? LoadState.Loaded)?.data?.food?.name ?: stringResource(R.string.foods_title)
     Screen(title = title, nav = nav) { modifier ->
         Column(modifier) {

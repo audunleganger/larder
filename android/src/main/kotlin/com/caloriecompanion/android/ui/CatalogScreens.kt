@@ -99,13 +99,13 @@ private fun UnitForm(initial: UnitDto?, onSubmit: (UnitInput) -> Unit, submitLab
 
 @Composable
 fun UnitsScreen(nav: Navigator) {
-    var showArchived by remember { mutableStateOf(false) }
+    var showHidden by remember { mutableStateOf(false) }
     var creating by remember { mutableStateOf(false) }
-    val units = rememberLoad(showArchived) { units(showArchived) }
+    val units = rememberLoad(showHidden) { units(showHidden) }
     Screen(
         stringResource(R.string.units_title),
         nav = nav,
-        actions = { FilterChip(selected = showArchived, onClick = { showArchived = !showArchived }, label = { Text(stringResource(R.string.show_archived)) }) },
+        actions = { FilterChip(selected = showHidden, onClick = { showHidden = !showHidden }, label = { Text(stringResource(R.string.show_hidden)) }) },
         floatingActionButton = { ExtendedFloatingActionButton(onClick = { creating = true }) { Text("+ " + stringResource(R.string.units_new)) } },
     ) { modifier ->
         Column(modifier) {
@@ -114,7 +114,7 @@ fun UnitsScreen(nav: Navigator) {
                     itemsIndexed(list, key = { _, u -> u.id }) { _, unit ->
                         val size = unit.baseFactor?.takeIf { unit.kind != UnitKind.CUSTOM }?.let { "${Format.number(it, 6)} ${baseUnit(unit.kind)}" } ?: stringResource(R.string.units_per_food)
                         ListItem(
-                            headlineContent = { Text(unit.name + if (unit.archived) " (${stringResource(R.string.archived)})" else "") },
+                            headlineContent = { Text(unit.name + if (unit.hidden) " (${stringResource(R.string.hidden)})" else "") },
                             supportingContent = { Text("${kindLabel(unit.kind)} · $size") },
                             modifier = Modifier.clickable { nav.push(Dest.UnitDetail(unit.id)) },
                         )
@@ -148,8 +148,12 @@ fun UnitDetailScreen(id: Long, nav: Navigator) {
             Loadable(detail) { data ->
                 Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     SectionCard(stringResource(R.string.action_edit)) {
-                        androidx.compose.runtime.key(data.unit) {
-                            UnitForm(data.unit, { input -> mutator.run({ updateUnit(id, input) }) }, stringResource(R.string.action_save))
+                        if (data.unit.canEdit) {
+                            androidx.compose.runtime.key(data.unit) {
+                                UnitForm(data.unit, { input -> mutator.run({ updateUnit(id, input) }) }, stringResource(R.string.action_save))
+                            }
+                        } else {
+                            Muted(stringResource(R.string.shared_read_only, data.unit.createdBy))
                         }
                         ErrorText(error)
                     }
@@ -167,10 +171,10 @@ fun UnitDetailScreen(id: Long, nav: Navigator) {
                     }
                     SectionCard(stringResource(R.string.manage)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedButton(onClick = { mutator.run({ archiveUnit(id, !data.unit.archived) }) }) { Text(stringResource(if (data.unit.archived) R.string.action_unarchive else R.string.action_archive)) }
-                            OutlinedButton(onClick = { confirmDelete = true }) { Text(stringResource(R.string.action_delete)) }
+                            OutlinedButton(onClick = { mutator.run({ hideUnit(id, !data.unit.hidden) }) }) { Text(stringResource(if (data.unit.hidden) R.string.action_show else R.string.action_hide)) }
+                            if (data.unit.canEdit) OutlinedButton(onClick = { confirmDelete = true }) { Text(stringResource(R.string.action_delete)) }
                         }
-                        Muted(stringResource(R.string.units_archive_hint))
+                        Muted(stringResource(R.string.units_hide_hint))
                     }
                 }
                 if (confirmDelete) {
@@ -190,7 +194,7 @@ private fun NutrientForm(initial: NutrientDto?, all: List<NutrientDto>, onSubmit
     var measure by remember { mutableStateOf(initial?.measureUnit ?: "g") }
     var precision by remember { mutableStateOf(initial?.displayPrecision ?: 1) }
     var parentId by remember { mutableStateOf(initial?.parentId) }
-    val parents = all.filter { it.parentId == null && it.id != initial?.id && !it.archived }
+    val parents = all.filter { it.parentId == null && it.id != initial?.id && (!it.hidden || it.id == initial?.parentId) }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         OutlinedTextField(name, { name = it }, label = { Text(stringResource(R.string.name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -204,26 +208,26 @@ private fun NutrientForm(initial: NutrientDto?, all: List<NutrientDto>, onSubmit
 
 @Composable
 fun NutrientsScreen(nav: Navigator) {
-    var showArchived by remember { mutableStateOf(false) }
+    var showHidden by remember { mutableStateOf(false) }
     var creating by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<Throwable?>(null) }
     val mutator = rememberMutator { error = it }
-    val nutrients = rememberLoad { nutrients(includeArchived = true) }
+    val nutrients = rememberLoad { nutrients(includeHidden = true) }
     Screen(
         stringResource(R.string.nutrients_title),
         nav = nav,
-        actions = { FilterChip(selected = showArchived, onClick = { showArchived = !showArchived }, label = { Text(stringResource(R.string.show_archived)) }) },
+        actions = { FilterChip(selected = showHidden, onClick = { showHidden = !showHidden }, label = { Text(stringResource(R.string.show_hidden)) }) },
         floatingActionButton = { ExtendedFloatingActionButton(onClick = { creating = true }) { Text("+ " + stringResource(R.string.nutrients_new)) } },
     ) { modifier ->
         Column(modifier) {
             Muted(stringResource(R.string.nutrients_order_hint), Modifier.padding(horizontal = 16.dp))
             ErrorText(error)
             Loadable(nutrients) { all ->
-                val list = if (showArchived) all else all.filter { !it.archived }
+                val list = if (showHidden) all else all.filter { !it.hidden }
                 LazyColumn(contentPadding = PaddingValues(bottom = 96.dp)) {
                     itemsIndexed(list, key = { _, n -> n.id }) { index, n ->
                         ListItem(
-                            headlineContent = { Text(n.name + if (n.archived) " (${stringResource(R.string.archived)})" else "", modifier = Modifier.padding(start = if (n.parentId != null) 16.dp else 0.dp)) },
+                            headlineContent = { Text(n.name + if (n.hidden) " (${stringResource(R.string.hidden)})" else "", modifier = Modifier.padding(start = if (n.parentId != null) 16.dp else 0.dp)) },
                             supportingContent = { Text(n.measureUnit) },
                             trailingContent = {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -262,7 +266,7 @@ fun NutrientsScreen(nav: Navigator) {
 @Composable
 fun NutrientDetailScreen(id: Long, nav: Navigator) {
     val detail = rememberLoad(id) { nutrientDetail(id) }
-    val all = (rememberLoad { nutrients(includeArchived = true) }.first as? LoadState.Loaded)?.data.orEmpty()
+    val all = (rememberLoad { nutrients(includeHidden = true) }.first as? LoadState.Loaded)?.data.orEmpty()
     var error by remember { mutableStateOf<Throwable?>(null) }
     var confirmDelete by remember { mutableStateOf(false) }
     val mutator = rememberMutator { error = it }
@@ -273,7 +277,11 @@ fun NutrientDetailScreen(id: Long, nav: Navigator) {
                 val n = data.nutrient
                 Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     SectionCard(stringResource(R.string.action_edit)) {
-                        androidx.compose.runtime.key(n) { NutrientForm(n, all, { input -> mutator.run({ updateNutrient(id, input) }) }, stringResource(R.string.action_save)) }
+                        if (n.canEdit) {
+                            androidx.compose.runtime.key(n) { NutrientForm(n, all, { input -> mutator.run({ updateNutrient(id, input) }) }, stringResource(R.string.action_save)) }
+                        } else {
+                            Muted(stringResource(R.string.shared_read_only, n.createdBy))
+                        }
                         ErrorText(error)
                     }
                     SectionCard(stringResource(R.string.nutrients_foods)) {
@@ -299,10 +307,10 @@ fun NutrientDetailScreen(id: Long, nav: Navigator) {
                     }
                     SectionCard(stringResource(R.string.manage)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedButton(onClick = { mutator.run({ archiveNutrient(id, !n.archived) }) }) { Text(stringResource(if (n.archived) R.string.action_unarchive else R.string.action_archive)) }
-                            OutlinedButton(onClick = { confirmDelete = true }) { Text(stringResource(R.string.action_delete)) }
+                            OutlinedButton(onClick = { mutator.run({ hideNutrient(id, !n.hidden) }) }) { Text(stringResource(if (n.hidden) R.string.action_show else R.string.action_hide)) }
+                            if (n.canEdit) OutlinedButton(onClick = { confirmDelete = true }) { Text(stringResource(R.string.action_delete)) }
                         }
-                        Muted(stringResource(R.string.nutrients_archive_hint))
+                        Muted(stringResource(R.string.nutrients_hide_hint))
                     }
                 }
                 if (confirmDelete) {

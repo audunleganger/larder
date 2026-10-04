@@ -147,24 +147,24 @@ class RemoteRepository(
 ) : ServerClient(baseUrl, token, engine), Repository {
     private val v1 = "/api/v1"
 
-    override suspend fun units(includeArchived: Boolean): List<UnitDto> =
-        call(HttpMethod.Get, "$v1/units") { parameter("includeArchived", includeArchived) }
+    override suspend fun units(includeHidden: Boolean): List<UnitDto> =
+        call(HttpMethod.Get, "$v1/units") { parameter("includeHidden", includeHidden) }
     override suspend fun unitDetail(id: Long): UnitDetail = call(HttpMethod.Get, "$v1/units/$id")
     override suspend fun createUnit(input: UnitInput): UnitDto = call(HttpMethod.Post, "$v1/units", input)
     override suspend fun updateUnit(id: Long, input: UnitInput): UnitDto = call(HttpMethod.Put, "$v1/units/$id", input)
-    override suspend fun archiveUnit(id: Long, archived: Boolean): UnitDto =
-        call(HttpMethod.Post, "$v1/units/$id/${if (archived) "archive" else "unarchive"}")
+    override suspend fun hideUnit(id: Long, hidden: Boolean): UnitDto =
+        call(HttpMethod.Post, "$v1/units/$id/${if (hidden) "hide" else "show"}")
     override suspend fun deleteUnit(id: Long) = callUnit(HttpMethod.Delete, "$v1/units/$id")
 
-    override suspend fun nutrients(includeArchived: Boolean): List<NutrientDto> =
-        call(HttpMethod.Get, "$v1/nutrients") { parameter("includeArchived", includeArchived) }
+    override suspend fun nutrients(includeHidden: Boolean): List<NutrientDto> =
+        call(HttpMethod.Get, "$v1/nutrients") { parameter("includeHidden", includeHidden) }
     override suspend fun nutrientDetail(id: Long): NutrientDetail = call(HttpMethod.Get, "$v1/nutrients/$id")
     override suspend fun createNutrient(input: NutrientInput): NutrientDto = call(HttpMethod.Post, "$v1/nutrients", input)
     override suspend fun updateNutrient(id: Long, input: NutrientInput): NutrientDto = call(HttpMethod.Put, "$v1/nutrients/$id", input)
     override suspend fun reorderNutrients(ids: List<Long>): List<NutrientDto> =
         call(HttpMethod.Put, "$v1/nutrients/order", NutrientOrderInput(ids))
-    override suspend fun archiveNutrient(id: Long, archived: Boolean): NutrientDto =
-        call(HttpMethod.Post, "$v1/nutrients/$id/${if (archived) "archive" else "unarchive"}")
+    override suspend fun hideNutrient(id: Long, hidden: Boolean): NutrientDto =
+        call(HttpMethod.Post, "$v1/nutrients/$id/${if (hidden) "hide" else "show"}")
     override suspend fun deleteNutrient(id: Long) = callUnit(HttpMethod.Delete, "$v1/nutrients/$id")
 
     override suspend fun foods(query: String?, includeArchived: Boolean): List<FoodSummary> =
