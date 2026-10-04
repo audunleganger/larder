@@ -1,6 +1,8 @@
 # Calorie Companion — Requirement Specification
 
-Version 0.11 · 2026-10-04 · Supersedes `requirements.txt`
+Version 0.12 · 2026-10-04 · Supersedes `requirements.txt`
+
+*0.12: tags are made from a food and saved at once, go with their last food, and have colors (F-16).*
 
 *0.11: filters and nutrient columns in the food list (F-17).*
 
@@ -78,7 +80,7 @@ The Norwegian terms are a first guess and may be changed; they live only in the 
 - **F-11 (FUTURE)** Mass↔volume conversion via optional per-food density.
 - **F-14 (MUST)** A food stuff records **when it was made and by whom** (its owner), shown on its page. Admins can correct the date of their own foods (foods are private). An import keeps the date from the file for new foods; existing foods count as made when this was introduced (schema 7).
 - **F-15 (MUST)** A food stuff can be marked **ingredient only**: it isn't offered in the food picker when logging, but can be an ingredient of composite foods (F-10). A composite that contains it can still be logged, and logging it as separate items still creates entries for this food. Existing entries of the food stay as they are, and editing one keeps the food. Shown as a badge in the food list and on the food's page; export/import keep it (format version 5).
-- **F-16 (MUST)** **Tags** group a user's food stuffs (e.g. "fruit", "breakfast"). A tag has a main name and a name per language (L-5), unique among the user's tags; tags are per user, like food stuffs. A food can have several tags, chosen on its page, where a new tag can also be made. The food list shows each food's tags; a tag's page lists its foods. Tags are archived instead of deleted while a food has them: archived tags aren't offered when tagging, but foods keep them. A tag records when it was made and last changed (its names); admins can correct both for their own tags. Export/import include tags and each food's tags by name (format version 6). Used by the food list filters (F-17).
+- **F-16 (MUST)** **Tags** group a user's food stuffs (e.g. "fruit", "breakfast"). A tag has a main name and a name per language (L-5), unique among the user's tags; tags are per user, like food stuffs. A food can have several tags, chosen on its page; a tag is made there too, and given to the food at once. Adding or removing a tag on a food's page saves at once, without the food's Save button. A tag exists only while a food has it: when its last food loses it (or is deleted), it's deleted, and deleting a tag removes it from its foods. A tag has one of a fixed palette of colors, or none (gray), set on its page. The food list and a food's page show its tags in their colors, by name, each linking to the tag's page; a tag's page lists its foods. Archived tags aren't offered when tagging, but foods keep them. A tag records when it was made and last changed (its names); admins can correct both for their own tags. Export/import include the tags foods have, with their colors, and each food's tags by name (format version 6; colors version 8). Used by the food list filters (F-17).
 - **F-17 (SHOULD)** The **food list** is a table with a column per nutrient, showing each food's values per its reference amount (calculated for composite foods); a missing value shows as a red dash. Toggles above the table choose the nutrient columns, remembered per browser; with none chosen, the table shows how many nutrients each food has. **Filters** narrow the list by tag, composite only, ingredient only, and has or lacks a value for a given nutrient; they combine with each other and the search, and are kept in the page address so they survive opening a food and going back. On phones the table scrolls sideways.
 - **F-13 (MUST)** A food stuff can have **one photo**, uploaded from a file or the camera. Clients shrink it before upload (max ~1280 px plus a square thumbnail); the server checks type (JPEG/PNG/WebP) and size and stores it in the database, so backups and export/import include it. The thumbnail is shown in the food picker, food list, entries and ingredients; the photo large on the food page.
 
@@ -242,7 +244,7 @@ Tables of per-user data carry `user_id`; on units and nutrients it is the user w
 | food | id, user_id, name, name_norm, ref_amount (nullable), ref_unit_id (nullable), notes, archived, yield_amount, yield_unit_id, log_as_whole (F-10), created_at (F-14), ingredient_only (F-15) |
 | food_ingredient | food_id, position, ingredient_id, unit_id, quantity (F-10) |
 | food_image | food_id, content_type, image, thumbnail, updated_at (F-13) |
-| tag | id, user_id, name, name_norm, archived, created_at, updated_at (F-16) |
+| tag | id, user_id, name, name_norm, archived, created_at, updated_at, color (F-16) |
 | food_tag | food_id, tag_id (F-16) |
 | food_unit | food_id, unit_id, equals_amount (nullable), equals_unit_id (nullable) — "1 unit = equals_amount equals_unit" |
 | food_nutrient | food_id, nutrient_id, amount (per ref amount) |

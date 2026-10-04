@@ -408,37 +408,66 @@ await step('ingredient-only food', async () => {
 })
 
 await step('tags', async () => {
+  // Tags are made on a food's page and saved at once, without the food's Save button.
   await page.getByRole('link', { name: 'Foods', exact: true }).click()
-  await page.getByRole('main').getByRole('link', { name: 'Tags', exact: true }).click()
-  await page.getByRole('heading', { name: 'Tags', exact: true }).waitFor()
-  await page.getByPlaceholder('Name, e.g. Fruit').fill('Breakfast')
-  await page.getByRole('button', { name: 'Create' }).click()
-  await page.getByRole('link', { name: 'Breakfast' }).waitFor()
-
-  // Tag a food with an existing tag and a new one.
-  await page.getByRole('link', { name: '← Foods' }).click()
-  await page.getByRole('link', { name: 'Rye bread' }).click()
+  await page.locator('.food-table a.food-link', { hasText: 'Rye bread' }).click()
   await page.getByRole('heading', { name: 'Rye bread' }).waitFor()
-  await page.getByLabel('Add a tag …').selectOption({ label: 'Breakfast' })
-  await page.getByLabel('New tag').fill('Bread')
+  const editor = page.locator('.tags-editor')
+  await page.getByLabel('New tag').fill('Breakfast')
   await page.getByLabel('New tag').press('Enter')
-  await page.locator('.tags-editor .chip', { hasText: 'Bread' }).first().waitFor()
-  await page.getByRole('button', { name: 'Save' }).click()
-  await page.getByText('✓ Saved').waitFor()
-  await page.locator('.card', { has: page.locator('.tags-editor') }).screenshot({ path: `${SHOTS}/20-food-tags.png` })
+  await editor.locator('.chip', { hasText: 'Breakfast' }).waitFor()
+  await page.getByLabel('New tag').fill('Bread')
+  await page.getByRole('button', { name: 'Create tag' }).click()
+  await editor.locator('.chip', { hasText: 'Bread' }).first().waitFor()
+  await page.getByLabel('New tag').fill('Snack')
+  await page.getByLabel('New tag').press('Enter')
+  await editor.locator('.chip', { hasText: 'Snack' }).waitFor()
+  // Still there after leaving the page unsaved, by name.
+  await page.reload()
+  await page.getByRole('heading', { name: 'Rye bread' }).waitFor()
+  await editor.locator('.chip', { hasText: 'Snack' }).waitFor()
+  const order = (await editor.locator('.chip a').allInnerTexts()).join()
+  if (order !== 'Bread,Breakfast,Snack') throw new Error(`food tags in order: ${order}`)
+  await page.locator('.card', { has: editor }).screenshot({ path: `${SHOTS}/20-food-tags.png` })
 
-  // The food list shows them, and the tag's page lists the food.
+  // The food list shows them, by name; a tag links to its page, where it gets a color.
   await page.getByRole('link', { name: 'Foods', exact: true }).click()
   const row = page.locator('tr', { hasText: 'Rye bread' })
-  await row.locator('.food-tags .chip', { hasText: 'Breakfast' }).waitFor()
-  await row.locator('.food-tags .chip', { hasText: 'Bread' }).waitFor()
-  await page.getByRole('main').getByRole('link', { name: 'Tags', exact: true }).click()
-  await page.getByRole('link', { name: 'Bread', exact: true }).click()
+  await row.locator('.food-tags .chip', { hasText: 'Snack' }).waitFor()
+  const listed = (await row.locator('.food-tags .chip').allInnerTexts()).join()
+  if (listed !== 'Bread,Breakfast,Snack') throw new Error(`listed tags in order: ${listed}`)
+  await row.locator('.food-tags').getByRole('link', { name: 'Breakfast' }).click()
+  await page.getByRole('heading', { name: 'Breakfast' }).waitFor()
   await page.getByRole('link', { name: 'Rye bread' }).waitFor()
-  // In use, so it can only be archived.
+  await page.getByRole('button', { name: 'Green' }).click()
+  await page.getByRole('button', { name: 'Green', pressed: true }).waitFor()
+  await page.locator('.tag-title.tag-color-green').waitFor()
+  await shot('22-tag-color')
+  await page.getByRole('link', { name: '← Tags' }).click()
+  await page.locator('.tag-chip.tag-color-green', { hasText: 'Breakfast' }).waitFor()
+  // Tags aren't made here any more.
+  if (await page.getByRole('button', { name: 'Create' }).count()) throw new Error('Tags page can still create tags')
+
+  // Deleting a tag takes it off its foods.
+  await page.getByRole('link', { name: 'Snack', exact: true }).click()
+  await page.getByRole('heading', { name: 'Snack' }).waitFor()
   await page.getByRole('button', { name: 'Delete' }).click()
   await page.getByRole('button', { name: 'Yes, do it' }).click()
-  await page.getByText(/still used by 1 food/).waitFor()
+  await page.getByRole('heading', { name: 'Tags', exact: true }).waitFor()
+  await page.getByRole('link', { name: 'Breakfast', exact: true }).waitFor()
+  if (await page.getByRole('link', { name: 'Snack', exact: true }).count()) throw new Error('deleted tag still listed')
+
+  // A tag no food has any more goes.
+  await page.getByRole('link', { name: '← Foods' }).click()
+  await page.locator('.food-table a.food-link', { hasText: 'Rye bread' }).click()
+  await page.getByRole('heading', { name: 'Rye bread' }).waitFor()
+  if (await editor.locator('.chip', { hasText: 'Snack' }).count()) throw new Error('deleted tag still on the food')
+  await page.getByRole('button', { name: 'Remove Bread' }).click()
+  await editor.locator('.chip', { hasText: 'Bread' }).filter({ hasNotText: 'Breakfast' }).waitFor({ state: 'detached' })
+  await page.getByRole('link', { name: 'Foods', exact: true }).click()
+  await page.getByRole('main').getByRole('link', { name: 'Tags', exact: true }).click()
+  await page.getByRole('link', { name: 'Breakfast', exact: true }).waitFor()
+  if (await page.getByRole('link', { name: 'Bread', exact: true }).count()) throw new Error('unused tag still listed')
 })
 
 await step('food list filters and table', async () => {
@@ -446,7 +475,7 @@ await step('food list filters and table', async () => {
   const table = page.locator('.food-table')
   const rows = table.locator('tbody tr')
   // The link holds the photo (or its initial) and the name; the name is the last line.
-  const names = async () => (await rows.locator('td:first-child a').allInnerTexts()).map((n) => n.trim().split('\n').pop().trim())
+  const names = async () => (await rows.locator('a.food-link').allInnerTexts()).map((n) => n.trim().split('\n').pop().trim())
   // A column per nutrient, values per reference amount, and a red dash where a value is missing.
   await table.getByRole('columnheader', { name: /Energy/ }).waitFor()
   await rows.filter({ hasText: 'Rye bread' }).getByRole('cell', { name: '250', exact: true }).waitFor()

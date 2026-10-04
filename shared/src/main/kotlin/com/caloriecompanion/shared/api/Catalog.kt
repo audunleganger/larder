@@ -254,6 +254,8 @@ data class TagDto(
     val createdBy: String,
     /** When its names were last changed, in ms since 1970; null if never. */
     val updatedAt: Long?,
+    /** A palette color name (red, orange, yellow, green, teal, blue, indigo, purple, pink, brown); null: gray. */
+    val color: String?,
 )
 
 @Serializable
@@ -268,6 +270,18 @@ data class TagDetail(
     val tag: TagDto,
     /** The foods with this tag, by display name. */
     val foods: List<FoodRef>,
+)
+
+/** A tag's color: a palette color name, or null for gray. */
+@Serializable
+data class TagColorInput(
+    val color: String? = null,
+)
+
+/** Sets a food's tags. */
+@Serializable
+data class FoodTagsInput(
+    val tagIds: List<Long>,
 )
 
 /** Corrects when a tag was made and last changed; admins only, for their own tags. */

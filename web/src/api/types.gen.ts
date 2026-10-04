@@ -183,6 +183,7 @@ export interface ExportTag {
   translations?: NameTranslation[]
   createdAt?: string | null
   updatedAt?: string | null
+  color?: string | null
 }
 
 export interface ExportTarget {
@@ -301,6 +302,10 @@ export interface FoodSummary {
   ingredientOnly: boolean
   tagIds: number[]
   nutrients: Record<string, number>
+}
+
+export interface FoodTagsInput {
+  tagIds: number[]
 }
 
 export interface FoodUnitLink {
@@ -501,6 +506,10 @@ export interface SetupStatus {
   needsSetup: boolean
 }
 
+export interface TagColorInput {
+  color?: string | null
+}
+
 export interface TagDetail {
   tag: TagDto
   foods: FoodRef[]
@@ -516,6 +525,7 @@ export interface TagDto {
   createdAt: number
   createdBy: string
   updatedAt: number | null
+  color: string | null
 }
 
 export interface TagInput {

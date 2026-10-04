@@ -126,7 +126,14 @@ data class TagDef(
     val archived: Boolean = false,
     val createdAt: Long = 0,
     val updatedAt: Long? = null,
+    /** One of [TagColors.ALL]; null: gray. */
+    val color: String? = null,
 ) : Named
+
+/** The colors a tag can have (F-16): names of a fixed palette, which clients show readably in light and dark mode. */
+object TagColors {
+    val ALL = listOf("red", "orange", "yellow", "green", "teal", "blue", "indigo", "purple", "pink", "brown")
+}
 
 /** A composite food's definition (F-10) and what was derived from it. */
 data class CompositeDef(

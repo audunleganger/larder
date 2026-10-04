@@ -69,6 +69,27 @@ class MigrationTest {
     }
 
     @Test
+    fun `version 12 removes tags no food has and adds colors`() {
+        val driver = v1Database()
+        val schema = CalorieCompanionDatabase.Schema
+        CalorieCompanionDatabase(driver).transaction { schema.migrate(driver, 1, 11) }
+        listOf(
+            "INSERT INTO tag(id, user_id, name, name_norm, archived, created_at) VALUES (1, 1, 'Bread', 'bread', 0, 0)",
+            "INSERT INTO tag(id, user_id, name, name_norm, archived, created_at) VALUES (2, 1, 'Fruit', 'fruit', 0, 0)",
+            "INSERT INTO tag_translation(tag_id, locale, name, name_norm) VALUES (2, 'nb', 'Frukt', 'frukt')",
+            "INSERT INTO food_tag(food_id, tag_id) VALUES (1, 1)",
+        ).forEach { driver.execute(null, it, 0) }
+        CalorieCompanionDatabase(driver).transaction { schema.migrate(driver, 11, schema.version) }
+        val db = CalorieCompanionDatabase(driver)
+
+        val tags = TagService(db, 1).list(includeArchived = true)
+        assertEquals(listOf("Bread"), tags.map { it.name })
+        assertEquals(null, tags.single().color)
+        assertEquals(0L, driver.long("SELECT count(*) FROM tag_translation"))
+        assertEquals(listOf(1L), FoodService(db, 1).get(1).tagIds)
+    }
+
+    @Test
     fun `two users' units and nutrients are merged into one shared set`() {
         val driver = v1Database()
         TWO_USER_DATA.split(";").map { it.trim() }.filter { it.isNotEmpty() }.forEach { driver.execute(null, it, 0) }

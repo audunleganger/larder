@@ -43,6 +43,27 @@
   --cat-other: #898781;
   /* A total without a target: no judgement, just the amount. */
   --bar-neutral: #b5b4ad;
+  /* Tag colors (F-16): a soft background with dark text, readable in each theme. */
+  --tag-red-bg: #fde2e1;
+  --tag-red-text: #a1261f;
+  --tag-orange-bg: #fde8d7;
+  --tag-orange-text: #9a4410;
+  --tag-yellow-bg: #fbf1c7;
+  --tag-yellow-text: #7a5b00;
+  --tag-green-bg: #dcf2dc;
+  --tag-green-text: #1d6b1d;
+  --tag-teal-bg: #d4f0ea;
+  --tag-teal-text: #0f6656;
+  --tag-blue-bg: #dde9fa;
+  --tag-blue-text: #1c5cab;
+  --tag-indigo-bg: #e3e1f7;
+  --tag-indigo-text: #3d3196;
+  --tag-purple-bg: #efe0f6;
+  --tag-purple-text: #73308f;
+  --tag-pink-bg: #fbe1ec;
+  --tag-pink-text: #a12c5c;
+  --tag-brown-bg: #efe4da;
+  --tag-brown-text: #6e4626;
 
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   font-size: 15px;
@@ -87,6 +108,26 @@
     --cat-7: #9085e9;
     --cat-8: #e66767;
     --bar-neutral: #6b6a65;
+    --tag-red-bg: #4a1f1d;
+    --tag-red-text: #ffaaa3;
+    --tag-orange-bg: #4a2c16;
+    --tag-orange-text: #ffb98a;
+    --tag-yellow-bg: #423713;
+    --tag-yellow-text: #f4d36b;
+    --tag-green-bg: #1d3a1f;
+    --tag-green-text: #8fd99a;
+    --tag-teal-bg: #133a34;
+    --tag-teal-text: #7fd8c6;
+    --tag-blue-bg: #1c2d44;
+    --tag-blue-text: #93bdf2;
+    --tag-indigo-bg: #282650;
+    --tag-indigo-text: #b3acf5;
+    --tag-purple-bg: #3a2346;
+    --tag-purple-text: #dba9ef;
+    --tag-pink-bg: #47202f;
+    --tag-pink-text: #f5a3c5;
+    --tag-brown-bg: #3b2c20;
+    --tag-brown-text: #dcb896;
   }
 }
 
@@ -1738,4 +1779,98 @@ form > .card + .card {
 .food-table .measure-unit {
   text-transform: none;
   font-weight: normal;
+}
+
+/* ---------- Tags (F-16) ---------- */
+
+.tag-chip a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.tag-chip a:hover {
+  text-decoration: underline;
+}
+
+.inline-chips {
+  display: inline-flex;
+  vertical-align: middle;
+}
+
+.tag-title {
+  border-radius: 999px;
+  padding: 0 0.6rem;
+}
+
+.tag-colors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.tag-swatch {
+  font: inherit;
+  font-size: 0.85rem;
+  border: 2px solid transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.tag-swatch[aria-pressed='true'] {
+  border-color: var(--focus);
+  font-weight: 600;
+}
+
+.tag-color-red {
+  background: var(--tag-red-bg);
+  color: var(--tag-red-text);
+}
+
+.tag-color-orange {
+  background: var(--tag-orange-bg);
+  color: var(--tag-orange-text);
+}
+
+.tag-color-yellow {
+  background: var(--tag-yellow-bg);
+  color: var(--tag-yellow-text);
+}
+
+.tag-color-green {
+  background: var(--tag-green-bg);
+  color: var(--tag-green-text);
+}
+
+.tag-color-teal {
+  background: var(--tag-teal-bg);
+  color: var(--tag-teal-text);
+}
+
+.tag-color-blue {
+  background: var(--tag-blue-bg);
+  color: var(--tag-blue-text);
+}
+
+.tag-color-indigo {
+  background: var(--tag-indigo-bg);
+  color: var(--tag-indigo-text);
+}
+
+.tag-color-purple {
+  background: var(--tag-purple-bg);
+  color: var(--tag-purple-text);
+}
+
+.tag-color-pink {
+  background: var(--tag-pink-bg);
+  color: var(--tag-pink-text);
+}
+
+.tag-color-brown {
+  background: var(--tag-brown-bg);
+  color: var(--tag-brown-text);
+}
+
+.tag-chip.chip-muted[class*='tag-color-'] {
+  opacity: 0.75;
 }

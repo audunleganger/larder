@@ -210,6 +210,6 @@ internal fun loadTags(db: CalorieCompanionDatabase, userId: Long): List<TagDef> 
     val translations = db.tagQueries.selectTagTranslations(userId).executeAsList()
         .groupBy({ it.tag_id }, { NameTranslation(it.locale, it.name) })
     return db.tagQueries.selectTags(userId).executeAsList().map {
-        TagDef(it.id, it.name, translations[it.id].orEmpty().associateBy { t -> t.locale }, it.archived, it.created_at, it.updated_at)
+        TagDef(it.id, it.name, translations[it.id].orEmpty().associateBy { t -> t.locale }, it.archived, it.created_at, it.updated_at, it.color)
     }
 }

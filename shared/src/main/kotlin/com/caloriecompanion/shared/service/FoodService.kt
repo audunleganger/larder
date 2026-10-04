@@ -16,6 +16,7 @@ import com.caloriecompanion.shared.api.FoodRefDefault
 import com.caloriecompanion.shared.api.FoodSummary
 import com.caloriecompanion.shared.api.IngredientView
 import com.caloriecompanion.shared.api.NameTranslation
+import com.caloriecompanion.shared.api.TagInput
 import com.caloriecompanion.shared.api.UnitKind
 import com.caloriecompanion.shared.domain.AppException
 import com.caloriecompanion.shared.domain.Catalog
@@ -32,12 +33,16 @@ import com.caloriecompanion.shared.domain.requirePositive
 import com.caloriecompanion.shared.domain.validation
 import com.caloriecompanion.shared.normalizeName
 
-/** [language]: the reader's language, for display names (L-5). */
+/**
+ * [language]: the reader's language, for display names (L-5). [keepUnusedTags]: leave tags no food has
+ * any more, for an import that gives them foods later.
+ */
 class FoodService(
     private val db: CalorieCompanionDatabase,
     private val userId: Long,
     private val language: String? = null,
     private val now: () -> Long = System::currentTimeMillis,
+    private val keepUnusedTags: Boolean = false,
 ) {
     private val queries = db.foodQueries
 
@@ -227,6 +232,29 @@ class FoodService(
             )
         }
         queries.deleteFood(id, userId)
+        if (!keepUnusedTags) pruneTags(db, userId)
+    }
+
+    /** Sets the food's tags (F-16), saved at once; tags no food has any more go. */
+    fun setTags(id: Long, tagIds: List<Long>): FoodDto = db.transactionWithResult {
+        get(id)
+        val tags = loadTags(db, userId).mapTo(HashSet()) { it.id }
+        if (tagIds.any { it !in tags }) notFound("Tag")
+        writeTags(id, tagIds.distinct())
+        get(id)
+    }
+
+    /**
+     * Gives the food the tag named in [input] (F-16): an existing tag with that name in any language, or
+     * else a new one. This is how tags are made, so none is ever without foods.
+     */
+    fun addTag(id: Long, input: TagInput): FoodDto = db.transactionWithResult {
+        val food = get(id)
+        val name = normalizeName(cleanName(input.name))
+        val existing = loadTags(db, userId).firstOrNull { tag -> tag.allNames().contains(name) }
+        val tagId = existing?.id ?: TagService(db, userId, language, now).create(input).id
+        if (tagId !in food.tagIds) db.tagQueries.insertFoodTag(id, tagId)
+        get(id)
     }
 
     /** Stores the food's photo (F-13), replacing any previous one. Clients resize it before sending. */
@@ -271,9 +299,11 @@ class FoodService(
         translations.forEach { queries.insertFoodTranslation(id, it.locale, it.name, normalizeName(it.name)) }
     }
 
+    /** Replaces the food's tags; tags no food has any more go (F-16). */
     private fun writeTags(id: Long, tagIds: List<Long>) {
         db.tagQueries.deleteFoodTags(id)
         tagIds.forEach { db.tagQueries.insertFoodTag(id, it) }
+        if (!keepUnusedTags) pruneTags(db, userId)
     }
 
     private fun writeRelations(foodId: Long, input: FoodInput) {
