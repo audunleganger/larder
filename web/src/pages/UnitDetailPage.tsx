@@ -2,11 +2,12 @@ import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router'
 import * as endpoints from '../api/endpoints'
 import { useApiMutation, useUnitDetail } from '../api/queries'
-import type { FoodRef, UnitInput } from '../api/types.gen'
+import type { FoodRef, MetadataInput, UnitInput } from '../api/types.gen'
 import { Badge, Card, ConfirmButton, Empty, ErrorText, PageHeader, QueryView } from '../components/ui'
 import { formatDate } from '../lib/dates'
 import { currentLocale } from '../lib/format'
 import { unitSize } from '../lib/units'
+import { MetadataCard } from '../components/Metadata'
 import { ReadOnlyNote } from '../components/Shared'
 import { UnitFields } from './UnitsPage'
 
@@ -31,6 +32,7 @@ export function UnitDetailPage() {
   const update = useApiMutation((input: UnitInput) => endpoints.updateUnit(id, input))
   const hide = useApiMutation((hidden: boolean) => endpoints.hideUnit(id, hidden))
   const remove = useApiMutation(() => endpoints.deleteUnit(id))
+  const correct = useApiMutation((input: MetadataInput) => endpoints.setUnitMetadata(id, input))
 
   return (
     <div className="page">
@@ -89,6 +91,7 @@ export function UnitDetailPage() {
                 )}
               </Card>
             </div>
+            <MetadataCard item={data.unit} withUpdated onSave={(input) => correct.mutateAsync(input)} />
             <Card title={data.unit.canEdit ? t('common.hideOrDelete') : t('common.hide')}>
               <div className="form-actions">
                 <button type="button" className="btn" onClick={() => hide.mutate(!data.unit.hidden)}>

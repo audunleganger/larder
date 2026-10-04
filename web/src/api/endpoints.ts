@@ -12,12 +12,14 @@ import type {
   FoodDto,
   FoodImageData,
   FoodInput,
+  FoodMetadataInput,
   FoodRefDefault,
   FoodSummary,
   HealthResponse,
   HistoryView,
   ImportResult,
   LoginResult,
+  MetadataInput,
   NutrientContributions,
   NutrientDetail,
   NutrientDto,
@@ -61,6 +63,7 @@ export const unitDetail = (id: number) => api<UnitDetail>(`/units/${id}`)
 export const createUnit = (input: UnitInput) => api<UnitDto>('/units', { method: 'POST', body: input })
 export const updateUnit = (id: number, input: UnitInput) => api<UnitDto>(`/units/${id}`, { method: 'PUT', body: input })
 export const hideUnit = (id: number, hidden: boolean) => api<UnitDto>(`/units/${id}/${hidden ? 'hide' : 'show'}`, { method: 'POST' })
+export const setUnitMetadata = (id: number, input: MetadataInput) => api<UnitDto>(`/units/${id}/metadata`, { method: 'PUT', body: input })
 export const deleteUnit = (id: number) => api<void>(`/units/${id}`, { method: 'DELETE' })
 
 // Nutrients
@@ -72,6 +75,8 @@ export const updateNutrient = (id: number, input: NutrientInput) =>
 export const reorderNutrients = (ids: number[]) => api<NutrientDto[]>('/nutrients/order', { method: 'PUT', body: { ids } })
 export const hideNutrient = (id: number, hidden: boolean) =>
   api<NutrientDto>(`/nutrients/${id}/${hidden ? 'hide' : 'show'}`, { method: 'POST' })
+export const setNutrientMetadata = (id: number, input: MetadataInput) =>
+  api<NutrientDto>(`/nutrients/${id}/metadata`, { method: 'PUT', body: input })
 export const deleteNutrient = (id: number) => api<void>(`/nutrients/${id}`, { method: 'DELETE' })
 
 // Foods
@@ -83,6 +88,8 @@ export const createFood = (input: FoodInput) => api<FoodDto>('/foods', { method:
 export const updateFood = (id: number, input: FoodInput) => api<FoodDto>(`/foods/${id}`, { method: 'PUT', body: input })
 export const archiveFood = (id: number, archived: boolean) =>
   api<FoodDto>(`/foods/${id}/${archived ? 'archive' : 'unarchive'}`, { method: 'POST' })
+/** Admins only, and only the created date. */
+export const setFoodMetadata = (id: number, input: FoodMetadataInput) => api<FoodDto>(`/foods/${id}/metadata`, { method: 'PUT', body: input })
 export const deleteFood = (id: number) => api<void>(`/foods/${id}`, { method: 'DELETE' })
 export const setFoodImage = (id: number, data: FoodImageData) => api<FoodDto>(`/foods/${id}/image`, { method: 'PUT', body: data })
 export const deleteFoodImage = (id: number) => api<FoodDto>(`/foods/${id}/image`, { method: 'DELETE' })

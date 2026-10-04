@@ -246,6 +246,10 @@ export interface FoodInput {
   composite?: CompositeInput | null
 }
 
+export interface FoodMetadataInput {
+  createdAt: number
+}
+
 export interface FoodNutrientValue {
   nutrientId: number
   amount: number
@@ -342,6 +346,13 @@ export interface LoginInput {
 export interface LoginResult {
   token: string
   user: UserDto
+}
+
+export interface MetadataInput {
+  createdAt: number
+  createdBy: string
+  updatedAt?: number | null
+  updatedBy?: string | null
 }
 
 export interface NameTranslation {
