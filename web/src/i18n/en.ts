@@ -212,6 +212,8 @@ const en = {
   },
   foods: {
     subExceedsMain: '{{sub}} is more than {{main}}. Check the values.',
+    ingredientOnly: 'Ingredient only',
+    ingredientOnlyHint: 'Not offered when logging, but can be used as an ingredient in other foods.',
     title: 'Foods',
     subtitle: 'Ingredients, meals, drinks — anything you eat.',
     new: 'New food',

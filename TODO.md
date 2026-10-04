@@ -12,10 +12,6 @@ Changes to stored data also need a schema migration, a new export format version
   an upload (shrunk, with a thumbnail), so backups and exports include it and it survives the link breaking. It
   must refuse addresses on the local network (loopback, private and link-local, checked again after each
   redirect), limit size and download time, and accept only JPEG, PNG and WebP.
-- **"Ingredient only" foods.** A flag on a food: it doesn't appear in the picker when logging, but can be used as
-  an ingredient in composite foods. A composite that contains it can still be logged, and when it's logged as
-  separate items it still creates an entry for this food. Existing entries of a food that gets the flag stay as
-  they are, and editing one keeps the food selected.
 - **Scan a nutrition label** when editing a food: take or upload a photo of the label and fill in the nutrient
   values from it. It must be free and work offline, so the text is read in the browser (for example with
   Tesseract.js), not by an online service. It only fills nutrients whose name (or a translation) matches a line on

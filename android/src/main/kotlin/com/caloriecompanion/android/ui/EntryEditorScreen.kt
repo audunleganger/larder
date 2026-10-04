@@ -89,7 +89,8 @@ fun EntryEditorScreen(initialDate: LocalDate, entryId: Long?, nav: Navigator) {
     LaunchedEffect(query, food) {
         if (food != null) return@LaunchedEffect
         delay(150)
-        results = try { repo.foods(query).take(10) } catch (e: RepositoryException) { error = e; emptyList() }
+        // Ingredient-only foods aren't offered when logging (F-15).
+        results = try { repo.foods(query).filter { !it.ingredientOnly }.take(10) } catch (e: RepositoryException) { error = e; emptyList() }
     }
 
     val detailState = rememberLoad(food?.id) { food?.let { foodDetail(it.id) } }

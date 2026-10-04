@@ -17,6 +17,8 @@ CREATE TABLE food (
     log_as_whole INTEGER AS Boolean NOT NULL DEFAULT 0,
     -- When it was made (ms since 1970); who made it is user_id. Admins can correct it.
     created_at INTEGER NOT NULL DEFAULT 0,
+    -- Left out of the food picker when logging, but usable as an ingredient.
+    ingredient_only INTEGER AS Boolean NOT NULL DEFAULT 0,
     UNIQUE (user_id, name_norm)
 );
 
@@ -83,13 +85,16 @@ selectFoodByNorm:
 SELECT * FROM food WHERE user_id = ? AND name_norm = ?;
 
 insertFood:
-INSERT INTO food(user_id, name, name_norm, ref_amount, ref_unit_id, notes, archived, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+INSERT INTO food(user_id, name, name_norm, ref_amount, ref_unit_id, notes, archived, created_at, ingredient_only) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 updateFood:
 UPDATE food SET name = ?, name_norm = ?, ref_amount = ?, ref_unit_id = ?, notes = ? WHERE id = ? AND user_id = ?;
 
 setFoodCreatedAt:
 UPDATE food SET created_at = ? WHERE id = ? AND user_id = ?;
+
+setFoodIngredientOnly:
+UPDATE food SET ingredient_only = ? WHERE id = ? AND user_id = ?;
 
 setFoodArchived:
 UPDATE food SET archived = ? WHERE id = ? AND user_id = ?;

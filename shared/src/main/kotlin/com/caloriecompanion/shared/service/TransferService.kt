@@ -95,6 +95,7 @@ class TransferService(
                     yieldUnit = composite?.yieldUnitId?.let(unitName),
                     logAsWhole = composite?.logAsWhole ?: false,
                     createdAt = MetadataRules.formatTime(food.createdAt),
+                    ingredientOnly = food.ingredientOnly,
                 )
             },
             entries = entryRows.map {
@@ -227,6 +228,8 @@ class TransferService(
                 // Ingredients are linked below, once all foods exist. A plain food in a version 2 file makes
                 // an overwritten composite plain; version 1 files don't know composites, so leave them.
                 composite = if (food.ingredients.isEmpty() && file.version >= 2) CompositeInput(emptyList()) else null,
+                // Older files don't know the flag, so an overwritten food keeps its own.
+                ingredientOnly = food.ingredientOnly.takeIf { file.version >= 5 },
             )
             if (existing == null || overwrite) touchedFoods += key
             foodCounts = when {

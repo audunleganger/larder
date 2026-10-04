@@ -129,6 +129,7 @@ internal fun FoodDef.toDto(language: String?) = FoodDto(
     composite = composite?.let { CompositeInput(it.ingredients, it.yieldAmount, it.yieldUnitId, it.logAsWhole) },
     createdAt = createdAt,
     createdBy = ownerName,
+    ingredientOnly = ingredientOnly,
 )
 
 /** Every unit on the server, as seen by [userId]: the ones they haven't chosen to show are hidden. */
@@ -191,6 +192,7 @@ fun loadCatalog(db: CalorieCompanionDatabase, userId: Long): Catalog {
             },
             createdAt = food.created_at,
             ownerName = ownerName,
+            ingredientOnly = food.ingredient_only,
         )
     }
     return Catalog(units, nutrients, Composites.derive(units, nutrients, foods))

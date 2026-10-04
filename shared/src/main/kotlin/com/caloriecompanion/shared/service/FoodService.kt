@@ -59,6 +59,7 @@ class FoodService(
                 FoodSummary(
                     food.id, food.displayName(language), food.archived, food.refAmount, food.refUnitId,
                     food.nutrients.size, food.imageVersion, composite = food.composite != null,
+                    ingredientOnly = food.ingredientOnly,
                 )
             }
             .toList()
@@ -135,7 +136,7 @@ class FoodService(
     fun create(input: FoodInput, archived: Boolean = false, rememberRef: Boolean = true, createdAt: Long? = null): FoodDto = db.transactionWithResult {
         val catalog = loadCatalog(db, userId)
         val clean = validate(catalog, input, selfId = null)
-        queries.insertFood(userId, clean.name, normalizeName(clean.name), clean.refAmount, clean.refUnitId, clean.notes, archived, createdAt ?: now())
+        queries.insertFood(userId, clean.name, normalizeName(clean.name), clean.refAmount, clean.refUnitId, clean.notes, archived, createdAt ?: now(), clean.ingredientOnly ?: false)
         val id = db.appUserQueries.lastInsertRowId().executeAsOne()
         writeRelations(id, clean)
         writeTranslations(id, clean.translations.orEmpty())
@@ -153,6 +154,7 @@ class FoodService(
         // Only a changed reference counts as "used": editing an old food's notes shouldn't reset the default.
         if (rememberRef && (clean.refAmount to clean.refUnitId) != beforeRef) rememberRef(clean)
         queries.updateFood(clean.name, normalizeName(clean.name), clean.refAmount, clean.refUnitId, clean.notes, id, userId)
+        clean.ingredientOnly?.let { queries.setFoodIngredientOnly(it, id, userId) }
         queries.deleteFoodUnits(id)
         queries.deleteFoodNutrients(id)
         writeRelations(id, clean)

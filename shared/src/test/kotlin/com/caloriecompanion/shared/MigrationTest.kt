@@ -59,6 +59,8 @@ class MigrationTest {
         assertTrue(slice.createdAt in upgradedAt - 60_000..upgradedAt)
         assertEquals(null, slice.updatedAt)
         assertTrue(FoodService(db, 1).list().all { FoodService(db, 1).get(it.id).createdAt in upgradedAt - 60_000..upgradedAt })
+        // v8: no food is ingredient only.
+        assertTrue(FoodService(db, 1).list().none { it.ingredientOnly })
     }
 
     @Test

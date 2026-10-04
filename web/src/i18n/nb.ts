@@ -215,6 +215,8 @@ const nb: Translation<typeof en> = {
   },
   foods: {
     subExceedsMain: '{{sub}} er mer enn {{main}}. Sjekk verdiene.',
+    ingredientOnly: 'Bare ingrediens',
+    ingredientOnlyHint: 'Tilbys ikke når du registrerer, men kan brukes som ingrediens i andre matvarer.',
     title: 'Matvarer',
     subtitle: 'Ingredienser, måltider, drikke – alt du spiser.',
     new: 'Ny matvare',

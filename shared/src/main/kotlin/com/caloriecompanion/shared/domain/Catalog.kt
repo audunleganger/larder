@@ -97,6 +97,8 @@ data class FoodDef(
     /** When it was made, in ms since 1970, and by whom (its owner). */
     val createdAt: Long = 0,
     val ownerName: String = "",
+    /** Left out of the food picker when logging, but usable as an ingredient. */
+    val ingredientOnly: Boolean = false,
 ) : Named
 
 /** A composite food's definition (F-10) and what was derived from it. */

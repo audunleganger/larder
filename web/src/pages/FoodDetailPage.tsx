@@ -33,6 +33,7 @@ function FoodEditor({ detail, units, nutrients }: { detail: FoodDetail; units: U
   const [refAmount, setRefAmount] = useState(toInputValue(food.refAmount))
   const [refUnitId, setRefUnitId] = useState<number | ''>(food.refUnitId ?? '')
   const [notes, setNotes] = useState(food.notes ?? '')
+  const [ingredientOnly, setIngredientOnly] = useState(food.ingredientOnly)
   const [values, setValues] = useState<Record<number, string>>(() =>
     Object.fromEntries(food.nutrients.map((v) => [v.nutrientId, toInputValue(v.amount)])),
   )
@@ -100,6 +101,7 @@ function FoodEditor({ detail, units, nutrients }: { detail: FoodDetail; units: U
       refAmount: amount,
       refUnitId: refUnitId === '' ? null : refUnitId,
       notes: notes.trim() || null,
+      ingredientOnly,
       nutrients: nutrientValues,
       units: unitLinks,
     }
@@ -176,6 +178,10 @@ function FoodEditor({ detail, units, nutrients }: { detail: FoodDetail; units: U
         <Field label={t('foods.notes')}>
           <textarea className="input" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
         </Field>
+        <label className="checkbox">
+          <input type="checkbox" checked={ingredientOnly} onChange={(e) => setIngredientOnly(e.target.checked)} /> {t('foods.ingredientOnly')}
+        </label>
+        <p className="field-hint">{t('foods.ingredientOnlyHint')}</p>
       </Card>
 
       <Card title={t('composite.title')}>
@@ -365,7 +371,7 @@ export function FoodDetailPage() {
             <PageHeader
               title={
                 <>
-                  {data.food.displayName} {data.food.archived && <Badge>{t('common.archived')}</Badge>}
+                  {data.food.displayName} {data.food.ingredientOnly && <Badge tone="info">{t('foods.ingredientOnly')}</Badge>} {data.food.archived && <Badge>{t('common.archived')}</Badge>}
                 </>
               }
               subtitle={<Link to="/foods">← {t('foods.title')}</Link>}
