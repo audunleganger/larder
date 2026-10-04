@@ -10,7 +10,8 @@ can log a food before you know its nutrition. Fill in the numbers later, and eve
 ## Features
 
 - **Your own catalog.** Foods, units and nutrients are user-defined, with sensible defaults to start from. A new
-  food needs only a name.
+  food needs only a name. Units and nutrients are shared by everyone on the server, and each user hides the ones
+  they don't need.
 - **Units that convert.** Nutrient values are stored per reference amount (for example per 100 g). Weight and
   volume units convert automatically. Custom units like slice, glass or serving get their size per food.
 - **Composite foods.** Build a food out of other foods, like a recipe or a meal you often eat. Its nutrients are
@@ -23,7 +24,7 @@ can log a food before you know its nutrition. Fill in the numbers later, and eve
 - **Photos.** One per food, shown in the picker, the lists and the day view.
 - **English and Norwegian (bokmål).** Foods, units and nutrients can have a name in each language, with plural
   endings ("2 slices", "2 skiver").
-- **Multi-user.** First-run setup, accounts managed by an admin, a separate catalog and diary per user, JSON
+- **Multi-user.** First-run setup, accounts managed by an admin, separate foods and diary per user, JSON
   export/import and built-in backups.
 - Light and dark mode, and a layout that works on phones.
 
@@ -39,7 +40,8 @@ docker run -d --name calorie-companion -p 8080:8080 -v calorie-companion-data:/d
 ```
 
 Open http://localhost:8080. The first visit shows a setup screen that creates the administrator account. The
-admin can add more users under **Admin**; each user has a completely separate catalog and diary.
+admin can add more users under **Admin**. Each user has their own foods, diary and targets, and shares the units and
+nutrients.
 
 With Docker Compose:
 
@@ -206,7 +208,9 @@ All endpoints except health, setup and login need `Authorization: Bearer <token>
 | `POST /api/v1/auth/login`, `/auth/logout` | Sessions |
 | `GET /api/v1/me`, `PUT /me/password`, `PUT /me/locale` | Own account |
 | `GET/POST /api/v1/admin/users`, `PATCH /admin/users/{id}`, `POST /admin/backup` | Admin |
-| `/api/v1/units`, `/nutrients`, `/foods` | List (`?includeArchived`; foods also `?q=`), create, `GET /{id}` (with links), `PUT /{id}`, `POST /{id}/archive`, `/unarchive`, `DELETE /{id}` (409 `REFERENCED` if in use). Names come in the language of `Accept-Language`, else the user's saved language |
+| `/api/v1/units`, `/nutrients`, `/foods` | List, create, `GET /{id}` (with links), `PUT /{id}`, `DELETE /{id}` (409 `REFERENCED` if in use). Names come in the language of `Accept-Language`, else the user's saved language |
+| | Units and nutrients are shared by all users: list `?includeHidden`, `POST /{id}/hide`, `/show`; only the maker or an admin may change one (403 `FORBIDDEN`); a taken name gives 409 `NAME_TAKEN` with the existing one's `id` |
+| | Foods are per user: list `?includeArchived`, `?q=`, `POST /{id}/archive`, `/unarchive` |
 | `GET /api/v1/foods/ref-default` | The reference amount a new food starts with |
 | `GET/PUT/DELETE /api/v1/foods/{id}/image` | A food's photo (`?size=thumbnail`; `?v=<imageVersion>` for permanent caching). PUT takes base64 JSON |
 | `PUT /api/v1/nutrients/order` | Display order |

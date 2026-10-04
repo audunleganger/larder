@@ -1,6 +1,8 @@
 # Calorie Companion — Requirement Specification
 
-Version 0.4 · 2026-10-02 · Supersedes `requirements.txt`
+Version 0.5 · 2026-10-04 · Supersedes `requirements.txt`
+
+*0.5: units and nutrients are shared by all users of a server (U-9). Each user hides the ones they don't want instead of archiving them; foods, entries and targets stay per user.*
 
 *0.4 adds composite foods (F-10, now in scope), remembered reference amounts (F-12), food photos (F-13), plural endings (U-8), nutrient groups (N-6), totals split by food (H-5) and names per language (L-5). These are implemented in the server and web GUI; the Android app doesn't show them yet (it keeps working against the new server and in local mode).*
 
@@ -10,7 +12,7 @@ Keywords: **MUST** = required for v1, **SHOULD** = v1 if feasible, **FUTURE** = 
 
 ## 1. Overview
 
-A heavily customizable nutrition tracker. Users maintain their own catalog of **food stuffs**, **units** and **nutrients**, and log **entries** (a quantity of a food stuff in a given unit at a date/time). The app calculates nutrient totals per entry and per day, compares them to daily targets, and shows history over time.
+A heavily customizable nutrition tracker. Users maintain their own catalog of **food stuffs** and share the server's **units** and **nutrients**, and log **entries** (a quantity of a food stuff in a given unit at a date/time). The app calculates nutrient totals per entry and per day, compares them to daily targets, and shows history over time.
 
 Clients:
 - **Web GUI** — React + TypeScript, talks to a server.
@@ -33,7 +35,8 @@ Clients:
 | Day view | Dagsoversikt | One day's entries and totals. |
 | Daily target | Dagsmål | Min/max goal for a nutrient per day. |
 | History | Historikk | Week/month views and trends. |
-| Archive | Arkiver | Hide from pickers while keeping history. |
+| Archive | Arkiver | Hide a food from pickers while keeping history. |
+| Hide | Skjul | Take a shared unit or nutrient out of one's own lists and pickers (U-9). |
 
 The Norwegian terms are a first guess and may be changed; they live only in the localization files.
 
@@ -65,29 +68,34 @@ The Norwegian terms are a first guess and may be changed; they live only in the 
 
 ### 3.2 Units
 
-- **U-1 (MUST)** Create a unit with only a **name**. Same uniqueness and rename rules as F-2.
+- **U-1 (MUST)** Create a unit with only a **name**. Same uniqueness and rename rules as F-2, but unique across the server (U-9).
 - **U-2 (MUST)** A unit has a **kind**: `mass`, `volume` or `custom`.
   - `mass` and `volume` units have a **global factor** to the dimension's base (g or ml). E.g. kg = 1000 g.
   - `custom` units have no global size. Their size is defined per food stuff.
-- **U-3 (MUST)** Every user's catalog is **seeded** with standard units: g, kg, mg, oz, lb, ml, dl, l, tsp, tbsp, cup. They are editable and archivable like any other unit.
+- **U-3 (MUST)** The server is **seeded** once with built-in units: g, kg, mg, oz, lb, ml, dl, l, tsp, tbsp, cup, serving, piece. Every user starts with them shown; only admins can change them.
 - **U-4 (MUST)** **Automatic conversion**: if a food stuff's reference amount (or any linked unit) is in a standard unit, then **all** standard units of the same dimension are usable for that food without explicit linking.
 - **U-5 (MUST)** A food-unit link for a custom unit is expressed as "1 ⟨custom unit⟩ = X ⟨other unit⟩", where the other unit is a standard unit or another unit already linked to the food. The system resolves this to the reference amount. A link without X is allowed (see F-incomplete, 3.5).
 - **U-6 (MUST)** The unit detail view links to:
   - all **food stuffs** that have this unit linked (or can use it via U-4 — shown separately as "implicit")
   - all **dates** on which at least one entry used this unit.
-- **U-7 (MUST)** Archive/delete rules identical to F-7/F-8.
+- **U-7 (MUST)** Units are hidden instead of archived (U-9). Delete is only allowed when nothing, for any user, references the unit.
 - **U-8 (MUST)** A unit name has an editable **plural ending**, added when the quantity isn't exactly 1 ("1 slice", "2 slices", "0.5 slices"). Default: "s"; Norwegian "er" ("r" after a final e); none for standard units (g, ml). Each translation (L-5) has its own. *Kept as a suffix for now; the rule lives in one helper per client so it can become full plural forms later.*
+- **U-9 (MUST)** Units and nutrients are **shared by all users of a server**. Names are unique across the server in every language; creating a taken name offers to show the existing one.
+  - Each user chooses which ones they **show**; the rest are **hidden** for them and listed in a "Hidden" section on the units and nutrients pages. A new unit or nutrient is shown for its maker and hidden for everyone else.
+  - Hiding only declutters lists and pickers. A hidden unit that a food uses stays usable for that food (offered when logging it, shown in its entries); a hidden nutrient keeps its values in foods but leaves the user's totals and history.
+  - Only the user who made one, and admins, can change or delete it; only admins the built-in ones (U-3, N-2).
+  - Per user: which ones are shown, the nutrient display order (N-3) and targets.
 
 ### 3.3 Nutrients
 
-- **N-1 (MUST)** Nutrients are **user-defined**: name (unique, same rules as F-2) + measurement unit (kcal, kJ, g, mg, µg, IU, or free text).
-- **N-2 (MUST)** Every user's catalog is **seeded** with: Energy (kcal), Protein (g), Carbohydrates (g), of which sugars (g), Fat (g), of which saturated (g), Fiber (g), Salt (g). Editable, archivable.
+- **N-1 (MUST)** Nutrients are **user-defined** and shared (U-9): name (unique across the server, same rules as F-2) + measurement unit (kcal, kJ, g, mg, µg, IU, or free text).
+- **N-2 (MUST)** The server is **seeded** once with built-in nutrients: Energy (kcal), Protein (g), Carbohydrates (g), of which sugars (g), Fat (g), of which saturated (g), Fiber (g), Salt (g). Every user starts with them shown; only admins can change them.
 - **N-2a** Energy is tracked in **kcal** by default. kJ is not built in: a user who wants it creates their own nutrient (e.g. "Energy (kJ)") with measurement unit kJ and enters its values separately. There is no automatic kcal↔kJ conversion.
-- **N-3 (MUST)** User-defined **display order**. The day view and food editor list nutrients in this order.
+- **N-3 (MUST)** Each user's own **display order** of the nutrients they show. The day view and food editor list nutrients in this order.
 - **N-4 (MUST)** The nutrient detail view links to:
   - all **food stuffs** that have a value for this nutrient
   - all **entries** that contribute to it (via their food stuff).
-- **N-5 (MUST)** Archive/delete rules identical to F-7/F-8 (a nutrient is "referenced" if any food stuff has a value for it or a target exists).
+- **N-5 (MUST)** Nutrients are hidden instead of archived (U-9). Delete is only allowed when no food stuff, of any user, has a value for it and no target uses it.
 - **N-6 (MUST)** Optional parent, one level (e.g. "of which sugars" under carbohydrates); a group's heading is always a nutrient itself. Groups stay together everywhere: in the display order (moving a main nutrient moves its group; sub-nutrients only move within it), on the nutrients page, in the food editor (nutrition-label style, warning if a sub-value exceeds its main value), in day totals and in history. Parents are not summed automatically.
 
 ### 3.4 Entries (main function)
@@ -141,14 +149,14 @@ The Norwegian terms are a first guess and may be changed; they live only in the 
 - **L-1 (MUST)** UI available in **English and Norwegian (bokmål)**, selectable per user or device, defaulting to the system locale.
 - **L-2 (MUST)** Numbers and dates are formatted per locale (decimal comma in Norwegian). Decimal input accepts both `,` and `.`.
 - **L-3 (MUST)** All UI strings are in resource files (web: i18n JSON; Android: `strings.xml`). No hardcoded strings.
-- **L-4** The seeded defaults are created with their main name in the user's language at account creation, and the other language's name as a translation (L-5).
+- **L-4** The built-in units and nutrients have English main names and Norwegian translations (L-5).
 - **L-5 (MUST)** Food stuffs, units and nutrients have a main name and an optional **name per UI language**. The name shown is the one in the reader's language if set, else the main name (for a language without translations, English before the main name). Search matches all names; a name belongs to only one item of a kind, in any language (F-2). Web clients send their language with each request; otherwise the user's saved language applies.
 
 ---
 
 ## 4. Users, auth & modes
 
-- **A-1 (MUST)** A server is **multi-user**, and each user has a **fully separate** catalog, diary and targets. No shared data between users.
+- **A-1 (MUST)** A server is **multi-user**. Each user has their own food stuffs, diary and targets; units and nutrients are shared (U-9).
 - **A-2 (MUST)** On a fresh server (no users), the web GUI shows a **first-run setup screen** where the first user is created and becomes **admin**. The setup screen and its endpoint are disabled permanently once any user exists.
 - **A-3 (MUST)** **No open registration.** Only admins create users, set initial passwords, reset passwords, disable users and grant or revoke admin. **Password reset is admin-only** (no email/self-service reset in v1).
 - **A-4 (MUST)** Authentication with username + password (hashed with Argon2id or bcrypt). Clients get a token (session token or short-lived access + refresh token). Users can change their own password.
@@ -202,14 +210,16 @@ The Norwegian terms are a first guess and may be changed; they live only in the 
 
 ## 6. Data model (logical)
 
-All tables except `user` carry `user_id`. Names are stored as entered, plus a normalized column (`lower(trim(name))`) with a unique index per user.
+Tables of per-user data carry `user_id`; on units and nutrients it is the user who made them. Names are stored as entered, plus a normalized column (`lower(trim(name))`) with a unique index: per user for foods, per server for units and nutrients.
 
 | Entity | Fields |
 |---|---|
 | user | id, username, password_hash, is_admin, is_disabled, locale, created_at, food_ref_amount, food_ref_unit_id (F-12) |
-| quantity_unit | id, user_id, name, name_norm, kind (mass/volume/custom), base_factor (nullable; for mass/volume), archived, plural_suffix |
+| quantity_unit | id, user_id (maker), name, name_norm, kind (mass/volume/custom), base_factor (nullable; for mass/volume), plural_suffix, built_in (U-3) |
+| shown_unit | user_id, unit_id — the units a user shows (U-9) |
 | unit_translation / nutrient_translation / food_translation | item id, locale, name, name_norm (+ plural_suffix for units) (L-5) |
-| nutrient | id, user_id, name, name_norm, measure_unit, display_precision, sort_order, parent_id (nullable), archived |
+| nutrient | id, user_id (maker), name, name_norm, measure_unit, display_precision, sort_order (default), parent_id (nullable), built_in (N-2) |
+| shown_nutrient | user_id, nutrient_id, sort_order — the nutrients a user shows, in their order (U-9, N-3) |
 | food | id, user_id, name, name_norm, ref_amount (nullable), ref_unit_id (nullable), notes, archived, yield_amount, yield_unit_id, log_as_whole (F-10) |
 | food_ingredient | food_id, position, ingredient_id, unit_id, quantity (F-10) |
 | food_image | food_id, content_type, image, thumbnail, updated_at (F-13) |
@@ -234,7 +244,7 @@ All tables except `user` carry `user_id`. Names are stored as entered, plus a no
 
 ## 8. Out of scope for v1 (tracked as FUTURE)
 
-Manual override of composite foods' derived values (F-10) · per-weekday targets · kcal↔kJ conversion · email password reset · Play Store / F-Droid distribution · mass↔volume density (F-11) · copy/repeat entries and recent/frequent sorting (E-7) · barcode + Open Food Facts (X-4) · multiple server profiles (A-8) · offline queue / sync between local and server · shared catalogs between users.
+Manual override of composite foods' derived values (F-10) · per-weekday targets · kcal↔kJ conversion · email password reset · Play Store / F-Droid distribution · mass↔volume density (F-11) · copy/repeat entries and recent/frequent sorting (E-7) · barcode + Open Food Facts (X-4) · multiple server profiles (A-8) · offline queue / sync between local and server · sharing food stuffs between users.
 
 ---
 
@@ -282,10 +292,24 @@ None at the moment.
 | New food reference | Prefilled with the last one used |
 | Photos | One per food; small in picker and lists, large on the food page |
 | Split totals | Per entry (same food = same colour), chronological; colours only while hovered, target colours otherwise; history bars the same |
-| Translations | For the user's own catalog in every UI language; selected language, else the main name; English preferred for languages without translations |
+| Translations | For every catalog item in every UI language; selected language, else the main name; English preferred for languages without translations |
 | Plural | Editable suffix per name, kept separate so it can change later |
 | Nutrient groups | One level; headings are nutrients |
 | Clients | Web first; Android catches up later |
 | Repository | Stays one repository (shared module used by server and Android local mode) |
 | iOS | Not now (no Mac available) |
 | Name | Not final; keep the visible name in one place, no new name-specific identifiers |
+
+## Appendix: Decisions from the third review (2026-10-04)
+
+These replace the "fully separate catalogs" and "archive instead" decisions above for units and nutrients.
+
+| Topic | Decision |
+|---|---|
+| Shared units and nutrients | One list per server; each user shows or hides each one. Foods (and tags) stay per user; sharing foods is on hold |
+| Archiving | Dropped for units and nutrients; hiding replaces it. Archived ones became hidden for their owner |
+| Who may change one | Its maker and admins; built-in ones only admins |
+| Built-ins | Created once per server with English and Norwegian names, owned by the first admin |
+| Merging existing data | Same name (or a name that is another's translation) = the same unit or nutrient; the oldest one is kept |
+| Export | Units and nutrients the data uses or the user shows, with whether they are hidden (format version 3) |
+
