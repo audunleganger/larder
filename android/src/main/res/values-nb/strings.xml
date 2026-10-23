@@ -5,7 +5,7 @@
     <string name="mode_local">Bruk på denne enheten</string>
     <string name="mode_local_description">Dataene lagres bare på denne telefonen. Ingen konto trengs.</string>
     <string name="mode_server">Koble til en server</string>
-    <string name="mode_server_description">Logg inn på en selvhostet Calorie Companion-server.</string>
+    <string name="mode_server_description">Logg inn på en selvhostet Larder-server.</string>
     <string name="setup_use_local">Start</string>
     <string name="setup_server_url">Serveradresse</string>
     <string name="setup_http_warning">Vanlig HTTP er ikke kryptert. Bruk det bare på ditt eget nettverk eller via VPN.</string>
@@ -228,7 +228,7 @@
     <string name="settings_download">Eksporter til fil</string>
     <string name="settings_exported">Eksporten er lagret.</string>
     <string name="settings_import">Import</string>
-    <string name="settings_import_hint">Importer en eksportfil fra Calorie Companion. Elementer kobles på navn; registreringer som allerede finnes hoppes over.</string>
+    <string name="settings_import_hint">Importer en eksportfil fra Larder. Elementer kobles på navn; registreringer som allerede finnes hoppes over.</string>
     <string name="settings_on_conflict">Når navnet allerede finnes</string>
     <string name="settings_strategy_skip">Behold mine</string>
     <string name="settings_strategy_overwrite">Bruk importerte</string>

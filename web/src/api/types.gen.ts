@@ -25,7 +25,7 @@ export const ErrorCodes = {
 export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes]
 
 /** Export file format ids that import accepts. */
-export const EXPORT_FORMATS: readonly unknown[] = ['calorie-companion-export']
+export const EXPORT_FORMATS: readonly unknown[] = ['larder-export', 'calorie-companion-export']
 
 export interface AdminUserCreate {
   username: string

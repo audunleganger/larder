@@ -1,6 +1,8 @@
-# Calorie Companion — Requirement Specification
+# Larder — Requirement Specification
 
-Version 0.13 · 2026-10-04 · Supersedes `requirements.txt`
+Version 0.14 · 2026-10-23 · Supersedes `requirements.txt`
+
+*0.14: renamed from Calorie Companion to Larder; old names that installs depend on still work (see the last appendix).*
 
 *0.13: a food's photo can be pasted, as an image or a link to one (F-13).*
 
@@ -339,3 +341,13 @@ These replace the "fully separate catalogs" and "archive instead" decisions abov
 | Export | Units and nutrients the data uses or the user shows, with whether they are hidden (format version 3) |
 | Metadata | Units and nutrients: made by/at, last changed by/at (edits only, not hiding or order). Foods: made by/at. Admins correct it; tags get the same when they're added. Existing items: made at the upgrade. Export version 4 carries the dates; an import keeps them for new items |
 
+## Appendix: Rename to Larder (2026-10-23)
+
+| Topic | Decision |
+|---|---|
+| Name | Calorie Companion is now Larder: app name, packages (`com.larder`), build names, Docker image `ghcr.io/audunleganger/larder` |
+| Server settings | `LARDER_*` env vars; the old `CC_*` names still work, the new ones win |
+| Server database file | `larder.db`; when only `calorie-companion.db` exists, the server keeps opening it |
+| Export | Format id `larder-export`; files with `calorie-companion-export` still import. Export files are named `larder-<date>.json` |
+| Web GUI | Login, language and hidden food columns move from the `cc.*` to the `larder.*` browser keys on first load, so nobody is signed out |
+| Android | Application id `com.larder`: a separate app from the old `com.caloriecompanion` one. Move data with export and import |

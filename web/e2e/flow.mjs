@@ -218,7 +218,7 @@ await step('settings and admin', async () => {
   await page.getByRole('button', { name: 'Create user' }).click()
   await page.getByText('Created kari.').waitFor()
   await page.getByRole('button', { name: 'Back up now' }).click()
-  await page.getByText(/Saved calorie-companion-/).waitFor()
+  await page.getByText(/Saved larder-/).waitFor()
   await shot('13-admin')
 })
 
@@ -370,12 +370,12 @@ await step('norwegian', async () => {
 
 await step('dark mode + mobile', async () => {
   const dark = await browser.newContext({ viewport: { width: 390, height: 844 }, colorScheme: 'dark', locale: 'en-US' })
-  const token = await page.evaluate(() => localStorage.getItem('cc.token'))
+  const token = await page.evaluate(() => localStorage.getItem('larder.token'))
   dark.setDefaultTimeout(6000)
   const p2 = await dark.newPage()
   p2.on('pageerror', (e) => problems.push(`[pageerror mobile] ${e.message}`))
   await p2.goto(BASE)
-  await p2.evaluate((t) => localStorage.setItem('cc.token', t), token)
+  await p2.evaluate((t) => localStorage.setItem('larder.token', t), token)
   await p2.goto(BASE)
   await p2.getByRole('heading', { name: 'Log food' }).waitFor()
   await p2.screenshot({ path: `${SHOTS}/15-mobile-dark-day.png`, fullPage: true })
@@ -574,7 +574,7 @@ await step('export and import', async () => {
   if (!data.tags.length || !data.foods.some((f) => f.tags.includes('Breakfast'))) throw new Error('export has no tags')
   await page.locator('input[type=file]').setInputFiles({ name: 'bad.json', mimeType: 'application/json', buffer: Buffer.from('{"format":"nope"}') })
   await page.getByRole('button', { name: 'Import', exact: true }).click()
-  await page.getByText('That file isn’t an export from Calorie Companion.').waitFor()
+  await page.getByText('That file isn’t an export from Larder.').waitFor()
 })
 
 console.log('\nConsole problems:', problems.length ? '\n' + problems.join('\n') : 'none')

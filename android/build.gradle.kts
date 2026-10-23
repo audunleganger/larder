@@ -13,11 +13,11 @@ val keystoreProperties = Properties().apply {
 }
 
 android {
-    namespace = "com.caloriecompanion.android"
+    namespace = "com.larder.android"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.caloriecompanion"
+        applicationId = "com.larder"
         minSdk = 26
         targetSdk = 37
         versionCode = 1

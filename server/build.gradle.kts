@@ -20,12 +20,12 @@ tasks.withType<JavaCompile>().configureEach {
 }
 
 application {
-    mainClass.set("com.caloriecompanion.server.ApplicationKt")
+    mainClass.set("com.larder.server.ApplicationKt")
 }
 
 ktor {
     fatJar {
-        archiveFileName.set("calorie-companion-server.jar")
+        archiveFileName.set("larder-server.jar")
     }
 }
 

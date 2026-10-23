@@ -17,7 +17,7 @@ export class ApiError extends Error {
   }
 }
 
-const TOKEN_KEY = 'cc.token'
+const TOKEN_KEY = 'larder.token'
 
 function readToken(): string | null {
   try {

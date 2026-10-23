@@ -1,4 +1,4 @@
-# Calorie Companion
+# Larder
 
 A self-hosted nutrition tracker where you define the foods, units and nutrients yourself. It has a web app, an
 Android app, and a small Kotlin server that keeps everything in one SQLite file.
@@ -78,7 +78,7 @@ Needs Java 21 or newer and Node.js 22.12 or newer.
 ```sh
 ./gradlew :server:buildFatJar
 (cd web && npm ci && npm run build)
-CC_WEB_DIR=web/dist java -jar server/build/libs/calorie-companion-server.jar
+LARDER_WEB_DIR=web/dist java -jar server/build/libs/larder-server.jar
 ```
 
 ### Configuration
@@ -87,18 +87,22 @@ The server reads these environment variables:
 
 | Variable | Default | |
 |---|---|---|
-| `CC_HOST` | `0.0.0.0` | Bind address |
-| `CC_PORT` | `8080` | Port |
-| `CC_DATA_DIR` | `data` (`/data` in the Docker image) | Directory for the SQLite database and `backups/` |
-| `CC_WEB_DIR` | *(unset; set in the Docker image)* | Directory with the built web GUI. Unset means API only |
-| `CC_TOKEN_LIFETIME_DAYS` | `30` | How long a login lasts without use |
-| `CC_VERSION` | *(set in published images)* | The version `/api/health` and Settings show. Unset means the version in the source |
-| `CC_PHOTO_FETCH_ALLOW_PRIVATE` | `false` | Lets photo links point at the local network (loopback, private, link-local and VPN addresses). Off, so the server can't be used to reach it |
+| `LARDER_HOST` | `0.0.0.0` | Bind address |
+| `LARDER_PORT` | `8080` | Port |
+| `LARDER_DATA_DIR` | `data` (`/data` in the Docker image) | Directory for the SQLite database and `backups/` |
+| `LARDER_WEB_DIR` | *(unset; set in the Docker image)* | Directory with the built web GUI. Unset means API only |
+| `LARDER_TOKEN_LIFETIME_DAYS` | `30` | How long a login lasts without use |
+| `LARDER_VERSION` | *(set in published images)* | The version `/api/health` and Settings show. Unset means the version in the source |
+| `LARDER_PHOTO_FETCH_ALLOW_PRIVATE` | `false` | Lets photo links point at the local network (loopback, private, link-local and VPN addresses). Off, so the server can't be used to reach it |
+
+Larder used to be called Calorie Companion. The old `CC_` names still work, and a server whose data directory
+has only the old `calorie-companion.db` keeps using it (rename it to `larder.db` while the server is stopped).
+Old export files still import.
 
 ### Backups
 
 An admin can make a consistent copy of the database under **Admin → Backup**. It's saved in
-`$CC_DATA_DIR/backups/`. Copying the database file while the server is stopped works too. Food photos are stored
+`$LARDER_DATA_DIR/backups/`. Copying the database file while the server is stopped works too. Food photos are stored
 in the database, so backups include them.
 
 Each user can also download all their data as a JSON file under **Settings**, and import it on another server or
@@ -108,7 +112,7 @@ in the Android app.
 
 Change the image tag to the new version, then `docker compose pull && docker compose up -d` (or build the new
 version and restart). A newer server upgrades the database on start: it first saves a copy as
-`$CC_DATA_DIR/backups/pre-migration-v<N>-<time>.db`, then migrates in one transaction, so a failed upgrade
+`$LARDER_DATA_DIR/backups/pre-migration-v<N>-<time>.db`, then migrates in one transaction, so a failed upgrade
 changes nothing. An older server refuses to open a newer database, so going back to an older version means
 restoring that copy.
 
@@ -203,7 +207,7 @@ from source don't report an old version.
 
 ### API types
 
-The Kotlin classes in `shared/src/main/kotlin/com/caloriecompanion/shared/api` define the API.
+The Kotlin classes in `shared/src/main/kotlin/com/larder/shared/api` define the API.
 `web/src/api/types.gen.ts` is generated from them. After changing one, regenerate it with
 
 ```sh
@@ -216,7 +220,7 @@ The Kotlin classes in `shared/src/main/kotlin/com/caloriecompanion/shared/api` d
 
 The `.sq` files in `shared/src/main/sqldelight` hold the current schema. Every change also needs a migration,
 `migrations/<N>.sqm`, which upgrades version N to N+1. After a release, snapshot the new schema with
-`./gradlew :shared:generateMainCalorieCompanionDatabaseSchema` (it writes `databases/<N+1>.db`).
+`./gradlew :shared:generateMainLarderDatabaseSchema` (it writes `databases/<N+1>.db`).
 `./gradlew check` verifies that the snapshots plus the migrations match the `.sq` schema, and `MigrationTest`
 upgrades a version 1 database full of data.
 

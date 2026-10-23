@@ -14,7 +14,7 @@ import { TagChip } from '../components/TagChip'
 import { useDebounced } from '../lib/useDebounced'
 import { filterParams, isFiltered, matchesFilter, NO_FILTER, parseFilter, type FoodFilter } from '../lib/foodFilters'
 
-const HIDDEN_COLUMNS_KEY = 'cc.foodColumns.hidden'
+const HIDDEN_COLUMNS_KEY = 'larder.foodColumns.hidden'
 
 /**
  * The nutrient columns the reader has turned off in the food table (F-17), kept in this browser. New

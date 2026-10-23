@@ -11,7 +11,7 @@ declare module 'i18next' {
 
 export type Language = 'en' | 'nb'
 export const LANGUAGES: Language[] = ['en', 'nb']
-const STORAGE_KEY = 'cc.lang'
+const STORAGE_KEY = 'larder.lang'
 
 /** Maps any locale string to a supported language; Norwegian variants use bokmål (L-1). */
 export function toLanguage(locale: string | null | undefined): Language | null {
