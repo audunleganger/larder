@@ -1,6 +1,6 @@
 import java.util.Properties
 
-rootProject.name = "calorie-companion"
+rootProject.name = "larder"
 
 pluginManagement {
     repositories {

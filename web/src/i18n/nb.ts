@@ -3,7 +3,7 @@ import type en from './en'
 type Translation<T> = { [K in keyof T]: T[K] extends string ? string : Translation<T[K]> }
 
 const nb: Translation<typeof en> = {
-  appName: 'Calorie Companion',
+  appName: 'Larder',
   languages: { en: 'English', nb: 'Norsk' },
   composite: {
     title: 'Laget av',

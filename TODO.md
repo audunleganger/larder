@@ -30,7 +30,7 @@ Changes to stored data also need a schema migration, a new export format version
     (logging without a connection and syncing later) is a separate, much larger feature.
   - Should an app left open for days notice a new deploy, by checking when it comes back to the foreground, and
     ask to reload? `/api/health` reports the release version, or `main-<commit>` for images built from main
-    (`CC_VERSION`), so a change in it means a new deploy.
+    (`LARDER_VERSION`), so a change in it means a new deploy.
   - The icon: wait for the Larder rename, which needs a new icon anyway?
 
 ## Changes
@@ -63,37 +63,6 @@ own size. Wait with the implementation until a design is settled. Questions to a
 
 ## Project
 
-### Rename to Larder
+### Larder icon
 
-The GitHub repository is called `larder`, but the project itself is still named Calorie Companion. Rename it in
-one go:
-
-- **Visible name:** `appName` in `web/src/i18n/en.ts` and `nb.ts`, `<title>` in `web/index.html`, Android
-  `app_name` and the strings that mention the name (`values/strings.xml`, `values-nb/strings.xml`), README.md,
-  REQUIREMENTS.md, the e2e checks in `web/e2e/flow.mjs`.
-- **Build names:** `rootProject.name` in `settings.gradle.kts`, `calorie-companion-server.jar`
-  (`server/build.gradle.kts`, `Dockerfile`, `web/e2e/run.sh`), `calorie-companion-web` in `web/package.json`,
-  the Docker image name in the README.
-- **Code identifiers:** Kotlin packages `com.caloriecompanion.*`, the SQLDelight database `CalorieCompanionDatabase`
-  (its schema task in the README is named after it), the Android `namespace`.
-- **Names that existing installs depend on.** Each needs a fallback, or should stay as it is:
-  - The database file `calorie-companion.db` (`Database.FILE_NAME` on the server, `LocalRepository.DATABASE_NAME`
-    on Android). Open the old file if it exists.
-  - The export format marker `calorie-companion-export` (`Transfer.FORMAT`). Keep importing the old one.
-  - The Android `applicationId` `com.caloriecompanion`. Changing it installs a separate app and leaves the old
-    app's local data behind.
-  - The `CC_*` environment variables, used in existing compose files. Accept both names, or keep them.
-  - The web GUI's `cc.token` and `cc.lang` localStorage keys. Changing them signs everyone out and resets the
-    language.
-- **Harmless to change:** the export file name `calorie-companion-<date>.json` (server and Android), the backup
-  file prefix.
-- Replace the default Vite favicon (`web/public/favicon.svg`) with an icon for the new name.
-- **On this machine**, outside the repository (done by hand, after the rename is merged):
-  - Rename the checkout `~/development/calorie-companion` to `~/development/larder`. Git and the `origin` remote
-    don't care about the folder name.
-  - Claude Code keeps its notes on the project in a folder named after the checkout's path
-    (`~/.claude/projects/-home-audun-development-calorie-companion`). Rename it to match
-    (`-home-audun-development-larder`), or the notes are lost.
-  - The deployment in `~/development/infra/calorie-companion`: the folder, the compose service and container name,
-    the image name, and the database file in `data/` (only once the server opens the new file name, see above).
-    Stop the container first, and update any backup paths that point at the old folder.
+Replace the default Vite favicon (`web/public/favicon.svg`) and the Android launcher icon with an icon for Larder.

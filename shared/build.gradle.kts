@@ -22,8 +22,8 @@ tasks.withType<JavaCompile>().configureEach {
 
 sqldelight {
     databases {
-        create("CalorieCompanionDatabase") {
-            packageName.set("com.caloriecompanion.db")
+        create("LarderDatabase") {
+            packageName.set("com.larder.db")
             // Snapshots of each released schema version (N.db); migrations live in N.sqm.
             // verifySqlDelightMigration (part of `check`) proves N.db + migrations == current .sq schema.
             schemaOutputDirectory.set(file("src/main/sqldelight/databases"))

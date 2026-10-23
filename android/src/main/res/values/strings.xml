@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">Calorie Companion</string>
+    <string name="app_name" translatable="false">Larder</string>
     <string name="welcome_title">Welcome</string>
 
     <!-- Setup / modes (A-6) -->
     <string name="mode_local">Use on this device</string>
     <string name="mode_local_description">Data is stored only on this phone. No account needed.</string>
     <string name="mode_server">Connect to a server</string>
-    <string name="mode_server_description">Log in to a self-hosted Calorie Companion server.</string>
+    <string name="mode_server_description">Log in to a self-hosted Larder server.</string>
     <string name="setup_use_local">Start</string>
     <string name="setup_server_url">Server address</string>
     <string name="setup_http_warning">Plain HTTP is not encrypted. Use it only on your own network or through a VPN.</string>
@@ -241,7 +241,7 @@
     <string name="settings_download">Export to file</string>
     <string name="settings_exported">Export saved.</string>
     <string name="settings_import">Import</string>
-    <string name="settings_import_hint">Import a Calorie Companion export file. Items are matched by name; entries that already exist are skipped.</string>
+    <string name="settings_import_hint">Import a Larder export file. Items are matched by name; entries that already exist are skipped.</string>
     <string name="settings_on_conflict">When a name already exists</string>
     <string name="settings_strategy_skip">Keep mine</string>
     <string name="settings_strategy_overwrite">Use imported</string>

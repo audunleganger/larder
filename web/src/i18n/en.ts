@@ -1,6 +1,6 @@
 const en = {
   // The app's name appears only here (and in index.html's initial title); other strings use $t(appName).
-  appName: 'Calorie Companion',
+  appName: 'Larder',
   languages: { en: 'English', nb: 'Norsk' },
   composite: {
     title: 'Made of',
