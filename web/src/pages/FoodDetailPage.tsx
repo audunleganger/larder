@@ -8,13 +8,15 @@ import { DecimalInput } from '../components/DecimalInput'
 import { MetadataCard } from '../components/Metadata'
 import { Badge, Card, ConfirmButton, Empty, ErrorText, Field, PageHeader, QueryView } from '../components/ui'
 import { formatDate } from '../lib/dates'
-import { currentLocale, formatAmount, formatNumber, formatQuantity, parseDecimal, toInputValue } from '../lib/format'
+import { currentLocale, formatAmount, formatNumber, formatQuantity, isNonNegative, isPositive, parseDecimal, toInputValue } from '../lib/format'
 import { compositeDraft, toCompositeInput } from '../lib/composite'
 import { IngredientsEditor } from '../components/IngredientsEditor'
 import { TagsEditor } from '../components/TagsEditor'
 import { draftTranslations, toTranslations, unitLabel } from '../lib/names'
 import { TranslationFields } from '../components/TranslationFields'
 import { FoodPhotoEditor } from '../components/FoodPhoto'
+import { UnitSelect } from '../components/UnitSelect'
+import { OfWhich } from '../components/OfWhich'
 import { groupNutrients } from '../lib/nutrients'
 
 interface LinkRow {
@@ -55,7 +57,7 @@ function FoodEditor({ detail, units, nutrients }: { detail: FoodDetail; units: U
 
   function build(): FoodInput | null {
     const amount = parseDecimal(refAmount)
-    if (amount !== null && (Number.isNaN(amount) || amount <= 0)) {
+    if (amount !== null && !isPositive(amount)) {
       setFormError(t('foods.errors.refAmount'))
       return null
     }
@@ -67,7 +69,7 @@ function FoodEditor({ detail, units, nutrients }: { detail: FoodDetail; units: U
     for (const [id, text] of Object.entries(values)) {
       const value = parseDecimal(text)
       if (value === null) continue
-      if (Number.isNaN(value) || value < 0) {
+      if (!isNonNegative(value)) {
         setFormError(t('foods.errors.nutrient', { name: nutrients.find((n) => n.id === Number(id))?.displayName ?? id }))
         return null
       }
@@ -77,7 +79,7 @@ function FoodEditor({ detail, units, nutrients }: { detail: FoodDetail; units: U
     for (const row of links) {
       if (row.unitId === '') continue
       const equals = parseDecimal(row.equalsAmount)
-      if (equals !== null && (Number.isNaN(equals) || equals <= 0)) {
+      if (equals !== null && !isPositive(equals)) {
         setFormError(t('foods.errors.unitSize'))
         return null
       }
@@ -128,7 +130,7 @@ function FoodEditor({ detail, units, nutrients }: { detail: FoodDetail; units: U
       <div key={n.id} className={main ? 'nutrient-sub' : undefined}>
         <label className="nutrient-input">
           <span>
-            {main && <span className="muted of-which">{t('nutrients.ofWhich')} </span>}
+            {main && <OfWhich />}
             {n.displayName}
           </span>
           <DecimalInput value={values[n.id] ?? ''} onChange={(text) => setValues((v) => ({ ...v, [n.id]: text }))} aria-label={n.displayName} />
@@ -164,14 +166,7 @@ function FoodEditor({ detail, units, nutrients }: { detail: FoodDetail; units: U
                 <DecimalInput value={refAmount} onChange={setRefAmount} placeholder="100" />
               </Field>
               <Field label={t('foods.refUnit')} className="grow">
-                <select className="input" value={refUnitId} onChange={(e) => setRefUnitId(e.target.value ? Number(e.target.value) : '')}>
-                  <option value="">{t('foods.notSet')}</option>
-                  {pickableUnits.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.displayName}
-                    </option>
-                  ))}
-                </select>
+                <UnitSelect units={pickableUnits} value={refUnitId} onChange={setRefUnitId} placeholder={t('foods.notSet')} />
               </Field>
             </div>
             <p className="field-hint">{t('foods.refHint')}</p>
@@ -217,26 +212,16 @@ function FoodEditor({ detail, units, nutrients }: { detail: FoodDetail; units: U
             {links.map((row) => (
               <div key={row.key} className="link-row">
                 <span className="muted">1</span>
-                <select className="input" aria-label={t('foods.unit')} value={row.unitId} onChange={(e) => updateLink(row.key, { unitId: e.target.value ? Number(e.target.value) : '' })}>
-                  <option value="">{t('foods.chooseUnit')}</option>
-                  {pickableUnits.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.displayName}
-                    </option>
-                  ))}
-                </select>
+                <UnitSelect aria-label={t('foods.unit')} units={pickableUnits} value={row.unitId} onChange={(unitId) => updateLink(row.key, { unitId })} placeholder={t('foods.chooseUnit')} />
                 <span className="muted">=</span>
                 <DecimalInput className="qty-input" value={row.equalsAmount} onChange={(text) => updateLink(row.key, { equalsAmount: text })} aria-label={t('foods.equalsAmount')} placeholder="?" />
-                <select className="input" aria-label={t('foods.equalsUnit')} value={row.equalsUnitId} onChange={(e) => updateLink(row.key, { equalsUnitId: e.target.value ? Number(e.target.value) : '' })}>
-                  <option value="">{t('foods.chooseUnit')}</option>
-                  {pickableUnits
-                    .filter((u) => u.id !== row.unitId)
-                    .map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {u.displayName}
-                      </option>
-                    ))}
-                </select>
+                <UnitSelect
+                  aria-label={t('foods.equalsUnit')}
+                  units={pickableUnits.filter((u) => u.id !== row.unitId)}
+                  value={row.equalsUnitId}
+                  onChange={(equalsUnitId) => updateLink(row.key, { equalsUnitId })}
+                  placeholder={t('foods.chooseUnit')}
+                />
                 <button type="button" className="btn btn-ghost btn-small" onClick={() => setLinks((rows) => rows.filter((r) => r.key !== row.key))}>
                   {t('common.remove')}
                 </button>
@@ -314,7 +299,7 @@ function CompositeNutrients({ detail, units, nutrients }: { detail: FoodDetail; 
                   <div key={n.id} className={n.id !== main.id ? 'nutrient-sub' : undefined}>
                     <div className="nutrient-value">
                       <span>
-                        {n.id !== main.id && <span className="muted of-which">{t('nutrients.ofWhich')} </span>}
+                        {n.id !== main.id && <OfWhich />}
                         {n.displayName}
                       </span>
                       <span className="nutrient-amount">{values.has(n.id) ? formatAmount(values.get(n.id)!, n) : '—'}</span>

@@ -8,8 +8,9 @@ import type { CompositeDetail, EntryInput, EntryView } from '../api/types.gen'
 import { DecimalInput } from '../components/DecimalInput'
 import { FoodPicker, type PickedFood } from '../components/FoodPicker'
 import { ErrorText, Field } from '../components/ui'
+import { FoodUnitSelect } from '../components/UnitSelect'
 import { nowTime } from '../lib/dates'
-import { formatAmount, formatQuantity, parseDecimal, toInputValue } from '../lib/format'
+import { formatAmount, formatQuantity, isPositive, parseDecimal, toInputValue } from '../lib/format'
 import { defaultUnitId } from '../lib/units'
 import { unitLabel } from '../lib/names'
 import { useDebounced } from '../lib/useDebounced'
@@ -67,7 +68,7 @@ export function EntryForm({ date, entry, onDone }: { date: string; entry: EntryV
   const wholeByWeight = composite?.yieldAutomatic && composite.yieldAmount !== null && effectiveUnitId === composite.yieldUnitId
   const shownQuantity = !quantityEdited && wholeByWeight ? toInputValue(Math.round(composite.yieldAmount!)) : quantity
   const qty = parseDecimal(shownQuantity)
-  const validQty = qty !== null && !Number.isNaN(qty) && qty > 0 ? qty : null
+  const validQty = isPositive(qty) ? qty : null
   const debouncedQty = useDebounced(validQty, 250)
 
   const preview = useQuery({
@@ -80,9 +81,6 @@ export function EntryForm({ date, entry, onDone }: { date: string; entry: EntryV
   const save = useApiMutation((input: EntryInput) => (entry ? endpoints.updateEntry(entry.id, input) : endpoints.createEntry(input)))
 
   const usable = detail.data?.usableUnits ?? []
-  const usableIds = new Set(usable.map((u) => u.unitId))
-  // Hidden units only when the entry already uses one.
-  const otherUnits = (units.data ?? []).filter((u) => !usableIds.has(u.id) && (!u.hidden || u.id === effectiveUnitId))
   const selectedUsable = usable.find((u) => u.unitId === effectiveUnitId)
   const unitUnresolved = food !== null && effectiveUnitId !== null && (!selectedUsable || selectedUsable.amountInRefUnit === null)
 
@@ -137,35 +135,16 @@ export function EntryForm({ date, entry, onDone }: { date: string; entry: EntryV
           />
         </Field>
         <Field label={t('entry.unit')} className="grow">
-          <select
-            className="input"
+          <FoodUnitSelect
+            usable={usable}
+            units={units.data ?? []}
             value={effectiveUnitId ?? ''}
+            onChange={(id) => setUnitId(id === '' ? null : id)}
+            placeholder={food ? t('entry.chooseUnit') : '—'}
+            placeholderDisabled
+            quantity={validQty}
             disabled={!food}
-            onChange={(e) => setUnitId(e.target.value ? Number(e.target.value) : null)}
-          >
-            <option value="" disabled>
-              {food ? t('entry.chooseUnit') : '—'}
-            </option>
-            {usable.length > 0 && (
-              <optgroup label={t('entry.unitsForFood')}>
-                {usable.map((u) => (
-                  <option key={u.unitId} value={u.unitId}>
-                    {unitLabel(u.name, u.plural, validQty)}
-                    {u.amountInRefUnit === null ? ' ⚠' : ''}
-                  </option>
-                ))}
-              </optgroup>
-            )}
-            {otherUnits.length > 0 && (
-              <optgroup label={t('entry.otherUnits')}>
-                {otherUnits.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {unitLabel(u.displayName, u.displayPlural, validQty)}
-                  </option>
-                ))}
-              </optgroup>
-            )}
-          </select>
+          />
         </Field>
       </div>
       <div className="form-row">

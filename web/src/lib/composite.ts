@@ -1,6 +1,6 @@
 import type { CompositeDetail, CompositeInput, FoodDto, UnitDto } from '../api/types.gen'
 import type { PickedFood } from '../components/FoodPicker'
-import { parseDecimal, toInputValue } from './format'
+import { isPositive, parseDecimal, toInputValue } from './format'
 
 export interface IngredientRow {
   key: number
@@ -48,11 +48,11 @@ export function toCompositeInput(draft: CompositeDraft): CompositeInput | { erro
   const ingredients = []
   for (const row of draft.rows) {
     const quantity = parseDecimal(row.quantity)
-    if (!row.food || row.unitId === '' || quantity === null || Number.isNaN(quantity) || quantity <= 0) return { error: 'composite.errors.ingredient' }
+    if (!row.food || row.unitId === '' || !isPositive(quantity)) return { error: 'composite.errors.ingredient' }
     ingredients.push({ foodId: row.food.id, unitId: row.unitId, quantity })
   }
   if (draft.yieldMode === 'auto') return { ingredients, yieldAmount: null, yieldUnitId: null, logAsWhole: draft.logAsWhole }
   const amount = parseDecimal(draft.yieldAmount)
-  if (amount === null || Number.isNaN(amount) || amount <= 0 || draft.yieldUnitId === '') return { error: 'composite.errors.yield' }
+  if (!isPositive(amount) || draft.yieldUnitId === '') return { error: 'composite.errors.yield' }
   return { ingredients, yieldAmount: amount, yieldUnitId: draft.yieldUnitId, logAsWhole: draft.logAsWhole }
 }

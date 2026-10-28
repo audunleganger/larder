@@ -6,11 +6,11 @@ import * as endpoints from '../api/endpoints'
 import { useFoodAndContainers, useFoodDetail } from '../api/queries'
 import type { CompositeDetail, UnitDto } from '../api/types.gen'
 import { formatNumber, parseDecimal } from '../lib/format'
-import { unitLabel } from '../lib/names'
 import { defaultUnitId } from '../lib/units'
 import { nextRowKey, type CompositeDraft, type IngredientRow } from '../lib/composite'
 import { DecimalInput } from './DecimalInput'
 import { FoodPicker } from './FoodPicker'
+import { FoodUnitSelect, UnitSelect } from './UnitSelect'
 
 /** One ingredient: food, amount and unit (the units that food can be measured in come first). */
 function IngredientRowEditor({ row, units, saved, exclude, onPatch, onRemove }: { row: IngredientRow; units: UnitDto[]; saved?: CompositeDetail['ingredients'][number]; exclude?: ReadonlySet<number>; onPatch: (patch: Partial<IngredientRow>) => void; onRemove: () => void }) {
@@ -18,9 +18,6 @@ function IngredientRowEditor({ row, units, saved, exclude, onPatch, onRemove }: 
   const queryClient = useQueryClient()
   const detail = useFoodDetail(row.food?.id ?? null)
   const qty = parseDecimal(row.quantity)
-  const usable = detail.data?.usableUnits ?? []
-  const usableIds = new Set(usable.map((u) => u.unitId))
-  const otherUnits = units.filter((u) => !u.hidden && !usableIds.has(u.id))
   // The saved calculation only describes this row while it's unchanged.
   const unresolved = saved && saved.foodId === row.food?.id && saved.unitId === row.unitId && saved.unresolved
 
@@ -42,28 +39,17 @@ function IngredientRowEditor({ row, units, saved, exclude, onPatch, onRemove }: 
         />
       </div>
       <DecimalInput className="qty-input" value={row.quantity} onChange={(quantity) => onPatch({ quantity })} aria-label={t('composite.amount')} />
-      <select className="input unit-select" aria-label={t('composite.unit')} value={row.unitId} disabled={!row.food} onChange={(e) => onPatch({ unitId: e.target.value ? Number(e.target.value) : '' })}>
-        <option value="">{t('foods.chooseUnit')}</option>
-        {usable.length > 0 && (
-          <optgroup label={t('entry.unitsForFood')}>
-            {usable.map((u) => (
-              <option key={u.unitId} value={u.unitId}>
-                {unitLabel(u.name, u.plural, qty)}
-                {u.amountInRefUnit === null ? ' ⚠' : ''}
-              </option>
-            ))}
-          </optgroup>
-        )}
-        {otherUnits.length > 0 && (
-          <optgroup label={t('entry.otherUnits')}>
-            {otherUnits.map((u) => (
-              <option key={u.id} value={u.id}>
-                {unitLabel(u.displayName, u.displayPlural, qty)}
-              </option>
-            ))}
-          </optgroup>
-        )}
-      </select>
+      <FoodUnitSelect
+        className="input unit-select"
+        aria-label={t('composite.unit')}
+        usable={detail.data?.usableUnits ?? []}
+        units={units}
+        value={row.unitId}
+        onChange={(unitId) => onPatch({ unitId })}
+        placeholder={t('foods.chooseUnit')}
+        quantity={qty}
+        disabled={!row.food}
+      />
       <button type="button" className="btn btn-ghost btn-small" onClick={onRemove}>
         {t('common.remove')}
       </button>
@@ -138,19 +124,15 @@ export function IngredientsEditor({ foodId, draft, onChange, units, saved }: { f
                 onFocus={() => update({ yieldMode: 'set' })}
                 onChange={(yieldAmount) => update({ yieldMode: 'set', yieldAmount })}
               />
-              <select
+              <UnitSelect
                 className="input unit-select"
                 aria-label={t('composite.yieldUnit')}
+                units={yieldUnits}
                 value={draft.yieldUnitId}
-                onChange={(e) => update({ yieldMode: 'set', yieldUnitId: e.target.value ? Number(e.target.value) : '' })}
-              >
-                <option value="">{t('foods.chooseUnit')}</option>
-                {yieldUnits.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {unitLabel(u.displayName, u.displayPlural, yieldQty)}
-                  </option>
-                ))}
-              </select>
+                onChange={(yieldUnitId) => update({ yieldMode: 'set', yieldUnitId })}
+                placeholder={t('foods.chooseUnit')}
+                quantity={yieldQty}
+              />
             </label>
             <p className="field-hint">{t('composite.makesHint')}</p>
           </fieldset>

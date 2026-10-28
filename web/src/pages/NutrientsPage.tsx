@@ -10,6 +10,7 @@ import { takenHidden } from '../lib/shared'
 import { flattenGroups, groupNutrients, moved, type NutrientGroup } from '../lib/nutrients'
 import { draftTranslations, toTranslations } from '../lib/names'
 import { TranslationFields } from '../components/TranslationFields'
+import { OfWhich } from '../components/OfWhich'
 
 /** Fields shared by the create and edit nutrient forms (N-1, N-6). */
 export function NutrientFields({ initial, all, submitLabel, onSubmit, error, busy }: { initial?: NutrientDto; all: NutrientDto[]; submitLabel: string; onSubmit: (input: NutrientInput) => Promise<unknown>; error: unknown; busy: boolean }) {
@@ -127,7 +128,7 @@ export function NutrientsPage() {
             const row = (n: NutrientDto, up: (() => void) | null, down: (() => void) | null) => (
               <div className="order-row">
                 <span className="order-name">
-                  {n.parentId !== null && <span className="muted of-which">{t('nutrients.ofWhich')} </span>}
+                  {n.parentId !== null && <OfWhich />}
                   <Link to={`/nutrients/${n.id}`}>{n.displayName}</Link> <span className="muted">({n.measureUnit})</span>
                 </span>
                 <span className="order-buttons">

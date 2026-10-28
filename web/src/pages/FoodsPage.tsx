@@ -5,10 +5,11 @@ import * as endpoints from '../api/endpoints'
 import { useApiMutation, useFoodRefDefault, useFoods, useNutrients, useTags, useUnits } from '../api/queries'
 import type { NutrientDto } from '../api/types.gen'
 import { DecimalInput } from '../components/DecimalInput'
+import { UnitSelect } from '../components/UnitSelect'
 import { FoodThumb } from '../components/FoodPhoto'
 import { unitLabel } from '../lib/names'
 import { Badge, Card, Empty, ErrorText, PageHeader, QueryView } from '../components/ui'
-import { currentLocale, formatNumber, parseDecimal, toInputValue } from '../lib/format'
+import { currentLocale, formatNumber, isPositive, parseDecimal, toInputValue } from '../lib/format'
 import { tagsByName } from '../lib/tags'
 import { TagChip } from '../components/TagChip'
 import { useDebounced } from '../lib/useDebounced'
@@ -92,7 +93,7 @@ export function FoodsPage() {
   async function submit(event: FormEvent) {
     event.preventDefault()
     const amount = parseDecimal(ref.amount)
-    const withRef = amount !== null && !Number.isNaN(amount) && amount > 0 && ref.unitId !== ''
+    const withRef = isPositive(amount) && ref.unitId !== ''
     const food = await create.mutateAsync({ name: newName, refAmount: withRef ? amount : null, refUnitId: withRef ? Number(ref.unitId) : null })
     setNewName('')
     setNewRef(null)
@@ -115,16 +116,14 @@ export function FoodsPage() {
           <input className="input grow" placeholder={t('foods.namePlaceholder')} aria-label={t('common.name')} value={newName} onChange={(e) => setNewName(e.target.value)} required />
           <span className="muted">{t('foods.per')}</span>
           <DecimalInput className="qty-input" aria-label={t('foods.refAmount')} value={ref.amount} onChange={(amount) => setNewRef({ ...ref, amount })} />
-          <select className="input unit-select" aria-label={t('foods.refUnit')} value={ref.unitId} onChange={(e) => setNewRef({ ...ref, unitId: e.target.value ? Number(e.target.value) : '' })}>
-            <option value="">{t('foods.notSet')}</option>
-            {(units.data ?? [])
-              .filter((u) => !u.hidden || u.id === ref.unitId)
-              .map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.displayName}
-                </option>
-              ))}
-          </select>
+          <UnitSelect
+            className="input unit-select"
+            aria-label={t('foods.refUnit')}
+            units={(units.data ?? []).filter((u) => !u.hidden || u.id === ref.unitId)}
+            value={ref.unitId}
+            onChange={(unitId) => setNewRef({ ...ref, unitId })}
+            placeholder={t('foods.notSet')}
+          />
           <button type="submit" className="btn btn-primary" disabled={create.isPending}>
             {t('common.create')}
           </button>
