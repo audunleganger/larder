@@ -16,6 +16,7 @@ import com.larder.shared.service.TransferService
 import io.ktor.http.ContentDisposition
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.ApplicationCall
 import io.ktor.server.request.receive
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
@@ -29,47 +30,53 @@ import java.time.LocalDate
 
 /** Entries, day view, targets, history and import/export (E-*, D-*, T-*, H-*, X-*). */
 fun Route.diaryRoutes(database: Database, auth: Auth) {
+    suspend fun <T> ApplicationCall.entries(block: EntryService.() -> T) =
+        withService(database, auth, { db, user, language -> EntryService(db, user, language = language) }, block)
+    suspend fun <T> ApplicationCall.targets(block: TargetService.() -> T) = withService(database, auth, { db, user, _ -> TargetService(db, user) }, block)
+    suspend fun <T> ApplicationCall.history(block: HistoryService.() -> T) = withService(database, auth, ::HistoryService, block)
+    suspend fun <T> ApplicationCall.transfer(block: TransferService.() -> T) = withService(database, auth, { db, user, _ -> TransferService(db, user) }, block)
+
     get("/days/{date}") {
         val date = call.parameters["date"]!!
-        call.respond(call.withUserLanguage(database, auth) { db, user, language -> EntryService(db, user, language = language).day(date) })
+        call.respond(call.entries { day(date) })
     }
 
     route("/entries") {
         post {
             val input = call.receive<EntryInput>()
-            call.respond(HttpStatusCode.Created, call.withUserLanguage(database, auth) { db, user, language -> EntryService(db, user, language = language).create(input) })
+            call.respond(HttpStatusCode.Created, call.entries { create(input) })
         }
         post("/preview") {
             val input = call.receive<PreviewInput>()
-            call.respond(call.withUserLanguage(database, auth) { db, user, language -> EntryService(db, user, language = language).preview(input) })
+            call.respond(call.entries { preview(input) })
         }
         get("/{id}") {
             val id = call.idParam()
-            call.respond(call.withUserLanguage(database, auth) { db, user, language -> EntryService(db, user, language = language).get(id) })
+            call.respond(call.entries { get(id) })
         }
         put("/{id}") {
             val id = call.idParam()
             val input = call.receive<EntryInput>()
-            call.respond(call.withUserLanguage(database, auth) { db, user, language -> EntryService(db, user, language = language).update(id, input) })
+            call.respond(call.entries { update(id, input) })
         }
         delete("/{id}") {
             val id = call.idParam()
-            call.withUserLanguage(database, auth) { db, user, language -> EntryService(db, user, language = language).delete(id) }
+            call.entries { delete(id) }
             call.respond(HttpStatusCode.NoContent)
         }
     }
 
     route("/targets") {
         get {
-            call.respond(call.withUser(database, auth) { db, user -> TargetService(db, user).list() })
+            call.respond(call.targets { list() })
         }
         post {
             val input = call.receive<TargetInput>()
-            call.respond(call.withUser(database, auth) { db, user -> TargetService(db, user).set(input) })
+            call.respond(call.targets { set(input) })
         }
         delete("/{id}") {
             val id = call.idParam()
-            call.withUser(database, auth) { db, user -> TargetService(db, user).delete(id) }
+            call.targets { delete(id) }
             call.respond(HttpStatusCode.NoContent)
         }
     }
@@ -77,18 +84,18 @@ fun Route.diaryRoutes(database: Database, auth: Auth) {
     get("/history") {
         val from = call.request.queryParameters["from"] ?: validation("'from' is required")
         val to = call.request.queryParameters["to"] ?: validation("'to' is required")
-        call.respond(call.withUser(database, auth) { db, user -> HistoryService(db, user).history(from, to) })
+        call.respond(call.history { history(from, to) })
     }
 
     get("/history/contributions") {
         val from = call.request.queryParameters["from"] ?: validation("'from' is required")
         val to = call.request.queryParameters["to"] ?: validation("'to' is required")
         val nutrientId = call.request.queryParameters["nutrientId"]?.toLongOrNull() ?: validation("'nutrientId' is required")
-        call.respond(call.withUserLanguage(database, auth) { db, user, language -> HistoryService(db, user, language).contributions(from, to, nutrientId) })
+        call.respond(call.history { contributions(from, to, nutrientId) })
     }
 
     get("/export") {
-        val file = call.withUser(database, auth) { db, user -> TransferService(db, user).export() }
+        val file = call.transfer { export() }
         call.response.header(
             HttpHeaders.ContentDisposition,
             ContentDisposition.Attachment.withParameter(ContentDisposition.Parameters.FileName, "larder-${LocalDate.now()}.json").toString(),
@@ -107,6 +114,6 @@ fun Route.diaryRoutes(database: Database, auth: Auth) {
         } catch (e: BadRequestException) {
             throw AppException(ErrorCodes.INVALID_IMPORT, "Not a valid export file", 400)
         }
-        call.respond(call.withUser(database, auth) { db, user -> TransferService(db, user).import(file, strategy) })
+        call.respond(call.transfer { import(file, strategy) })
     }
 }
