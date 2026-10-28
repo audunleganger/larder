@@ -2,6 +2,8 @@ package com.larder.shared.domain
 
 import com.larder.shared.api.NameTranslation
 import com.larder.shared.api.UnitKind
+import java.text.Collator
+import java.util.Locale
 
 /**
  * Names in several languages (L-5). Every food, unit and nutrient has a main name; it may also have a
@@ -22,6 +24,14 @@ object Languages {
 
     fun isNorwegian(locale: String?): Boolean = of(locale) == "nb"
 }
+
+private val NORWEGIAN: Locale = Locale.forLanguageTag("nb")
+
+/**
+ * Orders items by [name] the Norwegian way (NF-8: æ, ø, å after z), whatever the reader's language: most names
+ * are Norwegian, and "Ål" sorted under A would look wrong next to "Agurk".
+ */
+fun <T> byName(name: (T) -> String): Comparator<T> = compareBy(Collator.getInstance(NORWEGIAN), name)
 
 /** Picks the translation to show for [language], or null for the main name. */
 fun <T> pickTranslation(translations: Map<String, T>, language: String?): T? {

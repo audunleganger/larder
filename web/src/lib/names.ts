@@ -2,6 +2,14 @@ import type { NameTranslation, UnitKind } from '../api/types.gen'
 import { LANGUAGES, type Language } from '../i18n'
 
 /**
+ * Compares names the Norwegian way (NF-8: æ, ø, å after z) whatever the language shown, ignoring case;
+ * mirrors byName in the shared Kotlin module.
+ */
+export function compareNames(a: string, b: string): number {
+  return a.localeCompare(b, 'nb', { sensitivity: 'base' })
+}
+
+/**
  * A unit's label for a quantity (U-8): its plural form unless the quantity is exactly 1 ("1 slice",
  * "2 slices", "0.5 slices"); an empty plural is the same as the name. The only place plurals are
  * chosen, so the rule can change without touching the callers. Mirrors unitLabel in the shared Kotlin module.

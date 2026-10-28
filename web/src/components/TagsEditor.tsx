@@ -4,7 +4,6 @@ import { useQueryClient } from '@tanstack/react-query'
 import * as endpoints from '../api/endpoints'
 import { useApiMutation, useTags } from '../api/queries'
 import type { FoodDetail, FoodDto, TagInput } from '../api/types.gen'
-import { currentLocale } from '../lib/format'
 import { tagsByName } from '../lib/tags'
 import { ErrorText } from './ui'
 import { TagChip } from './TagChip'
@@ -25,13 +24,9 @@ export function TagsEditor({ foodId, value }: { foodId: number; value: number[] 
   const add = useApiMutation((input: TagInput) => endpoints.addFoodTag(foodId, input))
   const busy = set.isPending || add.isPending
   const all = tags.data ?? []
-  const chosen = tagsByName(value, all, currentLocale())
+  const chosen = tagsByName(value, all)
   const current = chosen.map((tag) => tag.id)
-  const offered = tagsByName(
-    all.filter((tag) => !tag.archived && !value.includes(tag.id)).map((tag) => tag.id),
-    all,
-    currentLocale(),
-  )
+  const offered = tagsByName(all.filter((tag) => !tag.archived && !value.includes(tag.id)).map((tag) => tag.id), all)
 
   // Shown at once; the refresh that follows every change brings the rest.
   function saved(food: FoodDto) {

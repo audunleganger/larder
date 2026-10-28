@@ -12,6 +12,7 @@ import com.larder.shared.api.NutrientInput
 import com.larder.shared.domain.AppException
 import com.larder.shared.domain.NutrientDef
 import com.larder.shared.domain.NutritionCalculator
+import com.larder.shared.domain.byName
 import com.larder.shared.domain.cleanName
 import com.larder.shared.domain.inDisplayOrder
 import com.larder.shared.domain.notFound
@@ -54,7 +55,7 @@ class NutrientService(
                     refUnitName = food.refUnitId?.let { catalog.units[it]?.displayName(language) },
                 )
             }
-            .sortedBy { it.foodName.lowercase() }
+            .sortedWith(byName { it.foodName })
         val rows = db.entryQueries.selectEntriesForNutrient(userId, id, entryLimit.toLong() + 1).executeAsList()
         val entries = rows.take(entryLimit).map { entry ->
             val food = catalog.foods.getValue(entry.food_id)

@@ -9,13 +9,12 @@ import com.larder.shared.api.TagInput
 import com.larder.shared.api.TagMetadataInput
 import com.larder.shared.domain.TagColors
 import com.larder.shared.domain.TagDef
+import com.larder.shared.domain.byName
 import com.larder.shared.domain.cleanName
 import com.larder.shared.domain.inLanguageOrder
 import com.larder.shared.domain.notFound
 import com.larder.shared.domain.validation
 import com.larder.shared.normalizeName
-import java.text.Collator
-import java.util.Locale
 
 /**
  * Tags for grouping foods (F-16). Like foods they belong to one user, with the same name rules (F-2,
@@ -33,10 +32,9 @@ class TagService(
     /** The user's tags by display name; archived ones only when [includeArchived]. */
     fun list(includeArchived: Boolean = false): List<TagDto> {
         val counts = foodCounts()
-        val collator = Collator.getInstance(Locale.forLanguageTag(language ?: "en"))
         return all()
             .filter { includeArchived || !it.archived }
-            .sortedWith(compareBy(collator) { it.displayName(language) })
+            .sortedWith(byName { it.displayName(language) })
             .map { it.toDto(counts[it.id] ?: 0) }
     }
 
@@ -47,7 +45,7 @@ class TagService(
         val foods = loadCatalog(db, userId).foods.values
             .filter { id in it.tagIds }
             .map { FoodRef(it.id, it.displayName(language), it.archived) }
-            .sortedBy { it.name.lowercase() }
+            .sortedWith(byName { it.name })
         return TagDetail(tag, foods)
     }
 

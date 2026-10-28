@@ -5,8 +5,6 @@ import com.larder.shared.api.Ingredient
 import com.larder.shared.api.NameTranslation
 import com.larder.shared.api.UnitKind
 import com.larder.shared.normalizeName
-import java.text.Collator
-import java.util.Locale
 
 /** Something with a main name and optional names per language (L-5). */
 interface Named {
@@ -64,14 +62,12 @@ data class UnitDef(
 
 /**
  * Display order of units for a reader in [language]: the ones they show in their own order, or
- * alphabetically until they set one; then the hidden ones alphabetically.
+ * alphabetically (see [byName]) until they set one; then the hidden ones alphabetically.
  */
-fun unitOrder(language: String?): Comparator<UnitDef> {
-    val collator = Collator.getInstance(Locale.forLanguageTag(language ?: "en"))
-    return compareBy<UnitDef>({ it.hidden }, { it.sortOrder ?: Int.MAX_VALUE })
-        .thenComparing({ it.displayName(language) }, collator)
+fun unitOrder(language: String?): Comparator<UnitDef> =
+    compareBy<UnitDef>({ it.hidden }, { it.sortOrder ?: Int.MAX_VALUE })
+        .then(byName { it.displayName(language) })
         .thenBy { it.id }
-}
 
 data class NutrientDef(
     override val id: Long,
