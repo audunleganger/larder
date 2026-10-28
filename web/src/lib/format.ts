@@ -34,6 +34,16 @@ export function parseDecimal(input: string): number | null {
   return Number(cleaned)
 }
 
+/** Whether a parsed number ([parseDecimal]) is a number above zero; false for empty (null) and invalid (NaN). */
+export function isPositive(value: number | null): value is number {
+  return value !== null && value > 0
+}
+
+/** Whether a parsed number ([parseDecimal]) is zero or more; false for empty (null) and invalid (NaN). */
+export function isNonNegative(value: number | null): value is number {
+  return value !== null && value >= 0
+}
+
 /** Formats a number for an editable input, using the locale's decimal separator and no grouping. */
 export function toInputValue(value: number | null | undefined): string {
   if (value === null || value === undefined) return ''

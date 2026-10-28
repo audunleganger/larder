@@ -1,5 +1,5 @@
 import type { InputHTMLAttributes } from 'react'
-import { parseDecimal } from '../lib/format'
+import { isNonNegative, parseDecimal } from '../lib/format'
 
 type Props = Omit<InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange' | 'type'> & {
   value: string
@@ -9,7 +9,7 @@ type Props = Omit<InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange' | 
 /** Text input for decimals; accepts "," and "." (L-2). Marks itself invalid when unparsable. */
 export function DecimalInput({ value, onChange, className = '', ...rest }: Props) {
   const parsed = parseDecimal(value)
-  const invalid = parsed !== null && (Number.isNaN(parsed) || parsed < 0)
+  const invalid = parsed !== null && !isNonNegative(parsed)
   return (
     <input
       {...rest}

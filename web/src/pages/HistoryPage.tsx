@@ -5,6 +5,7 @@ import { useContributions, useHistory, useNutrients } from '../api/queries'
 import type { HistoryView, NutrientDto, NutrientTotal } from '../api/types.gen'
 import { BreakdownList, TargetStatusLabel } from '../components/TargetBar'
 import { Card, Empty, PageHeader, QueryView } from '../components/ui'
+import { OfWhich } from '../components/OfWhich'
 import { addDays, daysBetween, formatDate, isValidIsoDate, rollingAverage, todayIso } from '../lib/dates'
 import { currentLocale, formatAmount, formatNumber } from '../lib/format'
 import { groupNutrients } from '../lib/nutrients'
@@ -229,7 +230,7 @@ function SummaryTable({ view, nutrients }: { view: HistoryView; nutrients: Nutri
             {[main, ...subs].map(({ summary: s, nutrient: n }) => (
               <tr key={s.nutrientId}>
                 <td className={n.id !== main.id ? 'child' : ''}>
-                  {n.id !== main.id && <span className="muted of-which">{t('nutrients.ofWhich')} </span>}
+                  {n.id !== main.id && <OfWhich />}
                   {n.displayName}
                 </td>
                 <td className="num">{formatAmount(s.average, n)}</td>

@@ -8,6 +8,7 @@ import { TargetStatusLabel, TotalBar } from '../components/TargetBar'
 import { FoodThumb } from '../components/FoodPhoto'
 import { targetText } from '../lib/targets'
 import { Badge, Card, ConfirmButton, Empty, ErrorText, PageHeader, QueryView } from '../components/ui'
+import { OfWhich } from '../components/OfWhich'
 import { addDays, formatDate, isValidIsoDate, todayIso } from '../lib/dates'
 import { currentLocale, formatAmount, formatQuantity } from '../lib/format'
 import { unitLabel } from '../lib/names'
@@ -111,7 +112,7 @@ function TotalItem({ total, nutrient, day, unresolved, isSub }: { total: Nutrien
     <div className="total">
       <div className="total-row">
         <Link to={`/nutrients/${nutrient.id}`} className="total-name">
-          {isSub && <span className="muted of-which">{t('nutrients.ofWhich')} </span>}
+          {isSub && <OfWhich />}
           {nutrient.displayName}
         </Link>
         <span className="total-amount">{noData ? '—' : formatAmount(total.amount, nutrient)}</span>

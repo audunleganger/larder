@@ -6,7 +6,7 @@ import type { NutrientDto, TargetDto, TargetInput } from '../api/types.gen'
 import { DecimalInput } from '../components/DecimalInput'
 import { Card, ConfirmButton, Empty, ErrorText, PageHeader, QueryView } from '../components/ui'
 import { formatDate, todayIso } from '../lib/dates'
-import { currentLocale, formatNumber, parseDecimal, toInputValue } from '../lib/format'
+import { currentLocale, formatNumber, isNonNegative, parseDecimal, toInputValue } from '../lib/format'
 
 function rangeText(target: Pick<TargetDto, 'min' | 'max'>, nutrient: NutrientDto, none: string): string {
   const f = (v: number) => formatNumber(v, nutrient.displayPrecision)
@@ -29,7 +29,7 @@ function TargetRow({ nutrient, current }: { nutrient: NutrientDto; current: Targ
     setFormError(null)
     const minValue = parseDecimal(min)
     const maxValue = parseDecimal(max)
-    if ([minValue, maxValue].some((v) => v !== null && (Number.isNaN(v) || v < 0))) return setFormError(t('targets.errors.number'))
+    if ([minValue, maxValue].some((v) => v !== null && !isNonNegative(v))) return setFormError(t('targets.errors.number'))
     if (minValue !== null && maxValue !== null && minValue > maxValue) return setFormError(t('targets.errors.order'))
     save.mutate({ nutrientId: nutrient.id, min: minValue, max: maxValue, effectiveFrom: from })
   }

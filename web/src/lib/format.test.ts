@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseDecimal } from './format'
+import { isNonNegative, isPositive, parseDecimal } from './format'
 import { addDays, daysBetween, isValidIsoDate, rollingAverage } from './dates'
 
 describe('parseDecimal', () => {
@@ -17,6 +17,21 @@ describe('parseDecimal', () => {
   })
   it('ignores spaces used as thousand separators', () => {
     expect(parseDecimal('1 500')).toBe(1500)
+  })
+})
+
+describe('isPositive and isNonNegative', () => {
+  it('reject empty and invalid input', () => {
+    for (const check of [isPositive, isNonNegative]) {
+      expect(check(null)).toBe(false)
+      expect(check(Number.NaN)).toBe(false)
+      expect(check(-1)).toBe(false)
+      expect(check(2.5)).toBe(true)
+    }
+  })
+  it('differ only at zero', () => {
+    expect(isPositive(0)).toBe(false)
+    expect(isNonNegative(0)).toBe(true)
   })
 })
 

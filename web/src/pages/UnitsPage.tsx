@@ -10,7 +10,7 @@ import { Card, Empty, ErrorText, Field, PageHeader, QueryView } from '../compone
 import { MadeBy, TakenHiddenNotice } from '../components/Shared'
 import { takenHidden } from '../lib/shared'
 import { moved } from '../lib/nutrients'
-import { parseDecimal, toInputValue } from '../lib/format'
+import { isPositive, parseDecimal, toInputValue } from '../lib/format'
 import { draftTranslations, effectivePlural, toTranslations } from '../lib/names'
 import { PluralField, TranslationFields } from '../components/TranslationFields'
 
@@ -31,7 +31,7 @@ export function UnitFields({ initial, submitLabel, onSubmit, error, busy }: { in
     event.preventDefault()
     setFormError(null)
     const value = parseDecimal(factor)
-    if (kind !== 'custom' && (value === null || Number.isNaN(value) || value <= 0)) {
+    if (kind !== 'custom' && !isPositive(value)) {
       setFormError(t('units.errors.size', { base: BASE_UNIT[kind] }))
       return
     }
