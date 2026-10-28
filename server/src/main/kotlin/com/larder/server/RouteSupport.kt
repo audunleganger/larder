@@ -30,12 +30,6 @@ suspend fun ApplicationCall.admin(database: Database, auth: Auth): UserPrincipal
     return user
 }
 
-/** Runs [block] on the database thread with the authenticated user's id. */
-suspend fun <T> ApplicationCall.withUser(database: Database, auth: Auth, block: (LarderDatabase, Long) -> T): T {
-    val user = user(database, auth)
-    return database.run { block(it, user.id) }
-}
-
 /**
  * The reader's language for display names (L-5): the request's Accept-Language (the web app sends
  * the language it shows), otherwise the user's saved language.
@@ -43,7 +37,7 @@ suspend fun <T> ApplicationCall.withUser(database: Database, auth: Auth, block: 
 fun ApplicationCall.language(user: UserPrincipal): String? =
     Languages.of(request.header(HttpHeaders.AcceptLanguage)) ?: Languages.of(user.locale)
 
-/** Like [withUser], also passing the reader's [language]. */
+/** Runs [block] on the database thread with the authenticated user's id and the reader's [language]. */
 suspend fun <T> ApplicationCall.withUserLanguage(
     database: Database,
     auth: Auth,
@@ -53,6 +47,17 @@ suspend fun <T> ApplicationCall.withUserLanguage(
     val language = language(user)
     return database.run { block(it, user.id, language) }
 }
+
+/**
+ * Runs [block] on the database thread with a service for the authenticated user, made by [service] with the
+ * reader's language. Each routes file wraps it per service, so a route reads `call.units { list() }`.
+ */
+suspend fun <S, T> ApplicationCall.withService(
+    database: Database,
+    auth: Auth,
+    service: (LarderDatabase, Long, String?) -> S,
+    block: S.() -> T,
+): T = withUserLanguage(database, auth) { db, user, language -> service(db, user, language).block() }
 
 fun ApplicationCall.idParam(name: String = "id"): Long =
     parameters[name]?.toLongOrNull() ?: throw AppException(ErrorCodes.NOT_FOUND, "Not found", 404)
