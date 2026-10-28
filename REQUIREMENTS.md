@@ -1,6 +1,8 @@
 # Larder — Requirement Specification
 
-Version 0.14 · 2026-10-23 · Supersedes `requirements.txt`
+Version 0.15 · 2026-10-28 · Supersedes `requirements.txt`
+
+*0.15: names are listed in Norwegian alphabetical order in every language (NF-8).*
 
 *0.14: renamed from Calorie Companion to Larder; old names that installs depend on still work (see the last appendix).*
 
@@ -266,6 +268,7 @@ Tables of per-user data carry `user_id`; on units and nutrients it is the user w
 - **NF-5** Server ↔ client API is versioned. A client refuses to talk to an incompatible major version, with a clear message.
 - **NF-6** The shared domain module has unit tests for all calculation rules (C-1 … C-4) and unit resolution (U-4, U-5), including incomplete-data cases.
 - **NF-7** Android minSdk: 26 (Android 8).
+- **NF-8** Names are listed in Norwegian alphabetical order (æ, ø, å after z), ignoring case, whatever the reader's language: most names are Norwegian.
 
 ---
 

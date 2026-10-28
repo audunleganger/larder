@@ -12,6 +12,7 @@ import com.larder.shared.api.UnitKind
 import com.larder.shared.domain.AppException
 import com.larder.shared.domain.UnitDef
 import com.larder.shared.domain.UnitResolver
+import com.larder.shared.domain.byName
 import com.larder.shared.domain.cleanName
 import com.larder.shared.domain.defaultPlural
 import com.larder.shared.domain.notFound
@@ -53,8 +54,8 @@ class UnitService(
         } else emptyList()
         return UnitDetail(
             unit = unit.toDto(reader),
-            foods = explicit.map { FoodRef(it.id, it.displayName(language), it.archived) }.sortedBy { it.name.lowercase() },
-            implicitFoods = implicit.map { FoodRef(it.id, it.displayName(language), it.archived) }.sortedBy { it.name.lowercase() },
+            foods = explicit.map { FoodRef(it.id, it.displayName(language), it.archived) }.sortedWith(byName { it.name }),
+            implicitFoods = implicit.map { FoodRef(it.id, it.displayName(language), it.archived) }.sortedWith(byName { it.name }),
             dates = queries.selectUnitDates(userId, id).executeAsList(),
         )
     }

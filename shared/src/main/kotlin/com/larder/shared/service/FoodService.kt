@@ -25,6 +25,7 @@ import com.larder.shared.domain.FoodDef
 import com.larder.shared.domain.ImageRules
 import com.larder.shared.domain.StoredImage
 import com.larder.shared.domain.UnitResolver
+import com.larder.shared.domain.byName
 import com.larder.shared.domain.cleanName
 import com.larder.shared.domain.cleanOptionalText
 import com.larder.shared.domain.notFound
@@ -58,9 +59,9 @@ class FoodService(
             .filter { includeArchived || !it.archived }
             .map { food -> food to (listOf(food.name) + food.translations.values.map { it.name }).map(::foldForSearch) }
             .filter { (_, names) -> needle == null || names.any { needle in it } }
-            .map { (food, names) -> Triple(food, foldForSearch(food.displayName(language)), needle != null && names.none { it.startsWith(needle) }) }
-            .sortedWith(compareBy({ it.third }, { it.second }))
-            .map { (food, _, _) ->
+            .map { (food, names) -> food to (needle != null && names.none { it.startsWith(needle) }) }
+            .sortedWith(compareBy<Pair<FoodDef, Boolean>> { it.second }.then(byName { it.first.displayName(language) }))
+            .map { (food, _) ->
                 FoodSummary(
                     food.id, food.displayName(language), food.archived, food.refAmount, food.refUnitId,
                     food.nutrients.size, food.imageVersion, composite = food.composite != null,
@@ -87,7 +88,7 @@ class FoodService(
         val usedIn = catalog.foods.values
             .filter { other -> other.composite?.ingredients.orEmpty().any { it.foodId == id } }
             .map { FoodRef(it.id, it.displayName(language), it.archived) }
-            .sortedBy { it.name.lowercase() }
+            .sortedWith(byName { it.name })
         val loggedAsItemsOn = if (food.composite != null) db.entryQueries.selectDatesViaFood(userId, id).executeAsList() else emptyList()
         return FoodDetail(
             food.toDto(language), UnitResolver(catalog).usableUnits(food, language), entries,

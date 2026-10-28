@@ -16,9 +16,9 @@ const tag = (id: number, displayName: string): TagDto => ({
 })
 
 describe('tagsByName', () => {
-  it('sorts by display name in the language, ignoring case, and skips unknown ids', () => {
-    const tags = [tag(1, 'ost'), tag(2, 'Ærfugl'), tag(3, 'Brød'), tag(4, 'øl')]
-    expect(tagsByName([1, 2, 3, 4, 9], tags, 'nb-NO').map((t) => t.displayName)).toEqual(['Brød', 'ost', 'Ærfugl', 'øl'])
+  it('sorts by display name the Norwegian way, ignoring case, and skips unknown ids', () => {
+    const tags = [tag(1, 'ost'), tag(2, 'Ærfugl'), tag(3, 'Brød'), tag(4, 'øl'), tag(5, 'Ål')]
+    expect(tagsByName([1, 2, 3, 4, 5, 9], tags).map((t) => t.displayName)).toEqual(['Brød', 'ost', 'Ærfugl', 'øl', 'Ål'])
   })
 })
 

@@ -8,7 +8,7 @@ import { DecimalInput } from '../components/DecimalInput'
 import { FoodThumb } from '../components/FoodPhoto'
 import { unitLabel } from '../lib/names'
 import { Badge, Card, Empty, ErrorText, PageHeader, QueryView } from '../components/ui'
-import { currentLocale, formatNumber, parseDecimal, toInputValue } from '../lib/format'
+import { formatNumber, parseDecimal, toInputValue } from '../lib/format'
 import { tagsByName } from '../lib/tags'
 import { TagChip } from '../components/TagChip'
 import { useDebounced } from '../lib/useDebounced'
@@ -226,7 +226,7 @@ export function FoodsPage() {
                             </Link> {food.composite && <Badge tone="info">{t('composite.badge')}</Badge>} {food.ingredientOnly && <Badge tone="info">{t('foods.ingredientOnly')}</Badge>} {food.archived && <Badge>{t('common.archived')}</Badge>}
                             {food.tagIds.length > 0 && (
                               <ul className="chips food-tags">
-                                {tagsByName(food.tagIds, tags.data ?? [], currentLocale()).map((tag) => (
+                                {tagsByName(food.tagIds, tags.data ?? []).map((tag) => (
                                   <TagChip key={tag.id} tag={tag} />
                                 ))}
                               </ul>

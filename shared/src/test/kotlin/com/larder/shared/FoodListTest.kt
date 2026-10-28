@@ -10,7 +10,7 @@ import com.larder.shared.service.UnitService
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-/** The food list's nutrient values (F-17). */
+/** The food list: its order, and its nutrient values (F-17). */
 class FoodListTest {
     private val t = TestDb()
     private val foods = FoodService(t.db, t.userId)
@@ -33,5 +33,13 @@ class FoodListTest {
         assertEquals(272.0, list.getValue(dressing).nutrients.getValue(energy), 1e-9)
         assertEquals(30.0, list.getValue(dressing).nutrients.getValue(fat), 1e-9)
         assertEquals(emptyMap(), list.getValue(bare).nutrients)
+    }
+
+    @Test
+    fun `the list is in Norwegian order, with prefix matches first when searching`() {
+        listOf("Ål", "Ørret", "Agurk", "Blåbær", "Zucchini", "Ærter").forEach { foods.create(FoodInput(it)) }
+        assertEquals(listOf("Agurk", "Blåbær", "Zucchini", "Ærter", "Ørret", "Ål"), foods.list().map { it.name })
+        // "ae" starts "Ærter" and is inside "Blåbær" (search folds æ to ae).
+        assertEquals(listOf("Ærter", "Blåbær"), foods.list("ae").map { it.name })
     }
 }
